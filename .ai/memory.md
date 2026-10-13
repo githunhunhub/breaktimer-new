@@ -13,6 +13,7 @@
 
 - 文档先行，代码是成果（见 `docs/decisions/0001-ai-first-repo-structure.md`）。
 - AI 文件不得写入 `app/`。
+- 文档工作流：一需求一 spec（`docs/specs/NNNN-*.md`），索引在 `docs/specs/README.md`；小需求计划写在 spec 内，大工程才用 `docs/plans/`；流程细则见 `AGENTS.md`。
 
 ## 待办 / 阻塞
 
