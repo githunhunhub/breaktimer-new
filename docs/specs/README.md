@@ -8,5 +8,6 @@
 | 编号 | 需求 | 状态 | 关联 ADR | 代码 |
 | --- | --- | --- | --- | --- |
 | [SPEC-0001](0001-cross-device-git-baseline.md) | 跨设备 Git 管理基线 | done | ADR-0001 | 根目录仓库配置 |
+| [SPEC-0002](0002-break-window-fullscreen-overlay.md) | 休息窗口全屏遮挡（软遮挡，允许手动结束） | confirmed | ADR-0002 | `app/`（待实现） |
 
 <!-- 新增 spec 后在此表追加一行。状态：draft / confirmed / in-progress / done / superseded -->

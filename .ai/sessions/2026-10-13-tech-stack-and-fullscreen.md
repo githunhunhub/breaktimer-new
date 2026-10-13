@@ -12,7 +12,8 @@
 - 补全 `docs/overview.md`（范围/非目标）、`docs/architecture.md`（目标架构与差异表）、`docs/glossary.md`（术语）。
 - 更新 `docs/roadmap.md` 与 `.ai/memory.md`。
 - 新增学习笔记 `ai-notes/02-tauri-desktop-stack-and-windowing.md`。
+- 确认全屏休息窗为软遮挡 + 允许手动结束，写入 `docs/specs/0002-break-window-fullscreen-overlay.md`（状态 confirmed）。
 
 ## 待办
 
-- 写首个功能 spec：`docs/specs/0002-break-window-fullscreen-overlay.md`（或含休息调度），引用 ADR-0002，明确验收标准。
+- 补充其余 spec：休息调度、工作时段、闲置重置、托盘、自启动、通知模式、声音。
