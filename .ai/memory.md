@@ -21,7 +21,6 @@
 
 ## 待办 / 阻塞
 
-- 推送 `master` 到 `origin`（gitee）。
 - 确认技术选型（Tauri v2 vs Wails v2）。
 - 填写 `docs/overview.md` 的「范围」，写技术选型 ADR。
 - 进入 M1：梳理产品需求（后续 spec 从 SPEC-0002 起）。

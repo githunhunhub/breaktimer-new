@@ -18,8 +18,8 @@
 - `git ls-files` 确认已有文档、AI 记忆与会话均在跟踪清单中。
 - `git submodule status` 确认旧源码固定在 `2d672434`；执行 `git submodule update --init --recursive` 后工作区已恢复。
 - `git check-ignore` 确认 `.vscode/settings.json` 等共享配置可入库，而 `.env`、个人状态与 `node_modules/` 仍被排除。
+- 提交 `500417c` 已推送到 `origin/master`（gitee）。
 
 ## 待续
 
 - `app/` 初始化后提交源码、配置与依赖锁文件。
-- 推送本轮变更到 `origin`。
