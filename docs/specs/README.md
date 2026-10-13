@@ -7,6 +7,6 @@
 
 | 编号 | 需求 | 状态 | 关联 ADR | 代码 |
 | --- | --- | --- | --- | --- |
-| — | （尚无） | — | — | — |
+| [SPEC-0001](0001-cross-device-git-baseline.md) | 跨设备 Git 管理基线 | done | ADR-0001 | 根目录仓库配置 |
 
 <!-- 新增 spec 后在此表追加一行。状态：draft / confirmed / in-progress / done / superseded -->

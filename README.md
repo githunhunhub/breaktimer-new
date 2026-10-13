@@ -18,3 +18,23 @@ ai-notes/        AI 编程学习笔记（随项目沉淀）
 app/             新代码（成果）
 breaktimer-app/  旧版源码（参考，只读）
 ```
+
+## 跨设备开发
+
+项目遵循「能复现的都入库」：文档、AI 记忆、代码、测试、配置与依赖锁文件都随 Git 同步；
+只排除密钥、机器本地状态、依赖目录、构建产物与缓存。具体约定见
+[`SPEC-0001`](docs/specs/0001-cross-device-git-baseline.md)。
+
+新设备首次拉取：
+
+```shell
+git clone --recurse-submodules https://gitee.com/githunee/breaktimer-new.git
+```
+
+已克隆但尚未初始化旧源码时：
+
+```shell
+git submodule update --init --recursive
+```
+
+提交前可用 `git status --short --ignored` 检查是否有本应入库的文件被错误忽略。

@@ -1,15 +1,33 @@
-# Node / 构建产物
+# 依赖 / 构建产物（可由源码与锁文件重建）
 node_modules/
 dist/
 out/
 release/
+coverage/
+*.tsbuildinfo
 
-# 日志
+# 日志 / 缓存
 *.log
 npm-debug.log*
+.cache/
+.tmp/
 
-# 编辑器 / 系统
+# 本地环境与密钥（示例文件保留，可入库）
+.env
+.env.*
+!.env.example
+
+# 编辑器：跟踪可共享配置，忽略个人状态
+.idea/*
+!.idea/codeStyles/
+!.idea/inspectionProfiles/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# 系统
 .DS_Store
 Thumbs.db
-.idea/
-.vscode/
+Desktop.ini

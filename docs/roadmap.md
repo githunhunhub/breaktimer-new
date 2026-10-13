@@ -2,7 +2,7 @@
 
 ## 里程碑
 
-- [x] **M0｜仓库与文档基线** —— 目录结构、`AGENTS.md`、文档骨架
+- [x] **M0｜仓库与文档基线** —— 目录结构、`AGENTS.md`、文档骨架、跨设备 Git 基线（SPEC-0001）
 - [ ] **M1｜需求梳理** —— 完成 `docs/overview.md`、`docs/specs/*`
 - [ ] **M2｜目标架构设计** —— 完成 `docs/architecture.md`，产出关键 ADR
 - [ ] **M3｜技术选型与 `app/` 初始化**
