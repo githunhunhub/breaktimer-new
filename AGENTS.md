@@ -19,6 +19,7 @@
 | `docs/specs/` | 需求规格（一需求一文件）+ 索引 `README.md` + 模板 `0000-template.md` | 常看 |
 | `docs/plans/` | 大工程的任务拆解（小需求写在 spec 内） | 按需 |
 | `docs/decisions/` | ADR：为什么这样决定 | 按需 |
+| `ai-notes/` | AI 编程学习笔记（系统化沉淀） | 人 + AI，常看 |
 | `.ai/` | **仅 AI 自用**的运行痕迹 | AI |
 | `.ai/memory.md` | 跨会话记忆 | AI |
 | `.ai/sessions/` | 会话 / 进度日志 | AI |
@@ -30,7 +31,7 @@
 1. **文档先行**：改代码前先读 `docs/overview.md` 与相关 `docs/specs/*`；需求或设计有变动，先改 `docs/`，再改 `app/`。
 2. **决策留痕**：出现架构或技术取舍，写一条 `docs/decisions/NNNN-*.md`（编号递增，**只增不改**）。
 3. **会话留痕**：每次重构会话结束，在 `.ai/sessions/` 写一条记录，并更新 `.ai/memory.md`。
-4. **边界**：AI 相关文件只能放在仓库根、`docs/`、`.ai/`；**不得写进 `app/`**。
+4. **边界**：AI 相关文件只能放在仓库根、`docs/`、`ai-notes/`、`.ai/`；**不得写进 `app/`**。
 5. **旧源码只读**：不修改 `breaktimer-app/` 内任何内容。
 
 ## 文档工作流
