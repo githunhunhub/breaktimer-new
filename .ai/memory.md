@@ -5,7 +5,7 @@
 ## 当前状态
 
 - 项目：BreakTimer 重构（两重目的：学习 AI 编程 + 替换 Electron）
-- 阶段：M0/M1/M2 完成；需求 spec 已齐全（SPEC-0002 ~ SPEC-0010，全部 confirmed）；下一步 M3 初始化 `app/` Tauri 工程
+- 阶段：M0/M1/M2 完成；需求 spec 已齐全（SPEC-0002 ~ SPEC-0010，全部 confirmed）；实施计划已补齐（PLAN-0001 `app/` 骨架、PLAN-0002 五阶段实现顺序）；下一步 M3 初始化 `app/` Tauri 工程
 - 新代码目录：`app/`（当前为空，尚未初始化）
 - 旧源码：`breaktimer-app/` 以 git submodule 引用上游，钉在 commit `2d67243`（≈ v2.1.0-54）
 - AI 学习笔记目录：`ai-notes/`
@@ -23,6 +23,6 @@
 
 ## 待办 / 阻塞
 
-- 初始化 `app/` 的 Tauri v2 工程骨架（React + TS 前端、Rust 后端、`invoke`/command IPC）。
-- 按 spec 逐个实现（建议先做 SPEC-0003 调度 + SPEC-0002 窗口，跑通最小闭环）。
+- 按 `docs/plans/0001-app-scaffold.md` 初始化 `app/` 的 Tauri v2 工程骨架（React + TS 前端、Rust 后端、`invoke`/command IPC、插件接入）。
+- 按 `docs/plans/0002-implementation-phases.md` 五阶段实现：地基（设置/生命周期）→ 最小闭环（调度+窗口+声音）→ 时间与状态条件 → 系统集成 → 打包发布。
 - `app/` 初始化后，将源码、配置与依赖锁文件一并提交。
