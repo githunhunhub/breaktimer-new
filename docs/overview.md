@@ -3,19 +3,29 @@
 ## 目标
 
 1. **学习 AI 编程**：把本次重构当作「如何更好地用 AI 完成项目开发」的实践，系统化沉淀 AI 学习笔记（见 `ai-notes/`）。
-2. **重构 BreakTimer**：用更现代的桌面技术栈替换原项目的 Electron（候选：Tauri v2，待确认）。
+2. **重构 BreakTimer**：用 Tauri v2（Rust）替换原项目的 Electron（见 ADR-0002）。
 
 ## 范围（In scope）
 
-<!-- TODO：确认技术栈后补充具体重构范围 -->
+复刻旧版 BreakTimer 的核心能力（前端保留 React + TypeScript）：
+
+- 休息调度：定时休息、工作时段、闲置重置、休眠/锁屏恢复、推迟/跳过/立即休息。
+- 休息呈现：每个显示器一个全屏遮挡层（backdrop，软遮挡）或居中窗口；支持声音。
+- 系统托盘：菜单、倒计时/距上次休息文本、立即休息、开关休息。
+- 设置持久化与设置窗口。
+- 系统通知（`Notification` 模式）。
+- 自启动（auto-launch）。
 
 ## 非目标（Out of scope）
 
-<!-- TODO：明确这次不做的事，避免范围蔓延 -->
+- 自动更新（旧版 Snap/AppImage 自带自动更新；本期先用 Tauri 的 updater 插件评估，暂不纳入）。
+- 企业/商业部署支持。
+- kiosk 级「硬锁定」：独占键盘鼠标、禁止 Alt+Tab/切任务（本期保留旧版的软遮挡语义，见 ADR-0002）。
+- 多语言本地化（旧版为英文界面）。
 
 ## 约束
 
 - 平台：Windows / macOS / Linux
 - 前端尽量复用旧 UI 资产（React + TypeScript）
-- 技术栈：以 `docs/architecture.md` 与后续技术选型 ADR 为准
+- 技术栈：以 `docs/architecture.md` 与 `docs/decisions/0002-technology-stack.md` 为准
 - 旧实现仅作参考：`breaktimer-app/`

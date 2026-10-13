@@ -11,8 +11,27 @@
 
 ## 目标架构（新版 `app/`）
 
-<!-- TODO: 描述目标分层与模块划分 -->
+三层结构：
+
+1. **前端 SPA（渲染层）**：React + TypeScript + Tailwind CSS + shadcn/ui。
+   - 复用旧 `app/renderer/` 的 UI 资产（设置页、休息窗口、声音、进度组件等）。
+   - 通过 Tauri `invoke()` 调用后端 command，不再直接接触 Electron `ipcRenderer`。
+2. **Tauri core（Rust 后端）**：
+   - **休息调度器**：复刻旧 `breaks.ts`（定时、工作时段、闲置重置、休眠恢复）。
+   - **窗口管理**：每个显示器一个 break window；休息阶段切换全屏遮挡 / 居中小窗。
+   - **托盘**：菜单、倒计时文本、立即休息、开关休息。
+   - **设置持久化**：复刻旧 `store.ts`。
+   - **系统集成**：空闲检测、系统通知、自启动、声音播放。
+3. **系统层**：系统 WebView（WebView2 / WKWebView / WebKitGTK）+ OS API（显示器枚举、全屏、置顶、托盘、通知、自启动）。
 
 ## 与旧架构的关键差异
 
-<!-- TODO -->
+| 维度 | 旧版（Electron） | 新版（Tauri v2） |
+| --- | --- | --- |
+| 后端语言 | Node.js/TypeScript（主进程） | Rust |
+| 运行时 | 捆绑 Chromium + Node | 系统 WebView + 轻量 Rust 运行时 |
+| IPC | `ipcMain` / `ipcRenderer` | `#[tauri::command]` + `invoke` |
+| 多显示器全屏 | 手工 `setSize(display.bounds)` | `setFullscreenOnMonitor`（原生） |
+| 非焦点窗口 | `focusable:false` + `showInactive()` | `setFocusable(false)` + 控制 `show()` 顺序 |
+| 构建 | Vite（渲染）+ Webpack（主进程） | Vite（前端）+ `cargo build`（Rust） |
+| 打包体积/内存 | 较大 | 明显更小 |
