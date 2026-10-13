@@ -3,7 +3,7 @@
 ## 里程碑
 
 - [x] **M0｜仓库与文档基线** —— 目录结构、`AGENTS.md`、文档骨架、跨设备 Git 基线（SPEC-0001）
-- [ ] **M1｜需求梳理** —— `docs/overview.md` 已补范围/非目标；已写 SPEC-0002（休息窗口全屏遮挡），后续按模块补充 spec
+- [x] **M1｜需求梳理** —— `docs/overview.md` 范围/非目标 + `docs/specs/*`（SPEC-0002 ~ SPEC-0010）
 - [x] **M2｜目标架构设计** —— `docs/architecture.md` 已补目标架构与差异；产出 ADR-0002（Electron → Tauri v2）
 - [ ] **M3｜技术选型与 `app/` 初始化** —— 技术栈已定（ADR-0002），待初始化 Tauri 工程
 - [ ] **M4｜功能重构**（按模块拆分，见 `docs/plans/`）
@@ -11,4 +11,4 @@
 
 ## 当前重点
 
-M1 —— 需求梳理：技术栈已定（Tauri v2，ADR-0002），SPEC-0002（休息窗口全屏遮挡）已确认；下一步补休息调度等其余 spec，再进入 `app/` 初始化。
+M3 —— `app/` 初始化：需求 spec 已齐全（SPEC-0002 ~ SPEC-0010），下一步初始化 Tauri v2 工程骨架，再按 spec 逐个实现。

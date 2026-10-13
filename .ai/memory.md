@@ -5,7 +5,7 @@
 ## 当前状态
 
 - 项目：BreakTimer 重构（两重目的：学习 AI 编程 + 替换 Electron）
-- 阶段：M0 完成；M2 架构 + 技术选型完成（ADR-0002）；M1 需求梳理中，SPEC-0002（休息窗口全屏遮挡）已确认
+- 阶段：M0/M1/M2 完成；需求 spec 已齐全（SPEC-0002 ~ SPEC-0010，全部 confirmed）；下一步 M3 初始化 `app/` Tauri 工程
 - 新代码目录：`app/`（当前为空，尚未初始化）
 - 旧源码：`breaktimer-app/` 以 git submodule 引用上游，钉在 commit `2d67243`（≈ v2.1.0-54）
 - AI 学习笔记目录：`ai-notes/`
@@ -23,5 +23,6 @@
 
 ## 待办 / 阻塞
 
-- 补充休息调度、工作时段、闲置重置、托盘、自启动、通知模式、声音等其余 spec（SPEC-0003 起）。
+- 初始化 `app/` 的 Tauri v2 工程骨架（React + TS 前端、Rust 后端、`invoke`/command IPC）。
+- 按 spec 逐个实现（建议先做 SPEC-0003 调度 + SPEC-0002 窗口，跑通最小闭环）。
 - `app/` 初始化后，将源码、配置与依赖锁文件一并提交。
