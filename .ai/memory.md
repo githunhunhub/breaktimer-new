@@ -5,7 +5,7 @@
 ## 当前状态
 
 - 项目：BreakTimer 重构（两重目的：学习 AI 编程 + 替换 Electron）
-- 阶段：M0/M1/M2/M3 完成；M4 阶段 1「设置与生命周期」已完成；阶段 2「调度 + 休息窗 + 声音」核心闭环已实现并完成自动化验证，人工多显示器/焦点/真实音频验收待做
+- 阶段：M0/M1/M2/M3 完成；M4 阶段 1「设置与生命周期」已完成；阶段 2「调度 + 休息窗 + 声音」核心闭环已实现，自动化验证与 Windows 人工验收通过，macOS/Linux 平台验收待做
 - 新代码目录：`app/`（pnpm + Vite + React/TS 前端，`src-tauri/` Rust 后端）
 - 旧源码：`breaktimer-app/` 以 git submodule 引用上游，钉在 commit `2d67243`（≈ v2.1.0-54）
 - AI 学习笔记目录：`ai-notes/`
@@ -18,6 +18,8 @@
 - M4 阶段 1：设置窗口改为 draft + 点击 Save；后端按纯函数副作用处理自启动、启用休息时重置计时和调度重启；开发构建跳过真实自启动注册
 - M4 阶段 1 验证：Rust 24 tests、`cargo check --locked --all-targets`、前端 lint/typecheck/format/test/build 全部通过；CDP 端到端验证 Save 落盘、重启保留和 single-instance；2026-10-14 用户人工验收通过；测试后已恢复用户原设置
 - M4 阶段 2 验证：Rust fmt/check 通过，`cargo test --all-targets` 50 tests 通过；前端 lint/typecheck/format/test/build 通过，Vitest 8 tests；核心状态机、窗口几何、提示条宽度、声音资源映射和休息窗交互已有测试
+- M4 阶段 2 Windows 人工验收（2026-10-14）：多显示器窗口、焦点保持、跨工作区可见性、开始/结束声音、结束流程均通过；测试后已恢复用户原设置
+- M4 阶段 2 提交：`codex/m4-phase-2` 提交 `17c42d7`，以 `--no-ff` 合入 `master`（merge `e9b4fb3`）并推送 `origin/master`
 
 ## 关键约定
 
@@ -29,7 +31,7 @@
 ## 待办 / 阻塞
 
 - SPEC-0010 当前为 `in-progress`：阶段 1 已完成，但设置窗口仅覆盖「通用」分组；余下分组与字段在后续阶段补齐。
-- SPEC-0002：代码与自动化验证已完成；真实多显示器、混合 DPI、焦点保持、跨工作区和平台限制的人工验收待做。
-- SPEC-0009：播放通道与资源映射已完成；真实音频设备可听性和音量变化的人工验收待做。
+- SPEC-0002：代码、自动化验证与 Windows 多显示器/焦点/跨工作区人工验收已完成；`showBackdrop=false`、推迟/跳过按钮、混合 DPI 与 macOS/Linux 平台限制待验证。
+- SPEC-0009：播放通道、资源映射与 Windows 真实音频人工验收已完成，状态 `done`。
 - SPEC-0003：阶段 2 核心闭环完成；阶段 3 补工作时段、闲置重置和休眠/锁屏恢复。
 - 按 `docs/plans/0002-implementation-phases.md` 继续：阶段 3「时间与状态条件」。
