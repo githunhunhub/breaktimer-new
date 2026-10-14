@@ -15,6 +15,10 @@ import { SettingsWindow, type SettingsClient } from "./settings-window";
 
 afterEach(cleanup);
 
+function workingHours(enabled: boolean) {
+  return { enabled, ranges: [{ fromMinutes: 540, toMinutes: 1080 }] };
+}
+
 function makeSettings(overrides: Partial<Settings> = {}): Settings {
   return {
     autoLaunch: false,
@@ -27,13 +31,13 @@ function makeSettings(overrides: Partial<Settings> = {}): Settings {
     postponeLengthSeconds: 300,
     postponeLimit: 3,
     workingHoursEnabled: false,
-    workingHoursMonday: { enabled: true, ranges: [] },
-    workingHoursTuesday: { enabled: true, ranges: [] },
-    workingHoursWednesday: { enabled: true, ranges: [] },
-    workingHoursThursday: { enabled: true, ranges: [] },
-    workingHoursFriday: { enabled: true, ranges: [] },
-    workingHoursSaturday: { enabled: false, ranges: [] },
-    workingHoursSunday: { enabled: false, ranges: [] },
+    workingHoursMonday: workingHours(true),
+    workingHoursTuesday: workingHours(true),
+    workingHoursWednesday: workingHours(true),
+    workingHoursThursday: workingHours(true),
+    workingHoursFriday: workingHours(true),
+    workingHoursSaturday: workingHours(false),
+    workingHoursSunday: workingHours(false),
     idleResetEnabled: true,
     idleResetLengthSeconds: 300,
     idleResetNotification: false,
@@ -130,5 +134,135 @@ describe("SettingsWindow", () => {
     );
     expect(breaksSwitch.getAttribute("aria-checked")).toBe("false");
     expect(saveButton.disabled).toBe(false);
+  });
+
+  it("loads working hours and smart breaks into their groups", async () => {
+    const client = makeClient(
+      makeSettings({
+        workingHoursEnabled: true,
+        workingHoursSaturday: workingHours(false),
+        idleResetEnabled: true,
+        idleResetLengthSeconds: 300,
+        idleResetNotification: true,
+      }),
+    );
+
+    render(<SettingsWindow client={client} />);
+
+    const globalSwitch = await screen.findByRole("switch", {
+      name: "Restrict breaks to working hours",
+    });
+    expect(globalSwitch.getAttribute("aria-checked")).toBe("true");
+    expect(
+      screen
+        .getByRole("switch", { name: "Monday" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+    expect(
+      screen
+        .getByRole("switch", { name: "Saturday" })
+        .getAttribute("aria-checked"),
+    ).toBe("false");
+    expect(
+      (screen.getByLabelText("Monday start 1") as HTMLInputElement).value,
+    ).toBe("09:00");
+    expect(
+      (screen.getByLabelText("Monday end 1") as HTMLInputElement).value,
+    ).toBe("18:00");
+    expect(
+      (screen.getByLabelText("Idle time in minutes") as HTMLInputElement).value,
+    ).toBe("5");
+    expect(
+      (screen.getByLabelText("Idle time in seconds") as HTMLInputElement).value,
+    ).toBe("0");
+    expect(
+      screen
+        .getByRole("switch", {
+          name: "Show notification when break automatically detected",
+        })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+  });
+
+  it("saves an edited working-hours range", async () => {
+    const client = makeClient(makeSettings({ workingHoursEnabled: true }));
+    render(<SettingsWindow client={client} />);
+
+    const start = await screen.findByLabelText("Monday start 1");
+    fireEvent.change(start, { target: { value: "10:00" } });
+    expect((start as HTMLInputElement).value).toBe("10:00");
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(client.setSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workingHoursMonday: {
+            enabled: true,
+            ranges: [{ fromMinutes: 600, toMinutes: 1080 }],
+          },
+        }),
+      );
+    });
+  });
+
+  it("adds and removes working-hours ranges", async () => {
+    const client = makeClient(makeSettings({ workingHoursEnabled: true }));
+    render(<SettingsWindow client={client} />);
+
+    const addButton = await screen.findByRole("button", {
+      name: "Add Monday range",
+    });
+    fireEvent.click(addButton);
+
+    expect(screen.getByLabelText("Monday start 2")).toBeTruthy();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove Monday range 1" }),
+    );
+
+    expect(screen.queryByLabelText("Monday start 2")).toBeNull();
+    expect(screen.getByLabelText("Monday start 1")).toBeTruthy();
+  });
+
+  it("saves idle-reset duration and notification edits", async () => {
+    const client = makeClient(
+      makeSettings({ idleResetEnabled: true, idleResetLengthSeconds: 300 }),
+    );
+    render(<SettingsWindow client={client} />);
+
+    const seconds = await screen.findByLabelText("Idle time in seconds");
+    fireEvent.change(seconds, { target: { value: "30" } });
+    fireEvent.click(
+      screen.getByRole("switch", {
+        name: "Show notification when break automatically detected",
+      }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(client.setSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          idleResetLengthSeconds: 330,
+          idleResetNotification: true,
+        }),
+      );
+    });
+  });
+
+  it("disables smart-break controls when idle reset is off", async () => {
+    const client = makeClient(makeSettings({ idleResetEnabled: false }));
+    render(<SettingsWindow client={client} />);
+
+    const minutes = (await screen.findByLabelText(
+      "Idle time in minutes",
+    )) as HTMLInputElement;
+    const notification = screen.getByRole("switch", {
+      name: "Show notification when break automatically detected",
+    });
+
+    expect(minutes.disabled).toBe(true);
+    expect(notification.hasAttribute("disabled")).toBe(true);
   });
 });

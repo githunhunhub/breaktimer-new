@@ -9,6 +9,7 @@ use chrono::Utc;
 use tauri::{AppHandle, Emitter, Runtime};
 
 use crate::breaks::{BreakActionError, BreakEndOutcome, BreakStart, BreakTick};
+use crate::notifications;
 use crate::sounds;
 use crate::state::AppState;
 use crate::windows;
@@ -16,10 +17,19 @@ use crate::windows;
 /// Renderer event carrying the latest [`crate::breaks::BreakStatus`] snapshot.
 pub const BREAK_STATUS_EVENT: &str = "break-status";
 
+/// Title of the optional idle-reset notification (SPEC-0005).
+pub const IDLE_RESET_NOTIFICATION_TITLE: &str = "Break automatically detected";
+
 /// Advances the scheduler by one tick and applies the resulting side effects.
 pub fn tick<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
     match state.tick(Utc::now()) {
         BreakTick::None => {}
+        BreakTick::IdleReset(reset) => {
+            if reset.notify {
+                notify_idle_reset(app, reset.idle_seconds);
+            }
+            emit_status(app, state);
+        }
         BreakTick::BreakPrompted => {
             let settings = state.store.settings();
             if let Err(error) = windows::show_prompt(app, &settings) {
@@ -106,10 +116,39 @@ fn break_ended<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
     emit_status(app, state);
 }
 
+fn notify_idle_reset<R: Runtime>(app: &AppHandle<R>, idle_seconds: u64) {
+    let body = idle_reset_body(idle_seconds);
+    if let Err(error) = notifications::notify(app, IDLE_RESET_NOTIFICATION_TITLE, &body) {
+        eprintln!("failed to show idle reset notification: {error}");
+    }
+}
+
+/// Formats the idle duration as the legacy `Away for HH:MM:SS` body (SPEC-0005).
+fn idle_reset_body(idle_seconds: u64) -> String {
+    let hours = idle_seconds / 3600;
+    let minutes = (idle_seconds % 3600) / 60;
+    let seconds = idle_seconds % 60;
+    format!("Away for {hours:02}:{minutes:02}:{seconds:02}")
+}
+
 /// Broadcasts the current scheduler snapshot to every window.
 pub fn emit_status<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
     let status = state.break_status(Utc::now());
     if let Err(error) = app.emit(BREAK_STATUS_EVENT, status) {
         eprintln!("failed to emit break status: {error}");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn idle_reset_body_formats_the_away_duration() {
+        assert_eq!(idle_reset_body(0), "Away for 00:00:00");
+        assert_eq!(idle_reset_body(59), "Away for 00:00:59");
+        assert_eq!(idle_reset_body(60), "Away for 00:01:00");
+        assert_eq!(idle_reset_body(3_661), "Away for 01:01:01");
+        assert_eq!(idle_reset_body(360_000), "Away for 100:00:00");
     }
 }

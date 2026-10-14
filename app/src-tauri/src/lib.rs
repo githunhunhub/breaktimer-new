@@ -6,6 +6,7 @@ mod flow;
 mod notifications;
 mod sounds;
 mod state;
+mod system_state;
 mod tray;
 mod windows;
 
