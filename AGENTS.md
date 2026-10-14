@@ -67,4 +67,16 @@
 
 ## 常用命令
 
-> `app/` 尚未初始化，待技术栈确定后在此补全：`dev` / `build` / `test` / `lint` / `typecheck`。
+在 `app/` 目录执行：
+
+| 目的 | 命令 |
+| --- | --- |
+| 安装前端依赖（可复现） | `pnpm install --frozen-lockfile` |
+| 启动桌面开发模式 | `pnpm tauri:dev` |
+| 前端生产构建 | `pnpm build` |
+| 前端测试 | `pnpm test` |
+| 前端检查 | `pnpm lint` · `pnpm typecheck` · `pnpm format:check` |
+| 后端测试 | `cargo test --all-targets --manifest-path app/src-tauri/Cargo.toml` |
+| 后端检查（锁定依赖） | `cargo check --locked --all-targets --manifest-path app/src-tauri/Cargo.toml` |
+
+> 后端命令也可在 `app/src-tauri/` 下直接执行；`cargo fmt --all` 用于 Rust 格式化。
