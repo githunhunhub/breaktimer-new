@@ -24,13 +24,15 @@
    - **系统集成**：空闲检测、系统通知、自启动、声音播放。
 3. **系统层**：系统 WebView（WebView2 / WKWebView / WebKitGTK）+ OS API（显示器枚举、全屏、置顶、托盘、通知、自启动）。
 
-## 当前落地状态（M3）
+## 当前落地状态（M4 阶段 1）
 
 - `app/` 已是可运行的 Tauri v2 工程：Vite + React + TypeScript 前端，Rust 2024 后端。
 - 后端已建立 `state`、`breaks`、`windows`、`tray`、`notifications`、`sounds`、`autostart` 模块边界；除设置与 M3 托盘外，其余模块仍是 M4 接入点。
 - IPC 已打通并集中封装：`greet`、`get_settings`、`set_settings`、`get_app_info`。
-- 设置后端已支持默认值合并、旧版本迁移、JSON 持久化与应用状态字段；设置窗口及保存副作用尚未实现。
-- notification、autostart、single-instance 插件和 tray/capability 已在启动链路中装配。
+- 设置后端已支持默认值合并、旧版本迁移、JSON 持久化与应用状态字段；设置窗口已实现 draft 编辑和点击 Save 提交，当前覆盖「通用」分组。
+- 保存设置会先持久化，再应用纯函数计算出的副作用：自启动变化、从禁用切到启用时重置计时，以及调度器重启；开发构建跳过真实自启动注册。
+- `BreakScheduler` 已具备阶段、上次完成休息时间、下次休息时间和重启/重置接口；完整 1 秒 tick 与条件判断留待 M4 阶段 2/3。
+- notification、autostart、single-instance 插件和 tray/capability 已在启动链路中装配；单实例行为已完成回归验证。
 
 ## 与旧架构的关键差异
 

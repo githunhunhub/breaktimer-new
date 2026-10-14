@@ -5,7 +5,7 @@
 ## 当前状态
 
 - 项目：BreakTimer 重构（两重目的：学习 AI 编程 + 替换 Electron）
-- 阶段：M0/M1/M2/M3 完成；`app/` Tauri v2 工程可运行，IPC、插件/托盘骨架与设置持久化后端已落地；下一步按 PLAN-0002 进入 M4 功能重构
+- 阶段：M0/M1/M2/M3 完成；M4 阶段 1「设置与生命周期」已完成，下一步按 PLAN-0002 进入阶段 2
 - 新代码目录：`app/`（pnpm + Vite + React/TS 前端，`src-tauri/` Rust 后端）
 - 旧源码：`breaktimer-app/` 以 git submodule 引用上游，钉在 commit `2d67243`（≈ v2.1.0-54）
 - AI 学习笔记目录：`ai-notes/`
@@ -14,6 +14,8 @@
 - `docs/overview.md`、`docs/architecture.md`、`docs/glossary.md` 已补全范围/目标架构/术语
 - 跨设备基线：SPEC-0001 已落地 `.gitattributes`、`.editorconfig`、`.gitignore` 与克隆说明
 - M3 验证：前端 lint/typecheck/format/test/build 通过；Rust fmt/check/11 tests 通过；真实窗口验证 IPC、设置落盘与重启保留、single-instance 生效。M3 基线已提交为 `c61f425` 并推送 `origin/master`
+- M4 阶段 1：设置窗口改为 draft + 点击 Save；后端按纯函数副作用处理自启动、启用休息时重置计时和调度重启；开发构建跳过真实自启动注册
+- M4 阶段 1 验证：Rust 24 tests、`cargo check --locked --all-targets`、前端 lint/typecheck/format/test/build 全部通过；CDP 端到端验证 Save 落盘、重启保留和 single-instance；2026-10-14 用户人工验收通过；测试后已恢复用户原设置
 
 ## 关键约定
 
@@ -24,6 +26,6 @@
 
 ## 待办 / 阻塞
 
-- SPEC-0010 当前为 `in-progress`：后端设置模型/迁移/持久化已完成，M4 续做设置窗口与保存副作用；`docs/specs/README.md` 已同步。
-- 按 `docs/plans/0002-implementation-phases.md` 五阶段实现：地基（设置/生命周期）→ 最小闭环（调度+窗口+声音）→ 时间与状态条件 → 系统集成 → 打包发布。
+- SPEC-0010 当前为 `in-progress`：阶段 1 已完成，但设置窗口仅覆盖「通用」分组；余下分组与字段在后续阶段补齐。
+- 按 `docs/plans/0002-implementation-phases.md` 五阶段实现：阶段 1 已完成；阶段 2 从完整调度 tick、休息窗和声音开始。
 - 声音播放通道（前端 audio vs Rust 音频库）确定后补 ADR。

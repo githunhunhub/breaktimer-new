@@ -1,10 +1,12 @@
 //! Tauri commands exposed to the renderer (PLAN-0001, SPEC-0010).
 
+use chrono::Utc;
 use serde::Serialize;
 use tauri::{AppHandle, State};
 
+use crate::autostart;
 use crate::error::AppResult;
-use crate::state::{AppState, Settings};
+use crate::state::{AppState, Settings, SettingsEffects};
 
 /// Basic application metadata used by the M3 scaffold screen.
 #[derive(Debug, Clone, Serialize)]
@@ -26,8 +28,21 @@ pub fn get_settings(state: State<'_, AppState>) -> Settings {
 }
 
 #[tauri::command]
-pub fn set_settings(state: State<'_, AppState>, settings: Settings) -> AppResult<()> {
-    state.store.set_settings(settings)
+pub fn set_settings(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    settings: Settings,
+) -> AppResult<()> {
+    let effects = SettingsEffects::between(&state.store.settings(), &settings);
+
+    state.store.set_settings(settings.clone())?;
+
+    if let Some(enabled) = effects.auto_launch {
+        autostart::set_enabled(&app, enabled)?;
+    }
+
+    state.apply_settings_effects(&settings, effects, Utc::now());
+    Ok(())
 }
 
 #[tauri::command]

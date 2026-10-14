@@ -16,6 +16,6 @@
 | [SPEC-0007](0007-auto-launch.md) | 自启动 | confirmed | ADR-0002 | `app/`（待实现） |
 | [SPEC-0008](0008-notification-mode.md) | 通知模式（Notification） | confirmed | ADR-0002 · SPEC-0003 | `app/`（待实现） |
 | [SPEC-0009](0009-sounds.md) | 声音 | confirmed | ADR-0002 · SPEC-0002 · SPEC-0008 | `app/`（待实现） |
-| [SPEC-0010](0010-settings-persistence-and-window.md) | 设置持久化与设置窗口 | in-progress | ADR-0002 | `app/`（后端完成，设置窗口待实现） |
+| [SPEC-0010](0010-settings-persistence-and-window.md) | 设置持久化与设置窗口 | in-progress | ADR-0002 | `app/`（阶段 1 完成：通用设置窗口与保存生命周期；余下分组待补） |
 
 <!-- 新增 spec 后在此表追加一行。状态：draft / confirmed / in-progress / done / superseded -->
