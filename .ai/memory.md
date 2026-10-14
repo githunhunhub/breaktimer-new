@@ -13,7 +13,7 @@
 - 全屏遮挡方案：每显示器一个无边框/透明/置顶/跨工作区窗口；休息阶段 `setFullscreenOnMonitor` 原生全屏 + `setFocusable(false)` 不抢焦点；`showBackdrop=false` 时居中 500×300（对应旧版 soft overlay，非硬锁定）
 - `docs/overview.md`、`docs/architecture.md`、`docs/glossary.md` 已补全范围/目标架构/术语
 - 跨设备基线：SPEC-0001 已落地 `.gitattributes`、`.editorconfig`、`.gitignore` 与克隆说明
-- M3 验证：前端 lint/typecheck/format/test/build 通过；Rust fmt/check/11 tests 通过；真实窗口验证 IPC、设置落盘与重启保留、single-instance 生效
+- M3 验证：前端 lint/typecheck/format/test/build 通过；Rust fmt/check/11 tests 通过；真实窗口验证 IPC、设置落盘与重启保留、single-instance 生效。M3 基线已提交为 `c61f425` 并推送 `origin/master`
 
 ## 关键约定
 

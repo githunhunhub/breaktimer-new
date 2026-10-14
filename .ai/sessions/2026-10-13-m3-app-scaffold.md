@@ -35,4 +35,4 @@
 
 - M4 从 PLAN-0002 阶段一（设置/生命周期地基）开始。
 - 声音播放通道（前端 audio vs Rust 音频库）确定后补 ADR。
-- 本轮未提交 Git；`breaktimer-app/` 未修改。
+- M3 变更集已提交为 `c61f425` 并推送到 `origin/master`；`breaktimer-app/` 未修改。

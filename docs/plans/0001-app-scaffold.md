@@ -42,7 +42,7 @@
 - [x] 接入上述插件，并在 `tauri.conf.json` 配置 capability / permissions。
 - [x] 打通一条样例 IPC：前端 `invoke("greet")` → 后端返回，证明 IPC 链路可用。
 - [x] 配置 `dev` / `build` / `test` / `lint` / `typecheck` 脚本（回填 `AGENTS.md` 常用命令）。
-- [x] 整理源码、配置与依赖锁文件，确认未被忽略并纳入 M3 待提交变更集（满足 SPEC-0001）。
+- [x] 将源码、配置与依赖锁文件纳入 Git 提交 `c61f425`（满足 SPEC-0001）。
 
 ## 实现结果
 
@@ -51,8 +51,8 @@
 - 设置：Rust `Settings` 模型、默认值合并、v0→v1→v2 迁移链与 JSON 持久化已落地（SPEC-0010 后端部分）。
 - 命令：`greet`、`get_settings`、`set_settings`、`get_app_info`。
 - 托盘：M3 仅提供 Settings 与 Quit，作为后续 SPEC-0006 功能接入点。
-- 依赖：`pnpm-lock.yaml`、`Cargo.lock` 和配置均已纳入待提交变更集，构建产物、依赖目录与本地状态已忽略。
-- 版本控制：截至本会话结束尚未创建 Git 提交；提交后才能形成可由远端干净克隆复现的 M3 基线。
+- 依赖：`pnpm-lock.yaml`、`Cargo.lock` 和配置均已纳入提交 `c61f425`，构建产物、依赖目录与本地状态已忽略。
+- 版本控制：M3 变更集已提交为 `c61f425` 并推送到 `origin/master`。
 
 ## 验收标准
 
@@ -60,7 +60,7 @@
 - [x] 开发命令（如 `pnpm tauri:dev`）能打开窗口并显示 React 页面。
 - [x] 前端能通过 `invoke` 调用后端 command 并收到返回值。
 - [x] 插件与 capability 配置正确，无明显报错。
-- [x] `app/` 依赖锁文件与配置齐备且未被忽略，提交后可支持干净克隆复现。
+- [x] `app/` 依赖锁文件与配置已提交，干净克隆可复现。
 
 ## 验证记录
 
