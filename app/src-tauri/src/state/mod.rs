@@ -2,12 +2,13 @@
 
 use std::sync::Mutex;
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Datelike, Local, Timelike, Utc};
 
 use crate::breaks::{
     BreakActionError, BreakEndOutcome, BreakPhase, BreakScheduler, BreakStart, BreakStatus,
-    BreakTick,
+    BreakTick, SchedulerContext, is_in_working_hours_at,
 };
+use crate::system_state::{NativeSystemStateProvider, SystemStateProvider};
 
 pub mod migrations;
 pub mod settings;
@@ -22,13 +23,22 @@ pub use store::SettingsStore;
 pub struct AppState {
     pub store: SettingsStore,
     scheduler: Mutex<BreakScheduler>,
+    system_state: Box<dyn SystemStateProvider>,
 }
 
 impl AppState {
     pub fn new(store: SettingsStore) -> Self {
+        Self::new_with_system_state_provider(store, Box::new(NativeSystemStateProvider::new()))
+    }
+
+    pub fn new_with_system_state_provider(
+        store: SettingsStore,
+        system_state: Box<dyn SystemStateProvider>,
+    ) -> Self {
         Self {
             store,
             scheduler: Mutex::new(BreakScheduler::new()),
+            system_state,
         }
     }
 
@@ -50,7 +60,27 @@ impl AppState {
 
     /// Advances the scheduler by one tick (SPEC-0003).
     pub fn tick(&self, now: DateTime<Utc>) -> BreakTick {
-        self.with_scheduler(|scheduler, settings| scheduler.tick(settings, now))
+        let settings = self.store.settings();
+        let local = now.with_timezone(&Local);
+        let in_working_hours = is_in_working_hours_at(
+            &settings,
+            local.weekday(),
+            local.hour() * 60 + local.minute(),
+        );
+        let activity = self.system_state.activity();
+
+        let mut scheduler = self
+            .scheduler
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        scheduler.tick(
+            &settings,
+            SchedulerContext {
+                now,
+                in_working_hours,
+                activity,
+            },
+        )
     }
 
     /// Starts tracking a prompted break and reports whether this call was the
@@ -113,11 +143,39 @@ impl AppState {
 mod tests {
     use std::fs;
     use std::path::PathBuf;
+    use std::sync::Mutex;
 
     use chrono::Duration;
 
     use super::*;
-    use crate::breaks::{BreakActionError, BreakPhase, BreakTick};
+    use crate::breaks::{BreakActionError, BreakPhase, BreakTick, SystemActivity};
+    use crate::system_state::SystemStateProvider;
+
+    struct FakeSystemStateProvider {
+        activities: Mutex<Vec<SystemActivity>>,
+    }
+
+    impl FakeSystemStateProvider {
+        fn new(activities: Vec<SystemActivity>) -> Self {
+            Self {
+                activities: Mutex::new(activities),
+            }
+        }
+    }
+
+    impl SystemStateProvider for FakeSystemStateProvider {
+        fn activity(&self) -> SystemActivity {
+            let mut activities = self.activities.lock().unwrap();
+            if activities.len() > 1 {
+                activities.remove(0)
+            } else {
+                activities
+                    .first()
+                    .copied()
+                    .unwrap_or(SystemActivity::Active)
+            }
+        }
+    }
 
     fn temp_store(name: &str) -> SettingsStore {
         let dir = std::env::temp_dir().join("breaktimer-state-tests");
@@ -195,6 +253,7 @@ mod tests {
         let settings = Settings {
             break_frequency_seconds: 60,
             immediately_start_breaks: false,
+            working_hours_enabled: false,
             ..Settings::default()
         };
         store.set_settings(settings).unwrap();
@@ -224,6 +283,7 @@ mod tests {
         let settings = Settings {
             break_frequency_seconds: 60,
             postpone_limit: 1,
+            working_hours_enabled: false,
             ..Settings::default()
         };
         store.set_settings(settings).unwrap();
@@ -249,6 +309,7 @@ mod tests {
         let settings = Settings {
             break_frequency_seconds: 60,
             break_length_seconds: 120,
+            working_hours_enabled: false,
             ..Settings::default()
         };
         store.set_settings(settings).unwrap();
@@ -269,5 +330,37 @@ mod tests {
         assert!(!second_ended);
         assert!(first.completed);
         assert!(!second.completed);
+    }
+
+    #[test]
+    fn tick_uses_the_system_state_provider_and_reports_an_idle_reset() {
+        let store = temp_store("appstate-idle-provider.json");
+        store
+            .set_settings(Settings {
+                break_frequency_seconds: 60,
+                working_hours_enabled: false,
+                idle_reset_enabled: true,
+                idle_reset_length_seconds: 30,
+                idle_reset_notification: true,
+                ..Settings::default()
+            })
+            .unwrap();
+        let state = AppState::new_with_system_state_provider(
+            store,
+            Box::new(FakeSystemStateProvider::new(vec![
+                SystemActivity::Active,
+                SystemActivity::Idle { idle_seconds: 30 },
+            ])),
+        );
+        let now = DateTime::from_timestamp(1_700_000_000, 0).unwrap();
+
+        assert_eq!(state.tick(now), BreakTick::None);
+        assert_eq!(
+            state.tick(now + Duration::seconds(30)),
+            BreakTick::IdleReset(crate::breaks::IdleReset {
+                idle_seconds: 30,
+                notify: true,
+            })
+        );
     }
 }

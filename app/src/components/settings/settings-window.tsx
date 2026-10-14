@@ -8,6 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { ipc } from "@/lib/ipc";
 import type { Settings } from "@/types/settings";
 
+import { SmartBreaksCard } from "./smart-breaks-card";
+import { WorkingHoursCard } from "./working-hours-card";
+
 export interface SettingsClient {
   getSettings: () => Promise<Settings>;
   setSettings: (settings: Settings) => Promise<void>;
@@ -132,6 +135,10 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
               </div>
             </CardContent>
           </Card>
+
+          <WorkingHoursCard settings={draft} onPatch={updateDraft} />
+
+          <SmartBreaksCard settings={draft} onPatch={updateDraft} />
 
           {error && (
             <p role="alert" className="text-destructive mt-4 text-sm">
