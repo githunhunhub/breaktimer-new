@@ -11,6 +11,19 @@ use serde::Serialize;
 
 use crate::state::Settings;
 
+fn seconds_or_one(seconds: u32) -> i64 {
+    i64::from(seconds.max(1))
+}
+
+/// Pre-break prompt timing (SPEC-0002).
+///
+/// The prompt first shows a grace period where the user can start early, then a
+/// countdown; if the user does nothing the break starts on its own. The legacy
+/// renderer used the same 60s + 60s split.
+pub const PROMPT_GRACE_SECONDS: i64 = 60;
+pub const PROMPT_COUNTDOWN_SECONDS: i64 = 60;
+pub const PROMPT_TOTAL_SECONDS: i64 = PROMPT_GRACE_SECONDS + PROMPT_COUNTDOWN_SECONDS;
+
 /// Where the scheduler currently is in the break cycle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -25,12 +38,66 @@ pub enum BreakPhase {
     Postponed,
 }
 
-/// Break scheduler state. The timer loop and condition checks are added in M4.
+/// A state transition produced by a scheduler tick.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BreakTick {
+    None,
+    /// A break is due, but the user still has the pre-break prompt.
+    BreakPrompted,
+    /// The break countdown has started.
+    BreakStarted(BreakStart),
+    /// A tracked break reached its natural end.
+    BreakEnded(BreakEndOutcome),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BreakStart {
+    pub end_at: DateTime<Utc>,
+    pub started_from_tray: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BreakEndOutcome {
+    pub completed: bool,
+    pub duration_seconds: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum BreakActionError {
+    #[error("no break is active")]
+    NotOnBreak,
+    #[error("the postpone limit has been reached")]
+    PostponeLimitReached,
+}
+
+/// Frontend-facing snapshot of the scheduler.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BreakStatus {
+    pub phase: BreakPhase,
+    pub break_started_at: Option<i64>,
+    pub break_end_at: Option<i64>,
+    pub next_break_at: Option<i64>,
+    /// When the pre-break prompt appeared (SPEC-0002), if it is still showing.
+    pub prompt_started_at: Option<i64>,
+    /// When the prompt auto-starts the break, if it is still showing.
+    pub prompt_deadline_at: Option<i64>,
+    pub time_since_last_break_seconds: i64,
+    pub allow_postpone: bool,
+    pub started_from_tray: bool,
+}
+
+/// Break scheduler state.
 #[derive(Debug)]
 pub struct BreakScheduler {
     phase: BreakPhase,
     last_completed_break_at: DateTime<Utc>,
     next_break_at: Option<DateTime<Utc>>,
+    current_break_started_at: Option<DateTime<Utc>>,
+    break_end_at: Option<DateTime<Utc>>,
+    prompted_at: Option<DateTime<Utc>>,
+    postponed_count: u32,
+    started_from_tray: bool,
 }
 
 impl BreakScheduler {
@@ -43,6 +110,11 @@ impl BreakScheduler {
             phase: BreakPhase::Idle,
             last_completed_break_at: now,
             next_break_at: None,
+            current_break_started_at: None,
+            break_end_at: None,
+            prompted_at: None,
+            postponed_count: 0,
+            started_from_tray: false,
         }
     }
 
@@ -63,18 +135,287 @@ impl BreakScheduler {
         self.next_break_at
     }
 
+    pub fn current_break_started_at(&self) -> Option<DateTime<Utc>> {
+        self.current_break_started_at
+    }
+
+    pub fn break_end_at(&self) -> Option<DateTime<Utc>> {
+        self.break_end_at
+    }
+
+    pub fn prompt_started_at(&self) -> Option<DateTime<Utc>> {
+        self.prompted_at
+    }
+
+    pub fn prompt_deadline_at(&self) -> Option<DateTime<Utc>> {
+        self.prompted_at
+            .map(|started_at| started_at + Duration::seconds(PROMPT_TOTAL_SECONDS))
+    }
+
+    pub fn is_break_tracking(&self) -> bool {
+        self.current_break_started_at.is_some() && self.break_end_at.is_some()
+    }
+
     pub fn reset_time_since_last_break(&mut self, now: DateTime<Utc>) {
         self.last_completed_break_at = now;
     }
 
     pub fn restart(&mut self, settings: &Settings, now: DateTime<Utc>) {
+        // A settings save must not silently cancel the break currently on screen.
+        if self.phase == BreakPhase::OnBreak {
+            return;
+        }
+
+        self.current_break_started_at = None;
+        self.break_end_at = None;
+        self.prompted_at = None;
+        self.postponed_count = 0;
+        self.started_from_tray = false;
+
         if settings.breaks_enabled {
             self.phase = BreakPhase::Working;
             self.next_break_at =
-                Some(now + Duration::seconds(i64::from(settings.break_frequency_seconds)));
+                Some(now + Duration::seconds(seconds_or_one(settings.break_frequency_seconds)));
         } else {
             self.phase = BreakPhase::Idle;
             self.next_break_at = None;
+        }
+    }
+
+    pub fn tick(&mut self, settings: &Settings, now: DateTime<Utc>) -> BreakTick {
+        if self.phase == BreakPhase::OnBreak {
+            if let Some(end_at) = self.break_end_at {
+                if now >= end_at {
+                    return BreakTick::BreakEnded(self.end_break(settings, now));
+                }
+            }
+            // Prompt phase (no break tracking yet): auto-start once the prompt
+            // window has fully elapsed (SPEC-0002).
+            if self.current_break_started_at.is_none() {
+                if let Some(deadline) = self.prompt_deadline_at() {
+                    if now >= deadline {
+                        return BreakTick::BreakStarted(
+                            self.begin_break(settings, now)
+                                .expect("a prompted break can always begin"),
+                        );
+                    }
+                }
+            }
+            return BreakTick::None;
+        }
+
+        if !settings.breaks_enabled {
+            self.phase = BreakPhase::Idle;
+            self.next_break_at = None;
+            return BreakTick::None;
+        }
+
+        let Some(next_break_at) = self.next_break_at else {
+            self.phase = BreakPhase::Working;
+            self.next_break_at =
+                Some(now + Duration::seconds(seconds_or_one(settings.break_frequency_seconds)));
+            return BreakTick::None;
+        };
+
+        if now < next_break_at {
+            return BreakTick::None;
+        }
+
+        self.phase = BreakPhase::OnBreak;
+        self.next_break_at = None;
+        self.current_break_started_at = None;
+        self.break_end_at = None;
+        self.prompted_at = Some(now);
+        self.started_from_tray = false;
+
+        if settings.immediately_start_breaks {
+            return BreakTick::BreakStarted(
+                self.begin_break(settings, now)
+                    .expect("a prompted break can always begin"),
+            );
+        }
+
+        BreakTick::BreakPrompted
+    }
+
+    pub fn begin_break(
+        &mut self,
+        settings: &Settings,
+        now: DateTime<Utc>,
+    ) -> Result<BreakStart, BreakActionError> {
+        if self.phase != BreakPhase::OnBreak {
+            return Err(BreakActionError::NotOnBreak);
+        }
+
+        if let (Some(_), Some(end_at)) = (self.current_break_started_at, self.break_end_at) {
+            return Ok(BreakStart {
+                end_at,
+                started_from_tray: self.started_from_tray,
+            });
+        }
+
+        self.current_break_started_at = Some(now);
+        self.break_end_at =
+            Some(now + Duration::seconds(seconds_or_one(settings.break_length_seconds)));
+        self.prompted_at = None;
+
+        Ok(BreakStart {
+            end_at: self.break_end_at.expect("break end was just set"),
+            started_from_tray: self.started_from_tray,
+        })
+    }
+
+    /// Starts a prompted break and reports whether this call created the
+    /// tracked break. Multiple overlay windows may race the same command, but
+    /// only the first transition should play sound or resize windows.
+    pub fn begin_break_transition(
+        &mut self,
+        settings: &Settings,
+        now: DateTime<Utc>,
+    ) -> Result<(BreakStart, bool), BreakActionError> {
+        if self.phase != BreakPhase::OnBreak {
+            return Err(BreakActionError::NotOnBreak);
+        }
+
+        if self.is_break_tracking() {
+            return Ok((
+                BreakStart {
+                    end_at: self.break_end_at.expect("tracked break has an end"),
+                    started_from_tray: self.started_from_tray,
+                },
+                false,
+            ));
+        }
+
+        self.begin_break(settings, now).map(|start| (start, true))
+    }
+
+    pub fn start_break_now(&mut self, settings: &Settings, now: DateTime<Utc>) -> BreakStart {
+        self.phase = BreakPhase::OnBreak;
+        self.next_break_at = None;
+        self.current_break_started_at = Some(now);
+        self.break_end_at =
+            Some(now + Duration::seconds(seconds_or_one(settings.break_length_seconds)));
+        self.prompted_at = None;
+        self.started_from_tray = true;
+
+        BreakStart {
+            end_at: self.break_end_at.expect("break end was just set"),
+            started_from_tray: true,
+        }
+    }
+
+    pub fn end_break(&mut self, settings: &Settings, now: DateTime<Utc>) -> BreakEndOutcome {
+        if self.phase != BreakPhase::OnBreak {
+            return BreakEndOutcome {
+                completed: false,
+                duration_seconds: 0,
+            };
+        }
+
+        let duration_ms = self
+            .current_break_started_at
+            .map(|started_at| {
+                now.signed_duration_since(started_at)
+                    .num_milliseconds()
+                    .max(0)
+            })
+            .unwrap_or(0);
+        let required_ms = i64::from(settings.break_length_seconds.max(1)) * 1000;
+        let completed = duration_ms >= required_ms / 2;
+
+        if completed {
+            self.last_completed_break_at = now;
+        }
+
+        self.current_break_started_at = None;
+        self.break_end_at = None;
+        self.prompted_at = None;
+        self.postponed_count = 0;
+        self.started_from_tray = false;
+
+        if settings.breaks_enabled {
+            self.phase = BreakPhase::Working;
+            self.next_break_at =
+                Some(now + Duration::seconds(seconds_or_one(settings.break_frequency_seconds)));
+        } else {
+            self.phase = BreakPhase::Idle;
+            self.next_break_at = None;
+        }
+
+        BreakEndOutcome {
+            completed,
+            duration_seconds: u64::try_from(duration_ms / 1000).unwrap_or(0),
+        }
+    }
+
+    pub fn allow_postpone(&self, settings: &Settings) -> bool {
+        settings.postpone_limit == 0 || self.postponed_count < settings.postpone_limit
+    }
+
+    pub fn postpone(
+        &mut self,
+        settings: &Settings,
+        now: DateTime<Utc>,
+    ) -> Result<(), BreakActionError> {
+        if !self.allow_postpone(settings)
+            && matches!(self.phase, BreakPhase::OnBreak | BreakPhase::Postponed)
+        {
+            return Err(BreakActionError::PostponeLimitReached);
+        }
+        if self.phase != BreakPhase::OnBreak {
+            return Err(BreakActionError::NotOnBreak);
+        }
+
+        self.postponed_count += 1;
+        self.phase = BreakPhase::Postponed;
+        self.current_break_started_at = None;
+        self.break_end_at = None;
+        self.prompted_at = None;
+        self.started_from_tray = false;
+        self.next_break_at =
+            Some(now + Duration::seconds(seconds_or_one(settings.postpone_length_seconds)));
+        Ok(())
+    }
+
+    pub fn skip(
+        &mut self,
+        settings: &Settings,
+        now: DateTime<Utc>,
+    ) -> Result<(), BreakActionError> {
+        if self.phase != BreakPhase::OnBreak {
+            return Err(BreakActionError::NotOnBreak);
+        }
+
+        self.postponed_count += 1;
+        self.phase = BreakPhase::Working;
+        self.current_break_started_at = None;
+        self.break_end_at = None;
+        self.prompted_at = None;
+        self.started_from_tray = false;
+        self.next_break_at =
+            Some(now + Duration::seconds(seconds_or_one(settings.break_frequency_seconds)));
+        Ok(())
+    }
+
+    pub fn status(&self, settings: &Settings, now: DateTime<Utc>) -> BreakStatus {
+        BreakStatus {
+            phase: self.phase,
+            break_started_at: self
+                .current_break_started_at
+                .map(|value| value.timestamp_millis()),
+            break_end_at: self.break_end_at.map(|value| value.timestamp_millis()),
+            next_break_at: self.next_break_at.map(|value| value.timestamp_millis()),
+            prompt_started_at: self.prompted_at.map(|value| value.timestamp_millis()),
+            prompt_deadline_at: self
+                .prompt_deadline_at()
+                .map(|value| value.timestamp_millis()),
+            time_since_last_break_seconds: now
+                .signed_duration_since(self.last_completed_break_at)
+                .num_seconds()
+                .max(0),
+            allow_postpone: self.allow_postpone(settings),
+            started_from_tray: self.started_from_tray,
         }
     }
 }
@@ -89,6 +430,20 @@ impl Default for BreakScheduler {
 mod tests {
     use super::*;
 
+    fn settings() -> Settings {
+        Settings {
+            break_frequency_seconds: 60,
+            break_length_seconds: 120,
+            postpone_length_seconds: 180,
+            postpone_limit: 1,
+            ..Settings::default()
+        }
+    }
+
+    fn at(seconds: i64) -> DateTime<Utc> {
+        DateTime::from_timestamp(1_700_000_000 + seconds, 0).unwrap()
+    }
+
     #[test]
     fn starts_idle() {
         assert_eq!(BreakScheduler::new().phase(), BreakPhase::Idle);
@@ -96,11 +451,8 @@ mod tests {
 
     #[test]
     fn restart_schedules_the_next_break_when_enabled() {
-        let now = DateTime::from_timestamp(1_700_000_000, 0).unwrap();
-        let settings = Settings {
-            break_frequency_seconds: 60,
-            ..Settings::default()
-        };
+        let now = at(0);
+        let settings = settings();
         let mut scheduler = BreakScheduler::new_at(now);
 
         scheduler.restart(&settings, now);
@@ -111,7 +463,7 @@ mod tests {
 
     #[test]
     fn restart_clears_the_next_break_when_disabled() {
-        let now = DateTime::from_timestamp(1_700_000_000, 0).unwrap();
+        let now = at(0);
         let enabled = Settings::default();
         let disabled = Settings {
             breaks_enabled: false,
@@ -128,7 +480,7 @@ mod tests {
 
     #[test]
     fn reset_updates_the_last_completed_break_time() {
-        let started_at = DateTime::from_timestamp(1_700_000_000, 0).unwrap();
+        let started_at = at(0);
         let reset_at = started_at + Duration::seconds(30);
         let mut scheduler = BreakScheduler::new_at(started_at);
 
@@ -143,5 +495,263 @@ mod tests {
             serde_json::to_string(&BreakPhase::OnBreak).unwrap(),
             "\"ON_BREAK\""
         );
+    }
+
+    #[test]
+    fn due_tick_prompts_for_a_break_and_schedules_nothing_yet() {
+        let settings = settings();
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+
+        assert_eq!(scheduler.tick(&settings, at(60)), BreakTick::BreakPrompted);
+        assert_eq!(scheduler.phase(), BreakPhase::OnBreak);
+        assert_eq!(scheduler.break_end_at(), None);
+        assert!(!scheduler.is_break_tracking());
+    }
+
+    #[test]
+    fn immediate_start_enters_a_tracked_break_when_due() {
+        let settings = Settings {
+            immediately_start_breaks: true,
+            ..settings()
+        };
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+
+        assert_eq!(
+            scheduler.tick(&settings, at(60)),
+            BreakTick::BreakStarted(BreakStart {
+                end_at: at(180),
+                started_from_tray: false,
+            })
+        );
+        assert_eq!(scheduler.break_end_at(), Some(at(180)));
+        assert!(scheduler.is_break_tracking());
+    }
+
+    #[test]
+    fn begin_break_starts_tracking_after_the_prompt() {
+        let settings = settings();
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+        assert_eq!(scheduler.tick(&settings, at(60)), BreakTick::BreakPrompted);
+
+        let start = scheduler.begin_break(&settings, at(61)).unwrap();
+
+        assert_eq!(
+            start,
+            BreakStart {
+                end_at: at(181),
+                started_from_tray: false,
+            }
+        );
+        assert_eq!(scheduler.break_end_at(), Some(at(181)));
+    }
+
+    #[test]
+    fn begin_break_transition_only_reports_the_first_start() {
+        let settings = settings();
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+        scheduler.tick(&settings, at(60));
+
+        let (first, first_started) = scheduler.begin_break_transition(&settings, at(61)).unwrap();
+        let (second, second_started) = scheduler.begin_break_transition(&settings, at(62)).unwrap();
+
+        assert!(first_started);
+        assert!(!second_started);
+        assert_eq!(first, second);
+        assert_eq!(first.end_at, at(181));
+    }
+
+    #[test]
+    fn prompt_reports_its_grace_and_deadline_timestamps() {
+        let settings = settings();
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+        scheduler.tick(&settings, at(60));
+
+        let status = scheduler.status(&settings, at(60));
+
+        assert_eq!(status.prompt_started_at, Some(at(60).timestamp_millis()));
+        assert_eq!(
+            status.prompt_deadline_at,
+            Some((at(60) + Duration::seconds(PROMPT_TOTAL_SECONDS)).timestamp_millis())
+        );
+    }
+
+    #[test]
+    fn prompt_auto_starts_the_break_once_the_deadline_passes() {
+        let settings = settings();
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+        assert_eq!(scheduler.tick(&settings, at(60)), BreakTick::BreakPrompted);
+
+        // Still inside the prompt window: nothing happens yet.
+        assert_eq!(scheduler.tick(&settings, at(179)), BreakTick::None);
+        // The deadline (60s prompt + 60s countdown) auto-starts the break.
+        assert_eq!(
+            scheduler.tick(&settings, at(180)),
+            BreakTick::BreakStarted(BreakStart {
+                end_at: at(300),
+                started_from_tray: false,
+            })
+        );
+        assert!(scheduler.is_break_tracking());
+        assert_eq!(scheduler.prompt_deadline_at(), None);
+    }
+
+    #[test]
+    fn starting_manually_clears_the_prompt_deadline() {
+        let settings = settings();
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+        scheduler.tick(&settings, at(60));
+
+        scheduler.begin_break(&settings, at(61)).unwrap();
+
+        assert_eq!(scheduler.prompt_started_at(), None);
+        assert_eq!(scheduler.prompt_deadline_at(), None);
+    }
+
+    #[test]
+    fn natural_tick_ends_a_tracked_break() {
+        let settings = settings();
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+        assert_eq!(scheduler.tick(&settings, at(60)), BreakTick::BreakPrompted);
+        scheduler.begin_break(&settings, at(60)).unwrap();
+
+        assert_eq!(
+            scheduler.tick(&settings, at(180)),
+            BreakTick::BreakEnded(BreakEndOutcome {
+                completed: true,
+                duration_seconds: 120,
+            })
+        );
+        assert_eq!(scheduler.phase(), BreakPhase::Working);
+        assert_eq!(scheduler.next_break_at(), Some(at(240)));
+    }
+
+    #[test]
+    fn a_break_that_reaches_half_its_length_is_completed() {
+        let settings = settings();
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+        scheduler.tick(&settings, at(60));
+        scheduler.begin_break(&settings, at(60)).unwrap();
+
+        let outcome = scheduler.end_break(&settings, at(120));
+
+        assert_eq!(
+            outcome,
+            BreakEndOutcome {
+                completed: true,
+                duration_seconds: 60,
+            }
+        );
+        assert_eq!(scheduler.last_completed_break_at(), at(120));
+    }
+
+    #[test]
+    fn a_break_shorter_than_half_its_length_is_not_completed() {
+        let settings = settings();
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+        scheduler.tick(&settings, at(60));
+        scheduler.begin_break(&settings, at(60)).unwrap();
+        let last_completed = scheduler.last_completed_break_at();
+
+        let outcome = scheduler.end_break(&settings, at(119));
+
+        assert_eq!(
+            outcome,
+            BreakEndOutcome {
+                completed: false,
+                duration_seconds: 59,
+            }
+        );
+        assert_eq!(scheduler.last_completed_break_at(), last_completed);
+    }
+
+    #[test]
+    fn postpone_uses_the_postpone_length_and_respects_the_limit() {
+        let settings = settings();
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+        scheduler.tick(&settings, at(60));
+
+        assert!(scheduler.allow_postpone(&settings));
+        scheduler.postpone(&settings, at(61)).unwrap();
+
+        assert_eq!(scheduler.phase(), BreakPhase::Postponed);
+        assert_eq!(scheduler.next_break_at(), Some(at(241)));
+        assert!(!scheduler.allow_postpone(&settings));
+        assert_eq!(
+            scheduler.postpone(&settings, at(62)),
+            Err(BreakActionError::PostponeLimitReached)
+        );
+    }
+
+    #[test]
+    fn skip_reschedules_at_the_normal_frequency_and_counts_toward_the_limit() {
+        let settings = settings();
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+        scheduler.tick(&settings, at(60));
+
+        scheduler.skip(&settings, at(61)).unwrap();
+
+        assert_eq!(scheduler.phase(), BreakPhase::Working);
+        assert_eq!(scheduler.next_break_at(), Some(at(121)));
+        assert!(!scheduler.allow_postpone(&settings));
+    }
+
+    #[test]
+    fn start_break_now_immediately_tracks_the_break() {
+        let settings = settings();
+        let mut scheduler = BreakScheduler::new_at(at(0));
+
+        let start = scheduler.start_break_now(&settings, at(30));
+
+        assert_eq!(
+            start,
+            BreakStart {
+                end_at: at(150),
+                started_from_tray: true,
+            }
+        );
+        assert_eq!(scheduler.phase(), BreakPhase::OnBreak);
+        assert_eq!(scheduler.break_end_at(), Some(at(150)));
+    }
+
+    #[test]
+    fn restart_does_not_cancel_an_active_break() {
+        let settings = settings();
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.start_break_now(&settings, at(30));
+        let end_at = scheduler.break_end_at();
+
+        scheduler.restart(&settings, at(31));
+
+        assert_eq!(scheduler.phase(), BreakPhase::OnBreak);
+        assert_eq!(scheduler.break_end_at(), end_at);
+        assert_eq!(scheduler.current_break_started_at(), Some(at(30)));
+    }
+
+    #[test]
+    fn status_exposes_the_frontend_countdown_values() {
+        let settings = settings();
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+        scheduler.start_break_now(&settings, at(30));
+
+        let status = scheduler.status(&settings, at(45));
+
+        assert_eq!(status.phase, BreakPhase::OnBreak);
+        assert_eq!(status.break_started_at, Some(at(30).timestamp_millis()));
+        assert_eq!(status.break_end_at, Some(at(150).timestamp_millis()));
+        assert_eq!(status.time_since_last_break_seconds, 45);
+        assert!(status.started_from_tray);
     }
 }
