@@ -36,3 +36,8 @@
 
 1. 进入阶段 4：托盘、自启动与通知模式。
 2. 跨平台验收时验证 macOS/Linux 空闲与锁屏降级行为。
+
+## 收尾记录
+
+- 2026-10-14：阶段 3 提交 `82f2db3`，以 `--no-ff` 合入 `master`（merge `541158c`）并推送 `origin/master`。
+- 合并结果上重新验证：Rust 63 tests、locked all-target check 和前端 test/lint/typecheck/format/build 全部通过。

@@ -23,6 +23,7 @@
 - M4 阶段 2 提交：`codex/m4-phase-2` 提交 `17c42d7`，以 `--no-ff` 合入 `master`（merge `e9b4fb3`）并推送 `origin/master`
 - M4 阶段 3：工作时段逐日/多时间段判定、进入工作时段重置、空闲阈值重置与可选通知、长 tick/锁屏恢复全部接入；设置窗口新增 Working Hours 与 Smart Breaks 分组
 - M4 阶段 3 验证：Rust all-target tests、locked all-target check 通过；前端 test/lint/typecheck/format/build 通过；测试覆盖工作时段边界、空闲重置与通知开关、禁用空闲、长休眠/锁屏恢复
+- M4 阶段 3 提交：`codex/m4-phase-3` 提交 `82f2db3`，以 `--no-ff` 合入 `master`（merge `541158c`）并推送 `origin/master`
 
 ## 关键约定
 
