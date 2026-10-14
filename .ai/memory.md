@@ -5,17 +5,19 @@
 ## 当前状态
 
 - 项目：BreakTimer 重构（两重目的：学习 AI 编程 + 替换 Electron）
-- 阶段：M0/M1/M2/M3 完成；M4 阶段 1「设置与生命周期」已完成，下一步按 PLAN-0002 进入阶段 2
+- 阶段：M0/M1/M2/M3 完成；M4 阶段 1「设置与生命周期」已完成；阶段 2「调度 + 休息窗 + 声音」核心闭环已实现并完成自动化验证，人工多显示器/焦点/真实音频验收待做
 - 新代码目录：`app/`（pnpm + Vite + React/TS 前端，`src-tauri/` Rust 后端）
 - 旧源码：`breaktimer-app/` 以 git submodule 引用上游，钉在 commit `2d67243`（≈ v2.1.0-54）
 - AI 学习笔记目录：`ai-notes/`
 - 技术选型：**Tauri v2（Rust）+ 前端保留 React + TypeScript**（ADR-0002）
-- 全屏遮挡方案：每显示器一个无边框/透明/置顶/跨工作区窗口；休息阶段 `setFullscreenOnMonitor` 原生全屏 + `setFocusable(false)` 不抢焦点；`showBackdrop=false` 时居中 500×300（对应旧版 soft overlay，非硬锁定）
+- 遮挡方案：每显示器一个无边框/透明/置顶/跨工作区/不抢焦点窗口；休息阶段用显示器 bounds 铺满实现 soft overlay，不调用原生全屏（ADR-0004）；`showBackdrop=false` 时居中 500×300
+- 声音方案：Rust `rodio` 播放嵌入 WAV，后端在休息开始/结束转换时触发（ADR-0003）
 - `docs/overview.md`、`docs/architecture.md`、`docs/glossary.md` 已补全范围/目标架构/术语
 - 跨设备基线：SPEC-0001 已落地 `.gitattributes`、`.editorconfig`、`.gitignore` 与克隆说明
 - M3 验证：前端 lint/typecheck/format/test/build 通过；Rust fmt/check/11 tests 通过；真实窗口验证 IPC、设置落盘与重启保留、single-instance 生效。M3 基线已提交为 `c61f425` 并推送 `origin/master`
 - M4 阶段 1：设置窗口改为 draft + 点击 Save；后端按纯函数副作用处理自启动、启用休息时重置计时和调度重启；开发构建跳过真实自启动注册
 - M4 阶段 1 验证：Rust 24 tests、`cargo check --locked --all-targets`、前端 lint/typecheck/format/test/build 全部通过；CDP 端到端验证 Save 落盘、重启保留和 single-instance；2026-10-14 用户人工验收通过；测试后已恢复用户原设置
+- M4 阶段 2 验证：Rust fmt/check 通过，`cargo test --all-targets` 50 tests 通过；前端 lint/typecheck/format/test/build 通过，Vitest 8 tests；核心状态机、窗口几何、提示条宽度、声音资源映射和休息窗交互已有测试
 
 ## 关键约定
 
@@ -27,5 +29,7 @@
 ## 待办 / 阻塞
 
 - SPEC-0010 当前为 `in-progress`：阶段 1 已完成，但设置窗口仅覆盖「通用」分组；余下分组与字段在后续阶段补齐。
-- 按 `docs/plans/0002-implementation-phases.md` 五阶段实现：阶段 1 已完成；阶段 2 从完整调度 tick、休息窗和声音开始。
-- 声音播放通道（前端 audio vs Rust 音频库）确定后补 ADR。
+- SPEC-0002：代码与自动化验证已完成；真实多显示器、混合 DPI、焦点保持、跨工作区和平台限制的人工验收待做。
+- SPEC-0009：播放通道与资源映射已完成；真实音频设备可听性和音量变化的人工验收待做。
+- SPEC-0003：阶段 2 核心闭环完成；阶段 3 补工作时段、闲置重置和休眠/锁屏恢复。
+- 按 `docs/plans/0002-implementation-phases.md` 继续：阶段 3「时间与状态条件」。

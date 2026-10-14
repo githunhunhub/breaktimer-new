@@ -1,8 +1,9 @@
 # SPEC-0002：休息窗口全屏遮挡（软遮挡，允许手动结束）
 
-- 状态：confirmed
+- 状态：in-progress
+- 实现状态：阶段 2 代码与自动化验证完成；人工多显示器/焦点/跨工作区验收待做
 - 日期：2026-10-13
-- 关联：ADR-0002 · 旧实现 `breaktimer-app/app/main/lib/windows.ts`、`ipc.ts`、`breaks.ts` 与 `renderer/components/break.tsx`
+- 关联：ADR-0002 · ADR-0004 · 旧实现 `breaktimer-app/app/main/lib/windows.ts`、`ipc.ts`、`breaks.ts` 与 `renderer/components/break.tsx`
 
 ## 背景 / 问题
 
@@ -44,19 +45,26 @@
 ## 设计要点（可选）
 
 - 每显示器一个 `WebviewWindow`，组合 `decorations:false` + `transparent:true` + `alwaysOnTop` + `skipTaskbar` + `visibleOnAllWorkspaces` + `focusable:false`。
-- 休息阶段铺满用 `setFullscreenOnMonitor(monitorPos)`（原生全屏）优先；无遮挡时 `setSize(500,300)` 并居中。
-- 主窗口广播结束事件，其余窗口跟随关闭（对应旧版 `sendIpc(BreakEnd)` 的语义）。
+- 休息阶段铺满用「窗口位置与尺寸 = 显示器 bounds」实现软遮挡（ADR-0004），不调用原生全屏；无遮挡时 `setSize(500,300)` 并居中。
+- 后端广播 `break-status`，并统一关闭所有休息窗（对应旧版 `sendIpc(BreakEnd)` 的语义）。
 - 前端复用旧 `break.tsx` 及其子组件，只把 `ipcRenderer` 调用替换为 Tauri `invoke`。
 
 ## 实现计划
 
-- [ ] 初始化 Tauri v2 工程骨架（`app/`），前端接入 React + TypeScript + Tailwind + shadcn/ui。
-- [ ] Rust 后端实现休息窗口管理：按显示器枚举创建窗口、铺满/居中、关闭、事件广播。
-- [ ] 前端复刻 Break 窗口组件与「结束/推迟/跳过」交互。
+- [x] 初始化 Tauri v2 工程骨架（`app/`），前端接入 React + TypeScript + Tailwind + shadcn/ui。
+- [x] Rust 后端实现休息窗口管理：按显示器枚举创建窗口、铺满/居中、关闭、事件广播。
+- [x] 前端复刻 Break 窗口组件与「结束/推迟/跳过」交互。
 - [ ] 联调多显示器、焦点（软遮挡）、手动结束流程。
+
+## 验收记录
+
+- 2026-10-14：Rust 单元测试覆盖窗口几何、提示条宽度、休息结束/推迟/跳过状态流转；前端测试覆盖提示条、倒计时和休息卡交互。
+- 2026-10-14：`cargo fmt --all -- --check`、`cargo check --locked --all-targets`、`cargo test --all-targets`、`pnpm test/lint/typecheck/format:check/build` 全部通过。
+- 待人工验收：真实多显示器、混合 DPI、当前应用焦点保持、跨工作区可见性，以及 macOS/Linux 平台限制记录。
 
 ## 变更记录
 
 | 日期 | 变更 |
 | --- | --- |
 | 2026-10-13 | 创建并确认：软遮挡 + 允许手动结束 |
+| 2026-10-14 | 阶段 2 实现完成；原生全屏方案改为显示器 bounds 软遮挡（ADR-0004）；自动化验证通过，人工平台验收待做 |

@@ -2,6 +2,7 @@ mod autostart;
 mod breaks;
 mod commands;
 mod error;
+mod flow;
 mod notifications;
 mod sounds;
 mod state;
@@ -9,6 +10,7 @@ mod tray;
 mod windows;
 
 use std::fs;
+use std::time::Duration;
 
 use tauri::Manager;
 
@@ -41,6 +43,7 @@ pub fn run() {
             tray::init(handle)?;
             windows::init(handle)?;
             sounds::init(handle)?;
+            spawn_scheduler_tick(app.handle().clone());
 
             Ok(())
         })
@@ -49,7 +52,35 @@ pub fn run() {
             commands::get_settings,
             commands::set_settings,
             commands::get_app_info,
+            commands::get_break_status,
+            commands::begin_break,
+            commands::end_break,
+            commands::postpone_break,
+            commands::skip_break,
+            commands::start_break_now,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Drives the scheduler once per second on the main thread.
+///
+/// Window creation and resizing must run on the main thread, so each tick is
+/// dispatched there; the sleeping thread only paces the loop.
+fn spawn_scheduler_tick(app: tauri::AppHandle) {
+    std::thread::spawn(move || {
+        loop {
+            std::thread::sleep(Duration::from_secs(1));
+
+            let dispatch = app.clone();
+            let result = app.run_on_main_thread(move || {
+                let state = dispatch.state::<AppState>();
+                flow::tick(&dispatch, &state);
+            });
+
+            if result.is_err() {
+                break;
+            }
+        }
+    });
 }

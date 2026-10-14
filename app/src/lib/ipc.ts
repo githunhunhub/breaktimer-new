@@ -1,6 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
+import type { BreakStatus } from "@/types/breaks";
 import type { Settings } from "@/types/settings";
+
+/** Event name the backend emits on every scheduler transition. */
+export const BREAK_STATUS_EVENT = "break-status";
 
 /**
  * Thin, typed wrappers around Tauri commands defined in
@@ -13,6 +18,16 @@ export const ipc = {
   setSettings: (settings: Settings) =>
     invoke<void>("set_settings", { settings }),
   getAppInfo: () => invoke<AppInfo>("get_app_info"),
+  getBreakStatus: () => invoke<BreakStatus>("get_break_status"),
+  beginBreak: () => invoke<BreakStatus>("begin_break"),
+  endBreak: () => invoke<BreakStatus>("end_break"),
+  postponeBreak: () => invoke<BreakStatus>("postpone_break"),
+  skipBreak: () => invoke<BreakStatus>("skip_break"),
+  startBreakNow: () => invoke<BreakStatus>("start_break_now"),
+  onBreakStatus: (
+    handler: (status: BreakStatus) => void,
+  ): Promise<UnlistenFn> =>
+    listen<BreakStatus>(BREAK_STATUS_EVENT, (event) => handler(event.payload)),
 };
 
 export interface AppInfo {

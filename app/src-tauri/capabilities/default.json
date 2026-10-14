@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
-  "windows": ["main"],
+  "description": "Capability for the settings and break overlay windows",
+  "windows": ["main", "break-*"],
   "permissions": ["core:default", "autostart:default", "notification:default"]
 }
