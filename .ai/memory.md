@@ -24,6 +24,6 @@
 
 ## 待办 / 阻塞
 
-- SPEC-0010 当前为 `in-progress`：后端设置模型/迁移/持久化已完成，M4 续做设置窗口与保存副作用。
+- SPEC-0010 当前为 `in-progress`：后端设置模型/迁移/持久化已完成，M4 续做设置窗口与保存副作用；`docs/specs/README.md` 已同步。
 - 按 `docs/plans/0002-implementation-phases.md` 五阶段实现：地基（设置/生命周期）→ 最小闭环（调度+窗口+声音）→ 时间与状态条件 → 系统集成 → 打包发布。
 - 声音播放通道（前端 audio vs Rust 音频库）确定后补 ADR。
