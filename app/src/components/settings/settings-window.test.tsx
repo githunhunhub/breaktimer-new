@@ -61,6 +61,7 @@ function makeClient(settings: Settings): SettingsClient {
   return {
     getSettings: vi.fn().mockResolvedValue(settings),
     setSettings: vi.fn().mockResolvedValue(undefined),
+    playSoundPreview: vi.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -264,5 +265,163 @@ describe("SettingsWindow", () => {
 
     expect(minutes.disabled).toBe(true);
     expect(notification.hasAttribute("disabled")).toBe(true);
+  });
+
+  it("loads the break type, cadence, length and text", async () => {
+    const client = makeClient(
+      makeSettings({
+        notificationType: "POPUP",
+        breakFrequencySeconds: 1500,
+        breakLengthSeconds: 90,
+        breakTitle: "Stretch",
+        breakMessage: "Stand up.",
+      }),
+    );
+    render(<SettingsWindow client={client} />);
+
+    const type = (await screen.findByLabelText("Type")) as HTMLSelectElement;
+    expect(type.value).toBe("POPUP");
+    expect(
+      (screen.getByLabelText("Break frequency in minutes") as HTMLInputElement)
+        .value,
+    ).toBe("25");
+    expect(
+      (screen.getByLabelText("Break frequency in seconds") as HTMLInputElement)
+        .value,
+    ).toBe("0");
+    expect(
+      (screen.getByLabelText("Break length in minutes") as HTMLInputElement)
+        .value,
+    ).toBe("1");
+    expect(
+      (screen.getByLabelText("Break length in seconds") as HTMLInputElement)
+        .value,
+    ).toBe("30");
+    expect((screen.getByLabelText("Title") as HTMLInputElement).value).toBe(
+      "Stretch",
+    );
+    expect(
+      (screen.getByLabelText("Message") as HTMLTextAreaElement).value,
+    ).toBe("Stand up.");
+  });
+
+  it("saves an edited break type and frequency", async () => {
+    const client = makeClient(makeSettings({ notificationType: "POPUP" }));
+    render(<SettingsWindow client={client} />);
+
+    fireEvent.change(await screen.findByLabelText("Type"), {
+      target: { value: "NOTIFICATION" },
+    });
+    fireEvent.change(screen.getByLabelText("Break frequency in minutes"), {
+      target: { value: "45" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(client.setSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          notificationType: "NOTIFICATION",
+          breakFrequencySeconds: 45 * 60,
+        }),
+      );
+    });
+  });
+
+  it("disables the break length while in notification mode", async () => {
+    const client = makeClient(
+      makeSettings({ notificationType: "NOTIFICATION" }),
+    );
+    render(<SettingsWindow client={client} />);
+
+    const length = (await screen.findByLabelText(
+      "Break length in minutes",
+    )) as HTMLInputElement;
+
+    expect(length.disabled).toBe(true);
+    expect(
+      (screen.getByLabelText("Break frequency in minutes") as HTMLInputElement)
+        .disabled,
+    ).toBe(false);
+  });
+
+  it("previews the selected sound at the drafted volume", async () => {
+    const client = makeClient(
+      makeSettings({ soundType: "GONG", breakSoundVolume: 0.5 }),
+    );
+    render(<SettingsWindow client={client} />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Preview break sound" }),
+    );
+
+    await waitFor(() => {
+      expect(client.playSoundPreview).toHaveBeenCalledWith("GONG", 0.5);
+    });
+  });
+
+  it("saves an edited volume and hides the preview when the sound is off", async () => {
+    const client = makeClient(
+      makeSettings({ soundType: "PING", breakSoundVolume: 1 }),
+    );
+    render(<SettingsWindow client={client} />);
+
+    fireEvent.change(await screen.findByLabelText("Break sound volume"), {
+      target: { value: "0.25" },
+    });
+    fireEvent.change(screen.getByLabelText("Break sound"), {
+      target: { value: "NONE" },
+    });
+
+    expect(
+      screen.queryByRole("button", { name: "Preview break sound" }),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(client.setSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          soundType: "NONE",
+          breakSoundVolume: 0.25,
+        }),
+      );
+    });
+  });
+
+  it("edits the menu bar text mode", async () => {
+    const client = makeClient(
+      makeSettings({
+        trayTextEnabled: true,
+        trayTextMode: "TIME_TO_NEXT_BREAK",
+      }),
+    );
+    render(<SettingsWindow client={client} />);
+
+    const mode = (await screen.findByLabelText("Text")) as HTMLSelectElement;
+    expect(mode.disabled).toBe(false);
+
+    fireEvent.change(mode, { target: { value: "TIME_SINCE_LAST_BREAK" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(client.setSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ trayTextMode: "TIME_SINCE_LAST_BREAK" }),
+      );
+    });
+  });
+
+  it("enables the menu bar text selector with its switch", async () => {
+    const client = makeClient(makeSettings({ trayTextEnabled: false }));
+    render(<SettingsWindow client={client} />);
+
+    expect(
+      ((await screen.findByLabelText("Text")) as HTMLSelectElement).disabled,
+    ).toBe(true);
+
+    fireEvent.click(screen.getByRole("switch", { name: "Show menu bar text" }));
+
+    expect((screen.getByLabelText("Text") as HTMLSelectElement).disabled).toBe(
+      false,
+    );
   });
 });

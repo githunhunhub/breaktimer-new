@@ -24,18 +24,20 @@
    - **系统集成**：空闲检测、系统通知、自启动、声音播放。
 3. **系统层**：系统 WebView（WebView2 / WKWebView / WebKitGTK）+ OS API（显示器枚举、全屏、置顶、托盘、通知、自启动）。
 
-## 当前落地状态（M4 阶段 3）
+## 当前落地状态（M4 阶段 4）
 
 - `app/` 已是可运行的 Tauri v2 工程：Vite + React + TypeScript 前端，Rust 2024 后端。
-- 后端已建立 `state`、`breaks`、`flow`、`system_state`、`windows`、`tray`、`notifications`、`sounds`、`autostart` 模块边界；阶段 2 已接入调度、休息窗与声音，阶段 3 已接入工作时段、闲置重置和休眠/锁屏恢复。
-- IPC 已打通并集中封装：设置、应用信息、休息状态以及开始/结束/推迟/跳过/立即休息命令。
-- 设置后端已支持默认值合并、旧版本迁移、JSON 持久化与应用状态字段；设置窗口已实现 draft 编辑和点击 Save 提交，当前覆盖「通用」「工作时段」「Smart Breaks」分组。
+- 后端已建立 `state`、`breaks`、`flow`、`system_state`、`windows`、`tray`、`notifications`、`sounds`、`autostart` 模块边界；阶段 2 已接入调度、休息窗与声音，阶段 3 已接入工作时段、闲置重置和休眠/锁屏恢复，阶段 4 已接入托盘、通知模式与自启动。
+- IPC 已打通并集中封装：设置、应用信息、休息状态、开始/结束/推迟/跳过/立即休息，以及设置页的提示音试听命令。
+- 设置后端已支持默认值合并、旧版本迁移、JSON 持久化与应用状态字段（含 `disableEndTime`）；设置窗口已实现 draft 编辑和点击 Save 提交，当前覆盖「通用」「Start at login」「Breaks」「Working Hours」「Smart Breaks」「Menu Bar Text」「Audio」分组，其余字段留阶段 5。
 - 保存设置会先持久化，再应用纯函数计算出的副作用：自启动变化、从禁用切到启用时重置计时，以及调度器重启；开发构建跳过真实自启动注册。
 - `BreakScheduler` 已具备 `Idle / Working / OnBreak / Postponed` 状态机、1 秒 tick、提示倒计时、完成判定、推迟/跳过/立即休息与重启/重置接口；每次 tick 通过 `SchedulerContext` 消费工作时段与系统活动状态，长 tick/锁屏恢复不会补发过期休息。
 - `system_state` 通过 `SystemStateProvider` 隔离平台查询：空闲时长使用 `system-idle-time`；Windows 用输入桌面句柄探测锁屏，macOS/Linux 暂无轻量通用锁屏查询，按空闲/不可用语义降级处理（ADR-0005）。
 - `windows` 按显示器创建无边框、透明、置顶、跨工作区、不抢焦点的软遮挡窗；`flow` 统一编排窗口、声音与 `break-status` 广播，避免多窗口重复副作用。
 - `sounds` 使用 Rust `rodio` 播放嵌入的 WAV 资源（ADR-0003），`SoundType=None` 静音。
-- notification、autostart、single-instance 插件和 tray/capability 已在启动链路中装配；单实例行为已完成回归验证。空闲重置通知复用 notification 插件；托盘菜单与通知模式仍属后续阶段。
+- `tray` 把菜单与 macOS 标题所需信息归一化为纯函数快照（状态、下次休息文案、禁用剩余时长、标题），只在快照变化时整体重建菜单；临时禁用写入 `disableEndTime`，由 1 秒 tick 到期自动恢复（ADR-0006）。
+- `flow` 按 `notificationType` 分流：`Popup` 创建遮罩窗，`Notification` 发系统通知、播放开始音并立即完成本次休息续排，不创建窗口（SPEC-0008，ADR-0006）。
+- 自启动由 `autostart` 模块统一处理：启动时按设置同步注册状态，设置保存时应用变化，开发构建只记录不注册（SPEC-0007）。
 
 ## 与旧架构的关键差异
 

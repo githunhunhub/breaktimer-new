@@ -5,7 +5,7 @@
 ## 当前状态
 
 - 项目：BreakTimer 重构（两重目的：学习 AI 编程 + 替换 Electron）
-- 阶段：M0/M1/M2/M3 完成；M4 阶段 1/3 已完成；阶段 2「调度 + 休息窗 + 声音」核心闭环已实现，自动化验证与 Windows 人工验收通过，macOS/Linux 平台验收待做；下一步阶段 4 系统集成
+- 阶段：M0/M1/M2/M3 完成；M4 阶段 1/2/3 已完成（阶段 2 含 Windows 人工验收）；阶段 4「系统集成」实现与自动化验证完成，Windows 运行期人工验收待做；下一步阶段 5「设置补全与打包发布」
 - 新代码目录：`app/`（pnpm + Vite + React/TS 前端，`src-tauri/` Rust 后端）
 - 旧源码：`breaktimer-app/` 以 git submodule 引用上游，钉在 commit `2d67243`（≈ v2.1.0-54）
 - AI 学习笔记目录：`ai-notes/`
@@ -24,6 +24,9 @@
 - M4 阶段 3：工作时段逐日/多时间段判定、进入工作时段重置、空闲阈值重置与可选通知、长 tick/锁屏恢复全部接入；设置窗口新增 Working Hours 与 Smart Breaks 分组
 - M4 阶段 3 验证：Rust all-target tests、locked all-target check 通过；前端 test/lint/typecheck/format/build 通过；测试覆盖工作时段边界、空闲重置与通知开关、禁用空闲、长休眠/锁屏恢复
 - M4 阶段 3 提交：`codex/m4-phase-3` 提交 `82f2db3`，以 `--no-ff` 合入 `master`（merge `541158c`）并推送 `origin/master`
+- M4 阶段 4：托盘按 `TraySnapshot` 快照整体重建菜单（1 秒 tick + 状态变更刷新）、临时禁用写入并持久化 `disableEndTime` 且到期由 tick 自动恢复、`flow` 按 `notificationType` 分流 Notification 模式（发通知 + 立即续排，不建窗口）、接入官方 autostart 插件（开发构建跳过注册）、设置窗口补 Start at login/Breaks/Menu Bar Text/Audio 分组与提示音试听；取舍见 ADR-0006
+- M4 阶段 4 验证：Rust fmt/check locked all-targets 与 `cargo test --all-targets` 83 tests 通过；前端 lint/typecheck/format/test（20 tests）/build 通过；`pnpm tauri:dev` 运行时冒烟通过（托盘初始化与每秒刷新无错误输出）
+- M4 阶段 4 重要实现细节：`TrayIcon::set_menu`/`set_title` 会 marshal 到主线程并阻塞等待，菜单事件也在主线程刷新托盘；因此刷新实现用 `app.tray_by_id` 取句柄，锁只包住快照比较与记录，不在持锁期间调用托盘 API（避免重入等待）
 
 ## 关键约定
 
@@ -34,8 +37,9 @@
 
 ## 待办 / 阻塞
 
-- SPEC-0010 当前为 `in-progress`：阶段 1 已完成，但设置窗口仅覆盖「通用」分组；余下分组与字段在后续阶段补齐。
+- SPEC-0010 当前为 `in-progress`：阶段 4 已补 Start at login/Breaks/Menu Bar Text/Audio 分组；遮罩颜色/透明度、结束/跳过/推迟开关、立即开始休息留阶段 5。
 - SPEC-0002：代码、自动化验证与 Windows 多显示器/焦点/跨工作区人工验收已完成；`showBackdrop=false`、推迟/跳过按钮、混合 DPI 与 macOS/Linux 平台限制待验证。
 - SPEC-0009：播放通道、资源映射与 Windows 真实音频人工验收已完成，状态 `done`。
-- SPEC-0003：阶段 2/3 核心完成；剩余托盘项属阶段 4。
-- 按 `docs/plans/0002-implementation-phases.md` 继续：阶段 4「系统集成」。
+- SPEC-0006/0007/0008 当前均为 `in-progress`：阶段 4 代码与自动化验证完成，需 Windows 运行期人工验收（托盘显示与菜单交互、禁用到期恢复、登录自启、系统通知表现）后才改 `done`。
+- SPEC-0003：阶段 2/3/4 核心完成（含托盘相关项），待运行期验收。
+- 按 `docs/plans/0002-implementation-phases.md` 继续：阶段 4 人工验收 → 阶段 5「设置补全与打包发布」。

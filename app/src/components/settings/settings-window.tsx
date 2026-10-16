@@ -6,14 +6,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ipc } from "@/lib/ipc";
-import type { Settings } from "@/types/settings";
+import type { Settings, SoundType } from "@/types/settings";
 
+import { AudioCard } from "./audio-card";
+import { BreaksCard } from "./breaks-card";
 import { SmartBreaksCard } from "./smart-breaks-card";
+import { StartupCard } from "./startup-card";
+import { TrayCard } from "./tray-card";
 import { WorkingHoursCard } from "./working-hours-card";
 
 export interface SettingsClient {
   getSettings: () => Promise<Settings>;
   setSettings: (settings: Settings) => Promise<void>;
+  /** Plays a preview of a sound without saving (SPEC-0009); optional. */
+  playSoundPreview?: (soundType: SoundType, volume: number) => Promise<void>;
 }
 
 interface SettingsWindowProps {
@@ -77,6 +83,14 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
     }
   }
 
+  function handlePreview(soundType: SoundType) {
+    const preview = client.playSoundPreview?.(
+      soundType,
+      draft?.breakSoundVolume ?? 1,
+    );
+    preview?.catch((cause: unknown) => setError(messageFrom(cause)));
+  }
+
   if (!draft) {
     return (
       <main className="flex h-full items-center justify-center gap-2">
@@ -107,12 +121,12 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
       </header>
 
       <div className="min-h-0 flex-1 overflow-auto">
-        <div className="mx-auto w-full max-w-2xl p-6">
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">General</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+            <CardContent>
               <div className="flex items-center justify-between gap-4">
                 <Label htmlFor="breaks-enabled">Breaks enabled</Label>
                 <Switch
@@ -123,25 +137,27 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
                   }
                 />
               </div>
-              <div className="flex items-center justify-between gap-4">
-                <Label htmlFor="auto-launch">Launch at login</Label>
-                <Switch
-                  id="auto-launch"
-                  checked={draft.autoLaunch}
-                  onCheckedChange={(checked) =>
-                    updateDraft({ autoLaunch: checked })
-                  }
-                />
-              </div>
             </CardContent>
           </Card>
+
+          <StartupCard settings={draft} onPatch={updateDraft} />
+
+          <BreaksCard settings={draft} onPatch={updateDraft} />
 
           <WorkingHoursCard settings={draft} onPatch={updateDraft} />
 
           <SmartBreaksCard settings={draft} onPatch={updateDraft} />
 
+          <TrayCard settings={draft} onPatch={updateDraft} />
+
+          <AudioCard
+            settings={draft}
+            onPatch={updateDraft}
+            onPreview={handlePreview}
+          />
+
           {error && (
-            <p role="alert" className="text-destructive mt-4 text-sm">
+            <p role="alert" className="text-destructive text-sm">
               {error}
             </p>
           )}

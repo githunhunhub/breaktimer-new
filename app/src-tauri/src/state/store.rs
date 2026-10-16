@@ -115,8 +115,16 @@ impl SettingsStore {
         self.with_data(|data| data.settings.clone())
     }
 
+    /// Persists `settings`.
+    ///
+    /// Turning breaks on also drops a pending `disableEndTime`: the deadline
+    /// only means something while breaks are off (SPEC-0006, ADR-0006).
     pub fn set_settings(&self, settings: Settings) -> AppResult<()> {
+        let clears_disable_end_time = settings.breaks_enabled;
         self.with_data(|data| data.settings = settings);
+        if clears_disable_end_time {
+            self.with_data(|data| data.disable_end_time = None);
+        }
         self.persist()
     }
 
@@ -131,12 +139,10 @@ impl SettingsStore {
         self.persist()
     }
 
-    #[allow(dead_code)]
     pub fn disable_end_time(&self) -> Option<i64> {
         self.with_data(|data| data.disable_end_time)
     }
 
-    #[allow(dead_code)]
     pub fn set_disable_end_time(&self, end_time: Option<i64>) -> AppResult<()> {
         self.with_data(|data| data.disable_end_time = end_time);
         self.persist()
@@ -197,6 +203,66 @@ mod tests {
         assert_eq!(settings.break_length_seconds, 45);
         assert_eq!(settings.sound_type, crate::state::settings::SoundType::Gong);
         assert_eq!(store.path(), path.as_path());
+
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn saving_while_disabled_keeps_the_timed_disable_deadline() {
+        let path = temp_path("keep-disable-end-time.json");
+        let _ = fs::remove_file(&path);
+
+        let store = SettingsStore::load(path.clone()).unwrap();
+        let settings = store.settings();
+        store
+            .set_settings(Settings {
+                breaks_enabled: false,
+                ..settings.clone()
+            })
+            .unwrap();
+        store.set_disable_end_time(Some(1_700_000_000)).unwrap();
+
+        store
+            .set_settings(Settings {
+                breaks_enabled: false,
+                break_frequency_seconds: 900,
+                ..settings
+            })
+            .unwrap();
+
+        assert_eq!(store.disable_end_time(), Some(1_700_000_000));
+        let reloaded = SettingsStore::load(path.clone()).unwrap();
+        assert_eq!(reloaded.disable_end_time(), Some(1_700_000_000));
+
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn enabling_breaks_clears_the_timed_disable_deadline() {
+        let path = temp_path("clear-disable-end-time.json");
+        let _ = fs::remove_file(&path);
+
+        let store = SettingsStore::load(path.clone()).unwrap();
+        let settings = store.settings();
+        store
+            .set_settings(Settings {
+                breaks_enabled: false,
+                ..settings.clone()
+            })
+            .unwrap();
+        store.set_disable_end_time(Some(1_700_000_000)).unwrap();
+
+        store
+            .set_settings(Settings {
+                breaks_enabled: true,
+                ..settings
+            })
+            .unwrap();
+
+        assert_eq!(store.disable_end_time(), None);
+        let reloaded = SettingsStore::load(path.clone()).unwrap();
+        assert!(reloaded.settings().breaks_enabled);
+        assert_eq!(reloaded.disable_end_time(), None);
 
         fs::remove_file(path).unwrap();
     }

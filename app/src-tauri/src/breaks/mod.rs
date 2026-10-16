@@ -437,6 +437,29 @@ impl BreakScheduler {
         self.begin_break(settings, now).map(|start| (start, true))
     }
 
+    /// Completes a Notification-mode break immediately and schedules the next
+    /// one (SPEC-0008).
+    ///
+    /// Notification mode never shows a break window, but the scheduler may
+    /// already be prompted or auto-started when this transition runs.
+    pub fn complete_notification_break(&mut self, settings: &Settings, now: DateTime<Utc>) {
+        self.current_break_started_at = None;
+        self.break_end_at = None;
+        self.prompted_at = None;
+        self.postponed_count = 0;
+        self.started_from_tray = false;
+        self.paused_until_active = false;
+        self.idle_reset_active = false;
+        self.last_completed_break_at = now;
+
+        if settings.breaks_enabled {
+            self.schedule_next_break(settings, now);
+        } else {
+            self.phase = BreakPhase::Idle;
+            self.next_break_at = None;
+        }
+    }
+
     pub fn start_break_now(&mut self, settings: &Settings, now: DateTime<Utc>) -> BreakStart {
         self.phase = BreakPhase::OnBreak;
         self.next_break_at = None;
@@ -1162,6 +1185,49 @@ mod tests {
         );
         assert_eq!(scheduler.phase(), BreakPhase::OnBreak);
         assert_eq!(scheduler.break_end_at(), Some(at(150)));
+    }
+
+    #[test]
+    fn notification_mode_completes_a_prompted_break_immediately() {
+        let settings = settings();
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+        assert_eq!(
+            tick(&mut scheduler, &settings, 60),
+            BreakTick::BreakPrompted
+        );
+
+        scheduler.complete_notification_break(&settings, at(60));
+
+        assert_eq!(scheduler.phase(), BreakPhase::Working);
+        assert_eq!(scheduler.last_completed_break_at(), at(60));
+        assert_eq!(scheduler.next_break_at(), Some(at(120)));
+        assert_eq!(scheduler.prompt_started_at(), None);
+        assert!(!scheduler.is_break_tracking());
+    }
+
+    #[test]
+    fn notification_mode_completes_an_auto_started_break_immediately() {
+        let settings = Settings {
+            immediately_start_breaks: true,
+            ..settings()
+        };
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+        assert_eq!(
+            tick(&mut scheduler, &settings, 60),
+            BreakTick::BreakStarted(BreakStart {
+                end_at: at(180),
+                started_from_tray: false,
+            })
+        );
+
+        scheduler.complete_notification_break(&settings, at(60));
+
+        assert_eq!(scheduler.phase(), BreakPhase::Working);
+        assert_eq!(scheduler.last_completed_break_at(), at(60));
+        assert_eq!(scheduler.next_break_at(), Some(at(120)));
+        assert!(!scheduler.is_break_tracking());
     }
 
     #[test]
