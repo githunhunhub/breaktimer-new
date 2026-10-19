@@ -1,7 +1,7 @@
 # SPEC-0008：通知模式（Notification）
 
 - 状态：in-progress
-- 实现状态：阶段 4 代码与自动化验证完成；系统通知运行期表现待真实桌面验收
+- 实现状态：阶段 4 代码与自动化验证完成；`Break type` 入口已修正，系统通知不建休息窗有运行期冒烟证据，真实通知表现待人工复验
 - 日期：2026-10-13
 - 关联：ADR-0002 · SPEC-0003 · 旧实现 `breaktimer-app/app/main/lib/notifications.ts`、`breaks.ts`
 
@@ -47,3 +47,4 @@
 | 2026-10-13 | 创建并确认 |
 | 2026-10-15 | 进入 M4 阶段 4 实现；非 macOS 通知关闭依赖系统默认行为（ADR-0006） |
 | 2026-10-15 | 阶段 4 实现完成：`flow` 按 `notificationType` 分流，Notification 模式发系统通知、播放开始音并立即完成续排；正文剥离 HTML 有测试覆盖。不弹遮罩窗、5 秒关闭与提示音同时播放待运行期验收 |
+| 2026-10-19 | 设置入口由模糊的 `Type`/`Simple notification` 改为 `Break type`/`Notification`；运行期检查确认 Notification 命令未创建休息窗，待用户复验系统通知外观、声音与续排 |

@@ -25,7 +25,7 @@ export function BreaksCard({ settings, onPatch }: BreaksCardProps) {
       <CardContent className="flex flex-col gap-4">
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="notification-type">Type</Label>
+            <Label htmlFor="notification-type">Break type</Label>
             <Select
               id="notification-type"
               value={settings.notificationType}
@@ -37,7 +37,7 @@ export function BreaksCard({ settings, onPatch }: BreaksCardProps) {
               }
             >
               <option value="POPUP">Popup break</option>
-              <option value="NOTIFICATION">Simple notification</option>
+              <option value="NOTIFICATION">Notification</option>
             </Select>
           </div>
 

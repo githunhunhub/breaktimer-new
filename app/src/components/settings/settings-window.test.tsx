@@ -279,8 +279,17 @@ describe("SettingsWindow", () => {
     );
     render(<SettingsWindow client={client} />);
 
-    const type = (await screen.findByLabelText("Type")) as HTMLSelectElement;
+    const type = (await screen.findByLabelText(
+      "Break type",
+    )) as HTMLSelectElement;
     expect(type.value).toBe("POPUP");
+    expect(
+      (
+        screen.getByRole("option", {
+          name: "Notification",
+        }) as HTMLOptionElement
+      ).value,
+    ).toBe("NOTIFICATION");
     expect(
       (screen.getByLabelText("Break frequency in minutes") as HTMLInputElement)
         .value,
@@ -309,7 +318,7 @@ describe("SettingsWindow", () => {
     const client = makeClient(makeSettings({ notificationType: "POPUP" }));
     render(<SettingsWindow client={client} />);
 
-    fireEvent.change(await screen.findByLabelText("Type"), {
+    fireEvent.change(await screen.findByLabelText("Break type"), {
       target: { value: "NOTIFICATION" },
     });
     fireEvent.change(screen.getByLabelText("Break frequency in minutes"), {

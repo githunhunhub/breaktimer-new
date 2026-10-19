@@ -54,3 +54,4 @@
 | 2026-10-14 | 明确设置为「编辑 draft，点击 Save 后一次性持久化并生效」；完成阶段 1 的通用设置窗口、保存副作用与调度状态接口 |
 | 2026-10-14 | 阶段 1 人工验收通过；SPEC 因设置窗口尚未覆盖全部字段继续保持 `in-progress` |
 | 2026-10-15 | 阶段 4 补齐「Start at login」「Breaks」「Menu Bar Text」「Audio」分组与提示音试听；新增 UI 原语（Select/Textarea/Slider）。剩余遮罩与休息流程开关留阶段 5 |
+| 2026-10-19 | 按 A8 验收反馈把 Breaks 分组字段改为 `Break type`，选项改为 `Popup break` / `Notification`；自动化验证完成，待人工复验设置入口与持久化 |

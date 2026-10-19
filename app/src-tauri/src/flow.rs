@@ -132,7 +132,7 @@ fn break_started<R: Runtime>(app: &AppHandle<R>, state: &AppState, _start: &Brea
         return;
     }
 
-    if let Err(error) = windows::show_break(app, &settings) {
+    if let Err(error) = windows::show_break(app) {
         eprintln!("failed to show break window: {error}");
     }
     sounds::play(&settings, true);

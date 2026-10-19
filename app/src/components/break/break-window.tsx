@@ -268,9 +268,12 @@ export function BreakWindow({ client = ipc }: BreakWindowProps) {
 
   return (
     <main
-      className={`relative flex h-full w-full items-center justify-center overflow-hidden bg-transparent ${
-        settings.showBackdrop ? "p-6" : "p-0"
-      }`}
+      className="relative flex h-full w-full items-center justify-center overflow-hidden bg-transparent p-6"
+      style={
+        settings.showBackdrop
+          ? undefined
+          : { backgroundColor: "rgba(0, 0, 0, 0.001)" }
+      }
     >
       {settings.showBackdrop && (
         <div
@@ -284,11 +287,7 @@ export function BreakWindow({ client = ipc }: BreakWindowProps) {
       )}
 
       <section
-        className={`relative flex flex-col justify-center overflow-hidden rounded-lg p-6 shadow-xl ${
-          settings.showBackdrop
-            ? "min-h-[300px] w-full max-w-[500px]"
-            : "h-full w-full"
-        }`}
+        className="relative flex min-h-[300px] w-full max-w-[500px] flex-col justify-center overflow-hidden rounded-lg p-6 shadow-xl"
         style={{
           backgroundColor: settings.backgroundColor,
           color: settings.textColor,
@@ -305,7 +304,7 @@ export function BreakWindow({ client = ipc }: BreakWindowProps) {
               onClick={() => void runAction(client.endBreak)}
               variant="outline"
             >
-              {progress < 0.5 ? "Cancel Break" : "End Break"}
+              Cancel Break
             </Button>
           )}
         </div>
