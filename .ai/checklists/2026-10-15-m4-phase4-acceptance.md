@@ -7,7 +7,7 @@
 - 说明：`[x]` 表示已人工确认通过，`[!]` 表示有问题，`[-]` 表示本机无法验收（需注明原因）
 
 > 2026-10-19 首轮验收结论：A1-A7、A10、A11 已通过；A8/A9 已修复并完成自动化验证，
-> 需要按本清单专项复验。A12-A14、B、C、D 组尚未验证。
+> 需要按本清单专项复验。另按验收反馈恢复设置窗口四页签结构。A12-A14、B、C、D 组尚未验证。
 
 ## 执行前准备
 
@@ -105,7 +105,7 @@
 首轮问题：设置里只看到 Popup 行为，找不到 Notification 模式入口。
 
 - **A8.1 模式入口**
-  - **操作**：打开 `Settings...` → Breaks 组，展开 `Break type`。
+- **操作**：打开 `Settings...` → `General` 页签 → Breaks 组，展开 `Break type`。
   - **预期**：可见且仅需选择 `Popup break` / `Notification` 两种模式；`Notification` 可正常保存，重新打开设置仍保留。
   - [ ] 通过
   - 备注：
@@ -191,7 +191,7 @@
 
 ### B1 切换为 Notification 并保存
 
-- **操作**：`Settings...` → Breaks 组 → `Break type` 选 `Notification`；确认 `Length` 变灰不可编辑；点 `Save`。
+- **操作**：`Settings...` → `General` 页签 → Breaks 组 → `Break type` 选 `Notification`；确认 `Length` 变灰不可编辑；点 `Save`。
 - **预期**：保存成功，无报错；再次打开设置仍为 `Notification`。
 - [ ] 通过
 - 备注：
@@ -247,16 +247,32 @@
 
 ## C. 设置窗口阶段 4 分组（SPEC-0010，待验证）
 
-### C1 Start at login 分组
+### C0 四页签结构与跨页保存
 
-- **操作**：找到 `Start at login`，切换 `Launch at login`，观察 Save 变为可用；点 `Save`。
+- **操作**：
+  1. 打开 `Settings...`，确认顶部依次显示 `General`、`Working Hours`、`Customization`、`System`；
+  2. 默认应选中 `General`；
+  3. 在 `General` 修改 `Break frequency`，切到其他页签再切回，确认修改仍在；
+  4. 再到 `System` 修改 `Launch at login`，确认顶部 Save 共用，点一次 Save；
+  5. 重新打开设置，确认两个页签中的修改都已保存。
+- **预期**：
+  - 四个页签在 Windows 设置窗口中都可见；
+  - 同一时间只显示当前页签内容；
+  - 切换页签不丢失未保存 draft，Save 一次提交全部页签；
+  - 默认打开 `General`。
+- [ ] 通过
+- 备注：
+
+### C1 System 页签的 Start at login 分组
+
+- **操作**：切换到 `System`，找到 `Start at login`，切换 `Launch at login`，观察 Save 变为可用；点 `Save`。
 - **预期**：保存无报错，开关状态持久化；重新打开设置仍为保存后的值。
 - [ ] 通过
 - 备注：
 
-### C2 Breaks 分组字段
+### C2 General 页签的 Breaks 分组字段
 
-- **操作**：分别修改 `Break type`、`Frequency`（分/秒）、`Length`（分/秒）、`Title`、`Message`，每改一项观察 Save 状态，最后一次性保存。
+- **操作**：切换到 `General`，分别修改 `Break type`、`Frequency`（分/秒）、`Length`（分/秒）、`Title`、`Message`，每改一项观察 Save 状态，最后一次性保存。
 - **预期**：
   - 分钟/秒两个输入框联动，总和换算正确（例如 28 分 0 秒 → 1680）；
   - `Break type = Notification` 时 `Length` 禁用；
@@ -265,16 +281,16 @@
 - [ ] 通过
 - 备注：
 
-### C3 菜单栏文本分组
+### C3 System 页签的菜单栏文本分组
 
-- **操作**：切换 `Show menu bar text`，观察 `Text` 下拉可用性；在 `Time to next break` / `Time since last break` 之间切换并保存。
+- **操作**：切换到 `System`，切换 `Show menu bar text`，观察 `Text` 下拉可用性；在 `Time to next break` / `Time since last break` 之间切换并保存。
 - **预期**：开关关闭时下拉禁用；开关开启时可选；保存后重新打开设置仍是所选值。
 - [ ] 通过
 - 备注：
 
-### C4 Audio 分组
+### C4 Customization 页签的 Audio 分组
 
-- **操作**：在 `Break sound` 选择 `Gong`/`Blip`/`Bloop`/`Ping`/`Sci-fi`，点右侧播放按钮试听；拖动 `Break sound volume` 到中间值再试听；最后保存。
+- **操作**：切换到 `Customization`，在 `Break sound` 选择 `Gong`/`Blip`/`Bloop`/`Ping`/`Sci-fi`，点右侧播放按钮试听；拖动 `Break sound volume` 到中间值再试听；最后保存。
 - **预期**：
   - 试听按钮有 tooltip「Preview break sound」；
   - 不同声音可区分，音量滑块影响试听响度；
@@ -285,8 +301,8 @@
 
 ### C5 阶段 3 分组回归（保存一次全量）
 
-- **操作**：打开设置，确认 `General`、`Working Hours`、`Smart Breaks` 仍在；改动任意一项后保存，再重启应用。
-- **预期**：所有分组一次性保存，无字段被阶段 4 新分组覆盖或丢失。
+- **操作**：打开设置，确认 `Working Hours` 页签中的工作时段控件和 `General` 页签中的 `Smart Breaks` 仍在；在 `Working Hours` 修改后切回 `General` 再改一项，保存一次并重启应用。
+- **预期**：跨页签修改一次性保存，无字段被页签切换或阶段 4 分组覆盖、丢失。
 - [ ] 通过
 - 备注：
 
@@ -367,6 +383,7 @@
 | B5 | 未验证 | 等待后续人工验收。 |
 | B6 | 未验证 | 等待后续人工验收。 |
 | B7 | 未验证 | 等待后续人工验收。 |
+| C0 | 未验证 | 等待四页签结构修复后人工验收。 |
 | C1 | 未验证 | 等待后续人工验收。 |
 | C2 | 未验证 | 等待后续人工验收。 |
 | C3 | 未验证 | 等待后续人工验收。 |

@@ -16,6 +16,6 @@
 | [SPEC-0007](0007-auto-launch.md) | 自启动 | in-progress | ADR-0002 | `app/`（M4 阶段 4 实现完成；登录自启待发布产物人工验收） |
 | [SPEC-0008](0008-notification-mode.md) | 通知模式（Notification） | in-progress | ADR-0002 · ADR-0006 · SPEC-0003 | `app/`（`Break type` 入口已修正；系统通知表现待人工复验） |
 | [SPEC-0009](0009-sounds.md) | 声音 | done | ADR-0002 · ADR-0003 · SPEC-0002 · SPEC-0008 | `app/`（阶段 2 实现与 Windows 人工验收完成） |
-| [SPEC-0010](0010-settings-persistence-and-window.md) | 设置持久化与设置窗口 | in-progress | ADR-0002 | `app/`（阶段 4 分组完成，Breaks 入口改为 `Break type`；遮罩与休息流程开关留阶段 5） |
+| [SPEC-0010](0010-settings-persistence-and-window.md) | 设置持久化与设置窗口 | in-progress | ADR-0002 | `app/`（阶段 4 分组完成并恢复四页签结构；遮罩与休息流程开关留阶段 5） |
 
 <!-- 新增 spec 后在此表追加一行。状态：draft / confirmed / in-progress / done / superseded -->

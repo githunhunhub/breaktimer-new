@@ -57,10 +57,12 @@
 - [x] 自启动注册/取消（官方 autostart 插件，开发构建跳过注册）。
 - [x] `Notification` 模式：发系统通知、不弹休息窗、直接续排（ADR-0006）。
 - [x] 设置窗口补「通知」「声音」「自启动」等剩余分组。
+- [x] 设置窗口按原版重组为 `General`、`Working Hours`、`Customization`、`System` 四个页签；保留共用
+  draft 与顶部 Save，阶段 5 字段不提前加入。
 - [x] 修复 A8/A9 回归：Notification 入口更明确；Popup 激活休息改为覆盖所有显示器的可聚焦输入阻断层，
   任务栏/托盘不可点击，仅通过 `Cancel Break` 退出（ADR-0007）。
-- 验收：SPEC-0006、SPEC-0007、SPEC-0008 自动化验证通过；A8/A9 修复后待重做专项人工验收。A1-A7、A10、A11
-  已人工通过；托盘显示与菜单交互、
+- 验收：SPEC-0006、SPEC-0007、SPEC-0008 自动化验证通过；设置窗口四页签、跨页 draft 与共用 Save 已有自动化
+  测试覆盖；A8/A9 修复后待重做专项人工验收。A1-A7、A10、A11 已人工通过；托盘显示与菜单交互、
   临时禁用到期恢复、Windows 登录自启、系统通知真实表现仍待运行期人工验收。
 
 ## 阶段 5｜收尾：补全设置 UI 与打包发布
@@ -87,3 +89,4 @@
 | 2026-10-15 | 阶段 4 实现与自动化验证完成：托盘快照/菜单重建与临时禁用到期恢复、自启动同步、Notification 分流、设置窗口新增 Breaks/Text 与 Audio 分组；`cargo test --all-targets` 与前端 lint/typecheck/format/test/build 全部通过。Windows 运行期人工验收待做 |
 | 2026-10-19 | Windows 人工验收 A1-A11：A8 发现 Notification 入口不直观且 Popup 焦点语义不符；A9 确认休息窗未阻断任务栏/托盘输入。新增 ADR-0007，阶段 4 保持 in-progress，修复后复验 A8/A9 |
 | 2026-10-19 | A8/A9 修复与自动化验证完成：`Break type` 暴露 Popup/Notification；激活 Popup 使用完整显示器 bounds、可聚焦输入阻断层，并修复混合 DPI 副屏几何与窗口创建线程等待；待用户专项复验 |
+| 2026-10-19 | 按验收反馈补充阶段 4 设置窗口结构调整：恢复四页签并保持跨页 draft、全量 Save；阶段 5 设置字段范围不变 |

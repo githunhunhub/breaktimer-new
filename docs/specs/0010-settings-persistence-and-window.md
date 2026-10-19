@@ -15,6 +15,8 @@
 3. 点击 Save 保存设置时同步副作用：自启动开关变化时应用；从禁用切到启用时重置「距上次休息」；必要时重启调度。
 4. 持久化 `disableEndTime`（托盘临时禁用到期时间）与 `appInitialized`（是否已初始化）等应用状态。
 5. 提供设置窗口，分组编辑所有可配置项（通用、调度、工作时段、闲置、通知、声音、遮罩、休息文案等）。
+6. 设置窗口按原版分为 `General`、`Working Hours`、`Customization`、`System` 四个页签；默认打开
+   `General`，切换页签保留未保存的 draft，顶部 Save 对全部页签共用并一次提交完整设置。
 
 ## 验收标准（可测）
 
@@ -23,6 +25,7 @@
 - [x] 旧版本设置可按迁移链升级，且迁移失败不会破坏原数据。
 - [x] 切换自启动开关后，保存时同步应用（非开发构建；见 SPEC-0007）。
 - [x] 从禁用切到启用休息时，保存时重置「距上次休息」。
+- [ ] 设置窗口显示四个页签，默认选中 `General`；切换页签不丢失 draft，任意页签的修改可由同一次 Save 提交。
 - [ ] 设置窗口覆盖全部可配置字段，并在点击 Save 后一次性生效。
 
 ## 非目标 / 边界
@@ -43,6 +46,8 @@
 - [x] 接入自启动、调度重启、启用休息时重置计时等保存副作用；完整 1 秒调度循环留待阶段 2。
 - [x] 阶段 3 补「Working Hours」「Smart Breaks」分组。
 - [x] 阶段 4 补「Start at login」「Breaks」「Menu Bar Text」「Audio（含提示音试听）」分组。
+- [x] 阶段 4 将现有分组重组为 `General`、`Working Hours`、`Customization`、`System` 四个页签；阶段 5
+  再向对应页签补 Theme、Backdrop、Snooze、Skip、Advanced 等字段。
 - [ ] 补齐其余设置分组与字段：遮罩颜色/透明度、结束/跳过/推迟开关、立即开始休息等。
 
 ## 变更记录
@@ -55,3 +60,4 @@
 | 2026-10-14 | 阶段 1 人工验收通过；SPEC 因设置窗口尚未覆盖全部字段继续保持 `in-progress` |
 | 2026-10-15 | 阶段 4 补齐「Start at login」「Breaks」「Menu Bar Text」「Audio」分组与提示音试听；新增 UI 原语（Select/Textarea/Slider）。剩余遮罩与休息流程开关留阶段 5 |
 | 2026-10-19 | 按 A8 验收反馈把 Breaks 分组字段改为 `Break type`，选项改为 `Popup break` / `Notification`；自动化验证完成，待人工复验设置入口与持久化 |
+| 2026-10-19 | 按人工验收反馈恢复原版四页签结构：`General`、`Working Hours`、`Customization`、`System`；本次仅重组阶段 4 已有字段，阶段 5 字段仍不提前实现 |

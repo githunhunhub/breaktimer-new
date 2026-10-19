@@ -25,10 +25,11 @@
 - M4 阶段 3 验证：Rust all-target tests、locked all-target check 通过；前端 test/lint/typecheck/format/build 通过；测试覆盖工作时段边界、空闲重置与通知开关、禁用空闲、长休眠/锁屏恢复
 - M4 阶段 3 提交：`codex/m4-phase-3` 提交 `82f2db3`，以 `--no-ff` 合入 `master`（merge `541158c`）并推送 `origin/master`
 - M4 阶段 4：托盘按 `TraySnapshot` 快照整体重建菜单（1 秒 tick + 状态变更刷新）、临时禁用写入并持久化 `disableEndTime` 且到期由 tick 自动恢复、`flow` 按 `notificationType` 分流 Notification 模式（发通知 + 立即续排，不建窗口）、接入官方 autostart 插件（开发构建跳过注册）、设置窗口补 Start at login/Breaks/Menu Bar Text/Audio 分组与提示音试听；取舍见 ADR-0006
-- M4 阶段 4 验证：Rust fmt/check locked all-targets 与 `cargo test --all-targets` 83 tests 通过；前端 lint/typecheck/format/test（21 tests）/build 通过；`pnpm tauri:dev` 运行时冒烟通过（托盘初始化与每秒刷新无错误输出）
+- M4 阶段 4 验证：Rust fmt/check locked all-targets 与 `cargo test --all-targets` 83 tests 通过；前端 lint/typecheck/format/test（24 tests）/build 通过；`pnpm tauri:dev` 运行时冒烟通过（托盘初始化与每秒刷新无错误输出）
 - M4 阶段 4 重要实现细节：`TrayIcon::set_menu`/`set_title` 会 marshal 到主线程并阻塞等待，菜单事件也在主线程刷新托盘；因此刷新实现用 `app.tray_by_id` 取句柄，锁只包住快照比较与记录，不在持锁期间调用托盘 API（避免重入等待）
 - M4 阶段 4 A8/A9 修复：设置字段改为 `Break type`（`Popup break` / `Notification`）；Popup 激活休息覆盖每个显示器完整 bounds、可聚焦并阻断任务栏/托盘，`Cancel Break` 统一退出；混合 DPI 下先移动再缩放，窗口创建移到工作线程并用全局锁串行化（ADR-0007）
 - M4 阶段 4 A8/A9 运行期证据（2026-10-19）：Windows 双屏为副屏 `(-1600,0) 1600×900`、主屏物理 `1920×1200`/DPR 1.25；两个休息页均只有 `Cancel Break`，主/副任务栏与托盘区域命中休息窗；退出后 CDP target 从 3 降至 1，任务栏命中恢复 explorer；Notification 路径未创建休息窗
+- M4 阶段 4 设置页签（2026-10-19）：按原版恢复 `General`、`Working Hours`、`Customization`、`System` 四页签；默认 General，共用 draft 与顶部 Save，切页不丢修改；本次只重组阶段 4 已有字段
 
 ## 关键约定
 
@@ -39,7 +40,7 @@
 
 ## 待办 / 阻塞
 
-- SPEC-0010 当前为 `in-progress`：阶段 4 已补 Start at login/Breaks/Menu Bar Text/Audio 分组；遮罩颜色/透明度、结束/跳过/推迟开关、立即开始休息留阶段 5。
+- SPEC-0010 当前为 `in-progress`：阶段 4 已补 Start at login/Breaks/Menu Bar Text/Audio 分组并恢复四页签；待人工验收 C0-C5；遮罩颜色/透明度、结束/跳过/推迟开关、立即开始休息留阶段 5。
 - SPEC-0002：A8/A9 输入阻断修复与自动化验证完成；需专项复验 A8/A9/A14，并继续验证 `showBackdrop=false`、推迟/跳过、混合 DPI 与 macOS/Linux 平台限制。
 - SPEC-0009：播放通道、资源映射与 Windows 真实音频人工验收已完成，状态 `done`。
 - SPEC-0006/0007/0008 当前均为 `in-progress`：A1-A7、A10、A11 已人工通过；A8/A9/A14 待专项复验，A12/A13、B 组、C 组与 D 组仍需人工验收后才改 `done`。
