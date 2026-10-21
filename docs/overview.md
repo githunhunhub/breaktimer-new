@@ -16,6 +16,7 @@
 - 设置持久化与设置窗口。
 - 系统通知（`Notification` 模式）。
 - 自启动（auto-launch）。
+- 当前验收与发布平台：Windows（x64）；macOS/Linux 暂不纳入当前里程碑。
 
 ## 非目标（Out of scope）
 
@@ -24,10 +25,11 @@
 - kiosk 级「硬锁定」：独占系统键盘鼠标、禁止 Alt+Tab/Windows 键/任务管理器（本期只做应用层输入阻断，
   见 ADR-0002、ADR-0007）。
 - 多语言本地化（旧版为英文界面）。
+- macOS/Linux 的发布、平台差异与运行验收；相关兼容代码可保留，但不作为当前里程碑的完成条件。
 
 ## 约束
 
-- 平台：Windows / macOS / Linux
+- 当前平台：Windows；macOS/Linux 后续需要时再单独立项验收。
 - 前端尽量复用旧 UI 资产（React + TypeScript）
 - 技术栈：以 `docs/architecture.md` 与 `docs/decisions/0002-technology-stack.md` 为准
 - 旧实现仅作参考：`breaktimer-app/`

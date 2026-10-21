@@ -1,6 +1,8 @@
 # SPEC-0010：设置持久化与设置窗口
 
 - 状态：in-progress
+- 实现状态：阶段 4 Windows 设置窗口与四页签已完成，C0-C7 人工验收通过；
+  Theme、Backdrop 等剩余字段留阶段 5
 - 日期：2026-10-13
 - 关联：ADR-0002 · 旧实现 `breaktimer-app/app/main/lib/store.ts`、`renderer` 设置页
 
@@ -30,7 +32,7 @@
 - [x] 旧版本设置可按迁移链升级，且迁移失败不会破坏原数据。
 - [x] 切换自启动开关后，保存时同步应用（非开发构建；见 SPEC-0007）。
 - [x] 从禁用切到启用休息时，保存时重置「距上次休息」。
-- [ ] 设置窗口显示四个页签，默认选中 `General`；切换页签不丢失 draft，任意页签的修改可由同一次 Save 提交。
+- [x] 设置窗口显示四个页签，默认选中 `General`；切换页签不丢失 draft，任意页签的修改可由同一次 Save 提交。
 - [x] `General` 按 `Breaks`、`Smart Breaks`、`Snooze`、`Skip`、`Advanced` 顺序显示，且
   `Breaks enabled` 位于 `Breaks` 标题右侧。
 - [x] `Snooze`、`Skip`、`Advanced` 的字段可加载、编辑、按依赖关系禁用，并可由同一次 Save 持久化。
@@ -78,4 +80,4 @@
 | 2026-10-19 | 按人工验收反馈恢复原版四页签结构：`General`、`Working Hours`、`Customization`、`System`；本次仅重组阶段 4 已有字段，阶段 5 字段仍不提前实现 |
 | 2026-10-21 | 按 C3 人工验收反馈确认把 `Snooze`、`Skip`、`Advanced` 提前纳入阶段 4；`Breaks enabled` 移入 `Breaks` 标题行，`Working Hours` 改为原版紧凑行内布局并支持复制时间段 |
 | 2026-10-21 | 按 C3/C4 专项复验反馈统一 `Break type`、`Frequency`、`Length` 的标题与控件基线，扩大两位秒数显示宽度；`Working Hours` 恢复原生 `time` 控件并保持紧凑布局 |
-| 2026-10-21 | C3/C4 专项人工复验通过；其余设置页签字段仍按阶段 4/5 的未完成项继续验收 |
+| 2026-10-21 | C0-C7 Windows 人工验收全部通过：四页签跨页 draft、System/Customization/General 阶段 4 分组与阶段 3 分组回归均符合预期；Theme/Backdrop 等剩余字段留阶段 5 |

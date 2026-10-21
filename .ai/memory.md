@@ -5,14 +5,14 @@
 ## 当前状态
 
 - 项目：BreakTimer 重构（两重目的：学习 AI 编程 + 替换 Electron）
-- 阶段：M0/M1/M2/M3 完成；M4 阶段 1/2/3 已完成；阶段 4「系统集成」A1-A11、A14、B 组通知模式与 C3/C4 设置布局已人工通过；D 组留到发布打包阶段
+- 阶段：M0/M1/M2/M3/M4 完成；当前只面向 Windows，macOS/Linux 暂不纳入范围；下一步 M5 测试与 Windows 打包发布
 - 新代码目录：`app/`（pnpm + Vite + React/TS 前端，`src-tauri/` Rust 后端）
 - 旧源码：`breaktimer-app/` 以 git submodule 引用上游，钉在 commit `2d67243`（≈ v2.1.0-54）
 - AI 学习笔记目录：`ai-notes/`
 - 技术选型：**Tauri v2（Rust）+ 前端保留 React + TypeScript**（ADR-0002）
 - 遮挡方案：每显示器一个无边框/透明/置顶/跨工作区窗口；提示条不可聚焦，激活 Popup 休息后切换为可聚焦输入阻断层并用显示器 bounds 铺满，不调用原生全屏（ADR-0004、ADR-0007）；`showBackdrop` 只控制视觉遮罩，`false` 时仍是完整透明覆盖层，应用内只通过 `Cancel Break` 退出
 - 声音方案：Rust `rodio` 播放嵌入 WAV，后端在休息开始/结束转换时触发（ADR-0003）
-- 系统状态方案：`BreakScheduler` 接收 `SchedulerContext`；`system_state` 提供空闲/锁屏状态，Windows 探测输入桌面，macOS/Linux 暂按空闲/不可用降级（ADR-0005）
+- 系统状态方案：`BreakScheduler` 接收 `SchedulerContext`；`system_state` 提供空闲/锁屏状态，Windows 探测输入桌面；macOS/Linux 分支保留兼容语义但不在当前验收范围（ADR-0005）
 - `docs/overview.md`、`docs/architecture.md`、`docs/glossary.md` 已补全范围/目标架构/术语
 - 跨设备基线：SPEC-0001 已落地 `.gitattributes`、`.editorconfig`、`.gitignore` 与克隆说明
 - M3 验证：前端 lint/typecheck/format/test/build 通过；Rust fmt/check/11 tests 通过；真实窗口验证 IPC、设置落盘与重启保留、single-instance 生效。M3 基线已提交为 `c61f425` 并推送 `origin/master`
@@ -31,6 +31,7 @@
 - M4 阶段 4 A8/A9 运行期证据（2026-10-19）：Windows 双屏为副屏 `(-1600,0) 1600×900`、主屏物理 `1920×1200`/DPR 1.25；两个休息页均只有 `Cancel Break`，主/副任务栏与托盘区域命中休息窗；退出后 CDP target 从 3 降至 1，任务栏命中恢复 explorer；Notification 路径未创建休息窗
 - M4 阶段 4 设置页签（2026-10-19）：按原版恢复 `General`、`Working Hours`、`Customization`、`System` 四页签；默认 General，共用 draft 与顶部 Save，切页不丢修改
 - M4 阶段 4 C3/C4 修正与验收（2026-10-21）：General 顺序改为 `Breaks → Smart Breaks → Snooze → Skip → Advanced`，`Breaks enabled` 放入 Breaks 标题行；`Break type`、`Frequency`、`Length` 标题与控件基线统一，秒字段可完整显示两位数字；Working Hours 使用紧凑的原生 `time` 控件（保留时钟图标），单一时间段不显示删除，`+` 新增行，复制面板可复制到多个星期；复制到已启用星期时时间框会同步刷新；专项人工复验全部通过
+- M4 阶段 4 Windows 验收收口（2026-10-21）：C0-C2、C5-C7 人工通过；连同此前结果，A1-A11、A14、B1-B7、C0-C7 均已通过。A12/A13 按用户决定暂缓到 M5 发布产物和实际使用中验证；D1-D4 自启动继续随 Windows 打包发布阶段验证。PLAN-0002 阶段 4 标记 `done`，SPEC-0003/0008 标记 `done`，SPEC-0006/0007 因发布后验证保持 `in-progress`
 
 ## 关键约定
 
@@ -41,9 +42,9 @@
 
 ## 待办 / 阻塞
 
-- SPEC-0010 当前为 `in-progress`：四页签与 C3 General/Working Hours 修正已完成，C3/C4 专项人工复验通过；继续验收 C0-C2、C5-C7；Theme、遮罩颜色/透明度留阶段 5。
-- SPEC-0002：A8/A9/A14 已在 Windows 人工通过；继续验证 `showBackdrop=false`、推迟/跳过、混合 DPI 与 macOS/Linux 平台限制。
+- SPEC-0010 当前为 `in-progress`：四页签与 C0-C7 已全部人工通过；Theme、遮罩颜色/透明度等剩余字段留阶段 5。
+- SPEC-0002：A8/A9/A14 已在 Windows 人工通过；继续验证 `showBackdrop=false`、推迟/跳过与混合 DPI；macOS/Linux 不在当前范围。
 - SPEC-0009：播放通道、资源映射与 Windows 真实音频人工验收已完成，状态 `done`。
-- SPEC-0006/0007/0008 当前均为 `in-progress`：A1-A11、A14 与 B 组已人工通过；A12/A13、C 组剩余项与 D 组仍需人工验收后才改 `done`。
-- SPEC-0003：阶段 2/3/4 核心完成（含托盘相关项），待运行期验收。
-- 按 `docs/plans/0002-implementation-phases.md` 继续：阶段 4 人工验收 → 阶段 5「设置补全与打包发布」。
+- SPEC-0006/0007 当前为 `in-progress`：Windows 主流程已完成；A12/A13 与 D1-D4 必须在 M5 发布产物和真实使用/登录场景通过后才改 `done`。
+- SPEC-0003、SPEC-0008 已 `done`：托盘触发、Popup/Notification 分流、通知续排与声音均已通过 Windows 人工验收。
+- 按 `docs/plans/0002-implementation-phases.md` 继续：先完成阶段 5「设置补全与 Windows 打包发布」，再做 A12/A13 与自启动发布后验收。
