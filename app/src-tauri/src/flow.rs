@@ -12,6 +12,8 @@ use crate::breaks::{BreakActionError, BreakEndOutcome, BreakStart, BreakTick};
 use crate::notifications;
 use crate::sounds;
 use crate::state::AppState;
+use crate::state::settings::NotificationType;
+use crate::tray;
 use crate::windows;
 
 /// Renderer event carrying the latest [`crate::breaks::BreakStatus`] snapshot.
@@ -20,10 +22,22 @@ pub const BREAK_STATUS_EVENT: &str = "break-status";
 /// Title of the optional idle-reset notification (SPEC-0005).
 pub const IDLE_RESET_NOTIFICATION_TITLE: &str = "Break automatically detected";
 
+/// Title of the break reminder shown in Notification mode (SPEC-0008).
+pub const BREAK_NOTIFICATION_TITLE: &str = "Time for a break!";
+
 /// Advances the scheduler by one tick and applies the resulting side effects.
 pub fn tick<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
-    match state.tick(Utc::now()) {
-        BreakTick::None => {}
+    let now = Utc::now();
+
+    // A timed disable from the tray ends like a manual re-enable (SPEC-0006).
+    if state.expire_timed_disable(now) {
+        emit_status(app, state);
+    }
+
+    match state.tick(now) {
+        // Without a transition the tray countdown still advances, so the menu
+        // is refreshed on every tick (SPEC-0006, ADR-0006).
+        BreakTick::None => tray::refresh(app),
         BreakTick::IdleReset(reset) => {
             if reset.notify {
                 notify_idle_reset(app, reset.idle_seconds);
@@ -31,11 +45,15 @@ pub fn tick<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
             emit_status(app, state);
         }
         BreakTick::BreakPrompted => {
-            let settings = state.store.settings();
-            if let Err(error) = windows::show_prompt(app, &settings) {
-                eprintln!("failed to show break prompt: {error}");
+            if is_notification_mode(state) {
+                notify_break(app, state);
+            } else {
+                let settings = state.store.settings();
+                if let Err(error) = windows::show_prompt(app, &settings) {
+                    eprintln!("failed to show break prompt: {error}");
+                }
+                emit_status(app, state);
             }
-            emit_status(app, state);
         }
         BreakTick::BreakStarted(start) => break_started(app, state, &start),
         BreakTick::BreakEnded(_) => break_ended(app, state),
@@ -63,6 +81,12 @@ pub fn begin_break<R: Runtime>(
 /// Starts a break immediately, bypassing the prompt (SPEC-0003).
 pub fn start_break_now<R: Runtime>(app: &AppHandle<R>, state: &AppState) -> BreakStart {
     let start = state.start_break_now(Utc::now());
+
+    if is_notification_mode(state) {
+        notify_break(app, state);
+        return start;
+    }
+
     break_started(app, state, &start);
     start
 }
@@ -102,7 +126,13 @@ pub fn skip_break<R: Runtime>(
 
 fn break_started<R: Runtime>(app: &AppHandle<R>, state: &AppState, _start: &BreakStart) {
     let settings = state.store.settings();
-    if let Err(error) = windows::show_break(app, &settings) {
+
+    if settings.notification_type == NotificationType::Notification {
+        notify_break(app, state);
+        return;
+    }
+
+    if let Err(error) = windows::show_break(app) {
         eprintln!("failed to show break window: {error}");
     }
     sounds::play(&settings, true);
@@ -123,6 +153,32 @@ fn notify_idle_reset<R: Runtime>(app: &AppHandle<R>, idle_seconds: u64) {
     }
 }
 
+fn is_notification_mode(state: &AppState) -> bool {
+    state.store.settings().notification_type == NotificationType::Notification
+}
+
+/// Shows the Notification-mode reminder, plays the optional start sound and
+/// immediately completes the break so the next one is scheduled (SPEC-0008).
+///
+/// Deliberately never touches [`windows`]: this mode must not open an overlay.
+fn notify_break<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
+    let settings = state.store.settings();
+    let body = notification_body(&settings.break_message);
+
+    if let Err(error) = notifications::notify(app, BREAK_NOTIFICATION_TITLE, &body) {
+        eprintln!("failed to show break notification: {error}");
+    }
+    sounds::play(&settings, true);
+
+    state.complete_notification_break(Utc::now());
+    emit_status(app, state);
+}
+
+/// Plain-text notification body for Notification mode (SPEC-0008).
+fn notification_body(break_message: &str) -> String {
+    notifications::strip_html(break_message)
+}
+
 /// Formats the idle duration as the legacy `Away for HH:MM:SS` body (SPEC-0005).
 fn idle_reset_body(idle_seconds: u64) -> String {
     let hours = idle_seconds / 3600;
@@ -137,6 +193,8 @@ pub fn emit_status<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
     if let Err(error) = app.emit(BREAK_STATUS_EVENT, status) {
         eprintln!("failed to emit break status: {error}");
     }
+    // Every scheduler change is also a tray change (SPEC-0006).
+    tray::refresh(app);
 }
 
 #[cfg(test)]
@@ -150,5 +208,13 @@ mod tests {
         assert_eq!(idle_reset_body(60), "Away for 00:01:00");
         assert_eq!(idle_reset_body(3_661), "Away for 01:01:01");
         assert_eq!(idle_reset_body(360_000), "Away for 100:00:00");
+    }
+
+    #[test]
+    fn notification_body_is_plain_text() {
+        assert_eq!(
+            notification_body("Rest <b>your</b> eyes.<br>Stretch."),
+            "Rest your eyes. Stretch."
+        );
     }
 }

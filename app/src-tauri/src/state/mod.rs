@@ -9,13 +9,14 @@ use crate::breaks::{
     BreakTick, SchedulerContext, is_in_working_hours_at,
 };
 use crate::system_state::{NativeSystemStateProvider, SystemStateProvider};
+use crate::tray::{TraySnapshot, build_tray_snapshot};
 
 pub mod migrations;
 pub mod settings;
 pub mod settings_effects;
 pub mod store;
 
-pub use settings::{Settings, SoundType};
+pub use settings::{Settings, SoundType, TrayTextMode};
 pub use settings_effects::SettingsEffects;
 pub use store::SettingsStore;
 
@@ -56,6 +57,35 @@ impl AppState {
     /// Frontend-facing scheduler snapshot (SPEC-0003).
     pub fn break_status(&self, now: DateTime<Utc>) -> BreakStatus {
         self.with_scheduler(|scheduler, settings| scheduler.status(settings, now))
+    }
+
+    /// Everything the tray menu renders for the current instant (SPEC-0006).
+    ///
+    /// One lock acquisition keeps the menu's view of the scheduler and system
+    /// activity internally consistent.
+    pub fn tray_snapshot(&self, now: DateTime<Utc>) -> TraySnapshot {
+        let settings = self.store.settings();
+        let local = now.with_timezone(&Local);
+        let in_working_hours = is_in_working_hours_at(
+            &settings,
+            local.weekday(),
+            local.hour() * 60 + local.minute(),
+        );
+        let activity = self.system_state.activity();
+        let disable_end_time = self.store.disable_end_time();
+        let scheduler = self
+            .scheduler
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+
+        build_tray_snapshot(
+            &scheduler,
+            &settings,
+            now,
+            in_working_hours,
+            activity,
+            disable_end_time,
+        )
     }
 
     /// Advances the scheduler by one tick (SPEC-0003).
@@ -116,6 +146,46 @@ impl AppState {
     /// Starts a break immediately, bypassing the countdown (SPEC-0003).
     pub fn start_break_now(&self, now: DateTime<Utc>) -> BreakStart {
         self.with_scheduler(|scheduler, settings| scheduler.start_break_now(settings, now))
+    }
+
+    /// Marks a Notification-mode break as completed and schedules the next one
+    /// (SPEC-0008). No overlay window is involved in this mode.
+    pub fn complete_notification_break(&self, now: DateTime<Utc>) {
+        self.with_scheduler(|scheduler, settings| {
+            scheduler.complete_notification_break(settings, now)
+        });
+    }
+
+    /// Re-enables breaks once a timed tray disable has elapsed (SPEC-0006).
+    ///
+    /// The deadline lives in the store, so it survives restarts; the 1 s tick
+    /// turns it back into `breaksEnabled = true` with a fresh countdown. Returns
+    /// true only when breaks actually came back on.
+    pub fn expire_timed_disable(&self, now: DateTime<Utc>) -> bool {
+        let Some(end_time) = self.store.disable_end_time() else {
+            return false;
+        };
+        if end_time > now.timestamp() {
+            return false;
+        }
+
+        let current = self.store.settings();
+        let next = Settings {
+            breaks_enabled: true,
+            ..current.clone()
+        };
+
+        // Persisting first keeps the deadline and the enabled state in sync:
+        // `set_settings` clears `disableEndTime` while breaks are on.
+        if let Err(error) = self.store.set_settings(next.clone()) {
+            eprintln!("failed to re-enable breaks after a timed disable: {error}");
+            return false;
+        }
+
+        if !current.breaks_enabled {
+            self.apply_settings_effects(&next, SettingsEffects::between(&current, &next), now);
+        }
+        true
     }
 
     /// Applies the scheduler portion of a settings save.
@@ -362,5 +432,62 @@ mod tests {
                 notify: true,
             })
         );
+    }
+
+    #[test]
+    fn expire_timed_disable_keeps_breaks_off_before_the_deadline() {
+        let store = temp_store("expire-not-yet.json");
+        store
+            .set_settings(Settings {
+                breaks_enabled: false,
+                break_frequency_seconds: 60,
+                working_hours_enabled: false,
+                ..Settings::default()
+            })
+            .unwrap();
+        let now = DateTime::from_timestamp(1_700_000_000, 0).unwrap();
+        store
+            .set_disable_end_time(Some(now.timestamp() + 60))
+            .unwrap();
+
+        let state = AppState::new(store);
+
+        assert!(!state.expire_timed_disable(now + Duration::seconds(59)));
+        assert!(!state.store.settings().breaks_enabled);
+        assert_eq!(state.store.disable_end_time(), Some(now.timestamp() + 60));
+    }
+
+    #[test]
+    fn expire_timed_disable_re_enables_breaks_with_a_fresh_countdown() {
+        let store = temp_store("expire-deadline.json");
+        store
+            .set_settings(Settings {
+                breaks_enabled: false,
+                break_frequency_seconds: 60,
+                working_hours_enabled: false,
+                ..Settings::default()
+            })
+            .unwrap();
+        let now = DateTime::from_timestamp(1_700_000_000, 0).unwrap();
+        store
+            .set_disable_end_time(Some(now.timestamp() - 1))
+            .unwrap();
+
+        let state = AppState::new(store);
+
+        assert!(state.expire_timed_disable(now));
+        assert!(state.store.settings().breaks_enabled);
+        assert_eq!(state.store.disable_end_time(), None);
+
+        let scheduler = state
+            .scheduler
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        assert_eq!(scheduler.phase(), BreakPhase::Working);
+        assert_eq!(scheduler.next_break_at(), Some(now + Duration::seconds(60)));
+        drop(scheduler);
+
+        // The deadline is gone, so a later tick must not fire again.
+        assert!(!state.expire_timed_disable(now + Duration::seconds(1)));
     }
 }

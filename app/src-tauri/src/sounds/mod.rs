@@ -31,6 +31,19 @@ pub fn play(settings: &Settings, is_start: bool) {
     });
 }
 
+/// Plays the start sound for a settings preview button (SPEC-0010).
+///
+/// The settings window previews the currently selected sound before saving, so
+/// this takes the candidate values instead of reading the stored settings.
+pub fn play_preview(sound_type: SoundType, volume: f32) {
+    let settings = Settings {
+        sound_type,
+        break_sound_volume: volume,
+        ..Settings::default()
+    };
+    play(&settings, true);
+}
+
 /// Maps a sound type and break phase to the embedded WAV bytes.
 fn sound_bytes(sound_type: SoundType, is_start: bool) -> Option<&'static [u8]> {
     let bytes: &'static [u8] = match (sound_type, is_start) {

@@ -160,4 +160,28 @@ describe("BreakWindow", () => {
       expect(client.endBreak).toHaveBeenCalledTimes(1);
     });
   });
+
+  it("keeps the cancel action and a centred card without a visual backdrop", async () => {
+    const now = Date.now();
+    const client = makeClient(
+      makeSettings({
+        showBackdrop: false,
+        endBreakEnabled: true,
+      }),
+      {
+        ...makeBreakStatus(now),
+        breakStartedAt: now - 40_000,
+        breakEndAt: now + 20_000,
+      },
+    );
+
+    render(<BreakWindow client={client} />);
+
+    const title = await screen.findByText("Time for a break");
+    const card = title.closest("section");
+
+    expect(screen.getByRole("button", { name: "Cancel Break" })).toBeTruthy();
+    expect(card?.className).toContain("max-w-[500px]");
+    expect(card?.className).not.toContain("h-full");
+  });
 });

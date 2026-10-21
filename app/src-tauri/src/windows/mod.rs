@@ -1,13 +1,15 @@
 //! Break window management (SPEC-0002).
 //!
-//! Break windows are per-display soft overlays created when a break is
-//! prompted. They are labelled with [`BREAK_WINDOW_PREFIX`] so the rest of the
-//! backend can find and close them without tracking a list.
+//! Break windows are per-display overlays created when a break is prompted.
+//! They are labelled with [`BREAK_WINDOW_PREFIX`] so the rest of the backend can
+//! find and close them without tracking a list.
 //!
-//! The overlay never steals focus: windows are created with `focusable: false`
-//! and shown without focusing. The backdrop is emulated by sizing a borderless
-//! window to the monitor bounds rather than entering native fullscreen, which
-//! would switch macOS spaces and steal focus (see ADR-0004).
+//! Presentation changes by break phase: the pre-break prompt is not focusable,
+//! while an active Popup break is focusable and covers every monitor so input
+//! cannot fall through to the desktop, taskbar, or tray. Geometry still uses
+//! monitor bounds rather than native fullscreen (ADR-0004, ADR-0007).
+
+use std::sync::{Mutex, OnceLock};
 
 use tauri::{
     AppHandle, Manager, PhysicalPosition, PhysicalSize, Runtime, WebviewUrl, WebviewWindow,
@@ -29,9 +31,9 @@ const PROMPT_HEIGHT: f64 = 88.0;
 /// Distance from the top of the monitor to the prompt bar, in logical pixels.
 const PROMPT_TOP_OFFSET: f64 = 48.0;
 
-/// Centred break card size when the backdrop is disabled, in logical pixels.
-const BREAK_CARD_WIDTH: f64 = 500.0;
-const BREAK_CARD_HEIGHT: f64 = 300.0;
+/// Window creation must not overlap: `WebviewWindowBuilder::build` marshals
+/// work to the event loop, and two concurrent calls could race the same label.
+static WINDOW_OPERATION_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
 
 /// Physical bounds of one monitor, detached from the Tauri handle so geometry
 /// can be unit-tested without a running application.
@@ -65,6 +67,14 @@ pub struct WindowGeometry {
     pub height: u32,
 }
 
+/// Geometry and focus behavior for one break-window presentation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct WindowPresentation {
+    pub geometry: WindowGeometry,
+    pub focusable: bool,
+    pub focus_on_show: bool,
+}
+
 fn scale(value: f64, scale_factor: f64) -> u32 {
     (value * scale_factor.max(1.0)).round() as u32
 }
@@ -84,27 +94,34 @@ pub fn prompt_geometry(monitor: MonitorBounds, width: f64) -> WindowGeometry {
     }
 }
 
-/// Geometry for a centred break card (`showBackdrop == false`).
-pub fn card_geometry(monitor: MonitorBounds) -> WindowGeometry {
-    let width = scale(BREAK_CARD_WIDTH, monitor.scale_factor);
-    let height = scale(BREAK_CARD_HEIGHT, monitor.scale_factor);
-    let x = monitor.x + (monitor.width as i32 - width as i32) / 2;
-    let y = monitor.y + (monitor.height as i32 - height as i32) / 2;
-    WindowGeometry {
-        x,
-        y,
-        width,
-        height,
-    }
-}
-
-/// Geometry that covers the whole monitor (`showBackdrop == true`).
+/// Geometry that covers the whole monitor.
 pub fn backdrop_geometry(monitor: MonitorBounds) -> WindowGeometry {
     WindowGeometry {
         x: monitor.x,
         y: monitor.y,
         width: monitor.width,
         height: monitor.height,
+    }
+}
+
+/// The pre-break prompt stays clickable without interrupting the current app.
+fn prompt_presentation(monitor: MonitorBounds, width: f64) -> WindowPresentation {
+    WindowPresentation {
+        geometry: prompt_geometry(monitor, width),
+        focusable: false,
+        focus_on_show: false,
+    }
+}
+
+/// An active break always blocks the full monitor and takes focus.
+///
+/// `showBackdrop` intentionally does not participate: it only changes the
+/// renderer's visual treatment, never the input-blocking geometry.
+fn break_presentation(monitor: MonitorBounds) -> WindowPresentation {
+    WindowPresentation {
+        geometry: backdrop_geometry(monitor),
+        focusable: true,
+        focus_on_show: true,
     }
 }
 
@@ -124,19 +141,28 @@ pub fn close_all<R: Runtime>(app: &AppHandle<R>) {
 
 /// Shows the pre-break prompt on every monitor.
 pub fn show_prompt<R: Runtime>(app: &AppHandle<R>, settings: &Settings) -> AppResult<()> {
-    close_all(app);
+    let app = app.clone();
+    let width = prompt_width(settings);
+
+    spawn_window_task("break-prompt-show", app, "show break prompt", move |app| {
+        close_all(app);
+        show_prompt_inner(app, width)
+    })?;
+
+    Ok(())
+}
+
+fn show_prompt_inner<R: Runtime>(app: &AppHandle<R>, width: f64) -> AppResult<()> {
     ensure_windows(app)?;
 
-    let width = prompt_width(settings);
     for (index, monitor) in monitors(app)?.iter().enumerate() {
         let Some(window) = app.get_webview_window(&label_for(index)) else {
             continue;
         };
-        apply_geometry(
+        apply_presentation(
             &window,
-            prompt_geometry(MonitorBounds::from_monitor(monitor), width),
+            prompt_presentation(MonitorBounds::from_monitor(monitor), width),
         );
-        reveal(&window);
     }
 
     Ok(())
@@ -160,23 +186,57 @@ fn prompt_width(settings: &Settings) -> f64 {
         }
 }
 
-/// Shows the active break on every monitor, sized according to `showBackdrop`.
-pub fn show_break<R: Runtime>(app: &AppHandle<R>, settings: &Settings) -> AppResult<()> {
+/// Shows the active break on every monitor with full input-blocking geometry.
+pub fn show_break<R: Runtime>(app: &AppHandle<R>) -> AppResult<()> {
+    spawn_window_task(
+        "break-window-show",
+        app.clone(),
+        "show break window",
+        show_break_inner,
+    )?;
+
+    Ok(())
+}
+
+fn show_break_inner<R: Runtime>(app: &AppHandle<R>) -> AppResult<()> {
     ensure_windows(app)?;
 
     for (index, monitor) in monitors(app)?.iter().enumerate() {
         let Some(window) = app.get_webview_window(&label_for(index)) else {
             continue;
         };
-        let bounds = MonitorBounds::from_monitor(monitor);
-        let geometry = if settings.show_backdrop {
-            backdrop_geometry(bounds)
-        } else {
-            card_geometry(bounds)
-        };
-        apply_geometry(&window, geometry);
-        reveal(&window);
+        apply_presentation(
+            &window,
+            break_presentation(MonitorBounds::from_monitor(monitor)),
+        );
     }
+
+    Ok(())
+}
+
+/// Runs window API work on a worker thread because building a webview from the
+/// event-loop thread sends it a message and then waits for that same thread.
+fn spawn_window_task<R, F>(
+    thread_name: &str,
+    app: AppHandle<R>,
+    error_context: &'static str,
+    task: F,
+) -> AppResult<()>
+where
+    R: Runtime,
+    F: FnOnce(&AppHandle<R>) -> AppResult<()> + Send + 'static,
+{
+    std::thread::Builder::new()
+        .name(thread_name.into())
+        .spawn(move || {
+            let _guard = WINDOW_OPERATION_LOCK
+                .get_or_init(|| Mutex::new(()))
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            if let Err(error) = task(&app) {
+                eprintln!("failed to {error_context}: {error}");
+            }
+        })?;
 
     Ok(())
 }
@@ -230,21 +290,29 @@ fn build_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> AppResult<Webvie
         .visible(false)
         .build()?;
 
-    // macOS ignores a later `set_focusable(false)` once the window has focus, so
-    // make sure the flag is set before the window is ever shown.
-    window.set_focusable(false)?;
     Ok(window)
 }
 
 fn apply_geometry<R: Runtime>(window: &WebviewWindow<R>, geometry: WindowGeometry) {
-    let _ = window.set_size(PhysicalSize::new(geometry.width, geometry.height));
+    // Move across displays before resizing so Windows applies the target
+    // monitor's DPI scale first; resizing before the move makes the OS rescale
+    // the physical bounds and can leave part of a mixed-DPI display uncovered.
     let _ = window.set_position(PhysicalPosition::new(geometry.x, geometry.y));
+    let _ = window.set_size(PhysicalSize::new(geometry.width, geometry.height));
 }
 
-fn reveal<R: Runtime>(window: &WebviewWindow<R>) {
-    let _ = window.set_focusable(false);
+fn apply_presentation<R: Runtime>(window: &WebviewWindow<R>, presentation: WindowPresentation) {
+    if let Err(error) = window.set_focusable(presentation.focusable) {
+        eprintln!("failed to set break window focusable state: {error}");
+    }
+    apply_geometry(window, presentation.geometry);
     if let Err(error) = window.show() {
         eprintln!("failed to show break window: {error}");
+    }
+    if presentation.focus_on_show {
+        if let Err(error) = window.set_focus() {
+            eprintln!("failed to focus break window: {error}");
+        }
     }
 }
 
@@ -285,13 +353,40 @@ mod tests {
     }
 
     #[test]
-    fn break_card_is_centred_at_roughly_500_by_300() {
-        let geometry = card_geometry(monitor());
+    fn prompt_presentation_does_not_take_focus() {
+        let presentation = prompt_presentation(monitor(), PROMPT_BASE_WIDTH);
 
-        assert_eq!(geometry.width, 500);
-        assert_eq!(geometry.height, 300);
-        assert_eq!(geometry.x, (1920 - 500) / 2);
-        assert_eq!(geometry.y, (1080 - 300) / 2);
+        assert_eq!(
+            presentation.geometry,
+            prompt_geometry(monitor(), PROMPT_BASE_WIDTH)
+        );
+        assert!(!presentation.focusable);
+        assert!(!presentation.focus_on_show);
+    }
+
+    #[test]
+    fn active_break_presentation_covers_all_displays_and_takes_focus() {
+        let bounds = MonitorBounds {
+            x: -1600,
+            y: -200,
+            width: 1280,
+            height: 720,
+            scale_factor: 1.0,
+        };
+
+        let presentation = break_presentation(bounds);
+
+        assert_eq!(
+            presentation.geometry,
+            WindowGeometry {
+                x: -1600,
+                y: -200,
+                width: 1280,
+                height: 720,
+            }
+        );
+        assert!(presentation.focusable);
+        assert!(presentation.focus_on_show);
     }
 
     #[test]
@@ -328,19 +423,5 @@ mod tests {
         assert_eq!(geometry.width, 1000);
         assert_eq!(geometry.height, 176);
         assert_eq!(geometry.y, 96);
-    }
-
-    #[test]
-    fn secondary_monitors_offset_the_geometry() {
-        let geometry = card_geometry(MonitorBounds {
-            x: 1920,
-            y: 200,
-            width: 1280,
-            height: 1024,
-            scale_factor: 1.0,
-        });
-
-        assert_eq!(geometry.x, 1920 + (1280 - 500) / 2);
-        assert_eq!(geometry.y, 200 + (1024 - 300) / 2);
     }
 }

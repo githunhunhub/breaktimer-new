@@ -13,9 +13,10 @@ mod windows;
 use std::fs;
 use std::time::Duration;
 
+use chrono::Utc;
 use tauri::Manager;
 
-use state::{AppState, SettingsStore};
+use state::{AppState, SettingsEffects, SettingsStore};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -28,6 +29,7 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(
             tauri_plugin_autostart::Builder::new()
                 .app_name("BreakTimer")
@@ -38,12 +40,34 @@ pub fn run() {
             fs::create_dir_all(&config_dir)?;
 
             let store = SettingsStore::load(config_dir.join("settings.json"))?;
-            app.manage(AppState::new(store));
+            let state = AppState::new(store);
+            let settings = state.store.settings();
+
+            // Start the countdown before the first tick so the tray and the
+            // renderer show a running schedule right away (SPEC-0003, SPEC-0006).
+            state.apply_settings_effects(
+                &settings,
+                SettingsEffects {
+                    auto_launch: None,
+                    reset_time_since_last_break: false,
+                    restart_scheduler: true,
+                },
+                Utc::now(),
+            );
+
+            // Keep the OS registration in sync with the stored preference;
+            // development builds skip the real registration (SPEC-0007).
+            if let Err(error) = autostart::set_enabled(app.handle(), settings.auto_launch) {
+                eprintln!("failed to apply the launch-at-login setting: {error}");
+            }
+
+            app.manage(state);
 
             let handle = app.handle();
             tray::init(handle)?;
             windows::init(handle)?;
             sounds::init(handle)?;
+            tray::refresh(handle);
             spawn_scheduler_tick(app.handle().clone());
 
             Ok(())
@@ -59,6 +83,7 @@ pub fn run() {
             commands::postpone_break,
             commands::skip_break,
             commands::start_break_now,
+            commands::play_sound_preview,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

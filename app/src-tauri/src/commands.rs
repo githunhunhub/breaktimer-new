@@ -8,7 +8,8 @@ use crate::autostart;
 use crate::breaks::BreakStatus;
 use crate::error::AppResult;
 use crate::flow;
-use crate::state::{AppState, Settings, SettingsEffects};
+use crate::sounds;
+use crate::state::{AppState, Settings, SettingsEffects, SoundType};
 
 /// Basic application metadata used by the M3 scaffold screen.
 #[derive(Debug, Clone, Serialize)]
@@ -44,6 +45,9 @@ pub fn set_settings(
     }
 
     state.apply_settings_effects(&settings, effects, Utc::now());
+    // The tray menu (and any open break window) reads the new settings
+    // immediately after a save (SPEC-0006).
+    flow::emit_status(&app, state.inner());
     Ok(())
 }
 
@@ -101,6 +105,12 @@ pub fn skip_break(app: AppHandle, state: State<'_, AppState>) -> Result<BreakSta
 pub fn start_break_now(app: AppHandle, state: State<'_, AppState>) -> BreakStatus {
     flow::start_break_now(&app, state.inner());
     state.break_status(Utc::now())
+}
+
+/// Plays a sound from the settings window preview button (SPEC-0010).
+#[tauri::command]
+pub fn play_sound_preview(sound_type: SoundType, volume: f32) {
+    sounds::play_preview(sound_type, volume);
 }
 
 #[cfg(test)]

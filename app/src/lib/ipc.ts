@@ -2,7 +2,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 import type { BreakStatus } from "@/types/breaks";
-import type { Settings } from "@/types/settings";
+import type { Settings, SoundType } from "@/types/settings";
 
 /** Event name the backend emits on every scheduler transition. */
 export const BREAK_STATUS_EVENT = "break-status";
@@ -24,6 +24,8 @@ export const ipc = {
   postponeBreak: () => invoke<BreakStatus>("postpone_break"),
   skipBreak: () => invoke<BreakStatus>("skip_break"),
   startBreakNow: () => invoke<BreakStatus>("start_break_now"),
+  playSoundPreview: (soundType: SoundType, volume: number) =>
+    invoke<void>("play_sound_preview", { soundType, volume }),
   onBreakStatus: (
     handler: (status: BreakStatus) => void,
   ): Promise<UnlistenFn> =>

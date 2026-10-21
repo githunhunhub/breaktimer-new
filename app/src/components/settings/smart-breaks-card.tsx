@@ -1,10 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { Settings } from "@/types/settings";
 
 import { joinDurationSeconds, splitSeconds } from "./durations";
+import { SettingsCard } from "./settings-card";
 
 interface SmartBreaksCardProps {
   settings: Settings;
@@ -22,11 +22,8 @@ export function SmartBreaksCard({ settings, onPatch }: SmartBreaksCardProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Smart Breaks</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <SettingsCard title="Smart Breaks">
+      <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-4">
           <Label htmlFor="idle-reset-enabled">
             Reset the break timer when idle
@@ -82,7 +79,7 @@ export function SmartBreaksCard({ settings, onPatch }: SmartBreaksCardProps) {
             }
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </SettingsCard>
   );
 }
