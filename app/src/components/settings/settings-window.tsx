@@ -2,16 +2,16 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { ipc } from "@/lib/ipc";
 import { cn } from "@/lib/utils";
 import type { Settings, SoundType } from "@/types/settings";
 
+import { AdvancedCard } from "./advanced-card";
 import { AudioCard } from "./audio-card";
 import { BreaksCard } from "./breaks-card";
+import { SkipCard } from "./skip-card";
 import { SmartBreaksCard } from "./smart-breaks-card";
+import { SnoozeCard } from "./snooze-card";
 import { StartupCard } from "./startup-card";
 import { TrayCard } from "./tray-card";
 import { WorkingHoursCard } from "./working-hours-card";
@@ -198,27 +198,11 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
         >
           {activeTab === "general" && (
             <>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">General</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between gap-4">
-                    <Label htmlFor="breaks-enabled">Breaks enabled</Label>
-                    <Switch
-                      id="breaks-enabled"
-                      checked={draft.breaksEnabled}
-                      onCheckedChange={(checked) =>
-                        updateDraft({ breaksEnabled: checked })
-                      }
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
               <BreaksCard settings={draft} onPatch={updateDraft} />
-
               <SmartBreaksCard settings={draft} onPatch={updateDraft} />
+              <SnoozeCard settings={draft} onPatch={updateDraft} />
+              <SkipCard settings={draft} onPatch={updateDraft} />
+              <AdvancedCard settings={draft} onPatch={updateDraft} />
             </>
           )}
 

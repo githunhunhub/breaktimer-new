@@ -5,7 +5,7 @@
 ## 当前状态
 
 - 项目：BreakTimer 重构（两重目的：学习 AI 编程 + 替换 Electron）
-- 阶段：M0/M1/M2/M3 完成；M4 阶段 1/2/3 已完成；阶段 4「系统集成」A1-A7、A10、A11 已人工通过，A8/A9 修复与自动化验证完成，待专项复验 A8/A9/A14；下一步完成 B-D 组验收后进入阶段 5「设置补全与打包发布」
+- 阶段：M0/M1/M2/M3 完成；M4 阶段 1/2/3 已完成；阶段 4「系统集成」A1-A11、A14、B 组通知模式与 C3/C4 设置布局已人工通过；D 组留到发布打包阶段
 - 新代码目录：`app/`（pnpm + Vite + React/TS 前端，`src-tauri/` Rust 后端）
 - 旧源码：`breaktimer-app/` 以 git submodule 引用上游，钉在 commit `2d67243`（≈ v2.1.0-54）
 - AI 学习笔记目录：`ai-notes/`
@@ -29,7 +29,8 @@
 - M4 阶段 4 重要实现细节：`TrayIcon::set_menu`/`set_title` 会 marshal 到主线程并阻塞等待，菜单事件也在主线程刷新托盘；因此刷新实现用 `app.tray_by_id` 取句柄，锁只包住快照比较与记录，不在持锁期间调用托盘 API（避免重入等待）
 - M4 阶段 4 A8/A9 修复：设置字段改为 `Break type`（`Popup break` / `Notification`）；Popup 激活休息覆盖每个显示器完整 bounds、可聚焦并阻断任务栏/托盘，`Cancel Break` 统一退出；混合 DPI 下先移动再缩放，窗口创建移到工作线程并用全局锁串行化（ADR-0007）
 - M4 阶段 4 A8/A9 运行期证据（2026-10-19）：Windows 双屏为副屏 `(-1600,0) 1600×900`、主屏物理 `1920×1200`/DPR 1.25；两个休息页均只有 `Cancel Break`，主/副任务栏与托盘区域命中休息窗；退出后 CDP target 从 3 降至 1，任务栏命中恢复 explorer；Notification 路径未创建休息窗
-- M4 阶段 4 设置页签（2026-10-19）：按原版恢复 `General`、`Working Hours`、`Customization`、`System` 四页签；默认 General，共用 draft 与顶部 Save，切页不丢修改；本次只重组阶段 4 已有字段
+- M4 阶段 4 设置页签（2026-10-19）：按原版恢复 `General`、`Working Hours`、`Customization`、`System` 四页签；默认 General，共用 draft 与顶部 Save，切页不丢修改
+- M4 阶段 4 C3/C4 修正与验收（2026-10-21）：General 顺序改为 `Breaks → Smart Breaks → Snooze → Skip → Advanced`，`Breaks enabled` 放入 Breaks 标题行；`Break type`、`Frequency`、`Length` 标题与控件基线统一，秒字段可完整显示两位数字；Working Hours 使用紧凑的原生 `time` 控件（保留时钟图标），单一时间段不显示删除，`+` 新增行，复制面板可复制到多个星期；复制到已启用星期时时间框会同步刷新；专项人工复验全部通过
 
 ## 关键约定
 
@@ -40,9 +41,9 @@
 
 ## 待办 / 阻塞
 
-- SPEC-0010 当前为 `in-progress`：阶段 4 已补 Start at login/Breaks/Menu Bar Text/Audio 分组并恢复四页签；待人工验收 C0-C5；遮罩颜色/透明度、结束/跳过/推迟开关、立即开始休息留阶段 5。
-- SPEC-0002：A8/A9 输入阻断修复与自动化验证完成；需专项复验 A8/A9/A14，并继续验证 `showBackdrop=false`、推迟/跳过、混合 DPI 与 macOS/Linux 平台限制。
+- SPEC-0010 当前为 `in-progress`：四页签与 C3 General/Working Hours 修正已完成，C3/C4 专项人工复验通过；继续验收 C0-C2、C5-C7；Theme、遮罩颜色/透明度留阶段 5。
+- SPEC-0002：A8/A9/A14 已在 Windows 人工通过；继续验证 `showBackdrop=false`、推迟/跳过、混合 DPI 与 macOS/Linux 平台限制。
 - SPEC-0009：播放通道、资源映射与 Windows 真实音频人工验收已完成，状态 `done`。
-- SPEC-0006/0007/0008 当前均为 `in-progress`：A1-A7、A10、A11 已人工通过；A8/A9/A14 待专项复验，A12/A13、B 组、C 组与 D 组仍需人工验收后才改 `done`。
+- SPEC-0006/0007/0008 当前均为 `in-progress`：A1-A11、A14 与 B 组已人工通过；A12/A13、C 组剩余项与 D 组仍需人工验收后才改 `done`。
 - SPEC-0003：阶段 2/3/4 核心完成（含托盘相关项），待运行期验收。
 - 按 `docs/plans/0002-implementation-phases.md` 继续：阶段 4 人工验收 → 阶段 5「设置补全与打包发布」。

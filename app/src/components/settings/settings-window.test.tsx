@@ -6,6 +6,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -93,6 +94,119 @@ describe("SettingsWindow", () => {
         name: "Restrict breaks to working hours",
       }),
     ).toBeNull();
+  });
+
+  it("orders General groups and keeps Breaks enabled in the Breaks header", async () => {
+    const client = makeClient(makeSettings());
+
+    render(<SettingsWindow client={client} />);
+
+    await screen.findByLabelText("Break type");
+    const groups = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-settings-group]"),
+    );
+
+    expect(groups.map((group) => group.dataset.settingsGroup)).toEqual([
+      "Breaks",
+      "Smart Breaks",
+      "Snooze",
+      "Skip",
+      "Advanced",
+    ]);
+    const breaksHeader = within(groups[0])
+      .getByText("Breaks")
+      .closest('[data-slot="card-header"]');
+    expect(breaksHeader).not.toBeNull();
+    expect(
+      within(breaksHeader as HTMLElement).getByRole("switch", {
+        name: "Breaks enabled",
+      }),
+    ).toBeTruthy();
+  });
+
+  it("loads Snooze, Skip and Advanced with legacy dependency states", async () => {
+    const client = makeClient(
+      makeSettings({
+        postponeLengthSeconds: 450,
+        postponeLimit: 0,
+        postponeBreakEnabled: false,
+        skipBreakEnabled: true,
+        immediatelyStartBreaks: true,
+        endBreakEnabled: false,
+      }),
+    );
+
+    render(<SettingsWindow client={client} />);
+
+    const snoozeSwitch = await screen.findByRole("switch", {
+      name: "Snooze enabled",
+    });
+    const skipSwitch = screen.getByRole("switch", {
+      name: "Allow skipping breaks",
+    });
+    const snoozeMinutes = screen.getByLabelText(
+      "Snooze length in minutes",
+    ) as HTMLInputElement;
+    const snoozeSeconds = screen.getByLabelText(
+      "Snooze length in seconds",
+    ) as HTMLInputElement;
+    const snoozeLimit = screen.getByLabelText(
+      "Snooze limit",
+    ) as HTMLSelectElement;
+    const immediatelyStart = screen.getByRole("switch", {
+      name: "Immediately start breaks",
+    });
+    const endBreak = screen.getByRole("switch", {
+      name: "Allow ending break early",
+    });
+
+    expect(snoozeSwitch.getAttribute("aria-checked")).toBe("false");
+    expect(snoozeSwitch.hasAttribute("disabled")).toBe(true);
+    expect(skipSwitch.getAttribute("aria-checked")).toBe("false");
+    expect(skipSwitch.hasAttribute("disabled")).toBe(true);
+    expect(snoozeMinutes.value).toBe("7");
+    expect(snoozeMinutes.disabled).toBe(true);
+    expect(snoozeSeconds.value).toBe("30");
+    expect(snoozeSeconds.disabled).toBe(true);
+    expect(snoozeLimit.value).toBe("0");
+    expect(snoozeLimit.disabled).toBe(true);
+    expect(immediatelyStart.getAttribute("aria-checked")).toBe("true");
+    expect(immediatelyStart.hasAttribute("disabled")).toBe(false);
+    expect(endBreak.getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("saves Snooze, Skip and Advanced edits in the General draft", async () => {
+    const client = makeClient(makeSettings());
+    render(<SettingsWindow client={client} />);
+
+    fireEvent.change(await screen.findByLabelText("Snooze length in minutes"), {
+      target: { value: "10" },
+    });
+    fireEvent.change(screen.getByLabelText("Snooze limit"), {
+      target: { value: "5" },
+    });
+    fireEvent.click(
+      screen.getByRole("switch", { name: "Allow skipping breaks" }),
+    );
+    fireEvent.click(
+      screen.getByRole("switch", { name: "Immediately start breaks" }),
+    );
+    fireEvent.click(
+      screen.getByRole("switch", { name: "Allow ending break early" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(client.setSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          postponeLengthSeconds: 10 * 60,
+          postponeLimit: 5,
+          skipBreakEnabled: false,
+          immediatelyStartBreaks: true,
+          endBreakEnabled: false,
+        }),
+      );
+    });
   });
 
   it("preserves edits across tabs and saves the whole draft once", async () => {
@@ -272,6 +386,121 @@ describe("SettingsWindow", () => {
     ).toBe("true");
   });
 
+  it("uses compact native time inputs and omits removal for the only range", async () => {
+    const client = makeClient(makeSettings({ workingHoursEnabled: true }));
+    render(<SettingsWindow client={client} />);
+
+    await openSettingsTab("Working Hours");
+    const start = screen.getByLabelText("Monday start 1") as HTMLInputElement;
+    const end = screen.getByLabelText("Monday end 1") as HTMLInputElement;
+
+    expect(start.type).toBe("time");
+    expect(end.type).toBe("time");
+    expect(start.step).toBe("60");
+    expect(end.step).toBe("60");
+    expect(start.value).toBe("09:00");
+    expect(end.value).toBe("18:00");
+    expect(
+      screen.queryByRole("button", { name: "Remove Monday range 1" }),
+    ).toBeNull();
+  });
+
+  it("hides time controls when a weekday is disabled", async () => {
+    const client = makeClient(
+      makeSettings({
+        workingHoursEnabled: true,
+        workingHoursSaturday: workingHours(false),
+      }),
+    );
+    render(<SettingsWindow client={client} />);
+
+    await openSettingsTab("Working Hours");
+
+    expect(screen.getByRole("switch", { name: "Saturday" })).toBeTruthy();
+    expect(screen.queryByLabelText("Saturday start 1")).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Add Saturday range" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Copy Saturday ranges" }),
+    ).toBeNull();
+  });
+
+  it("adds a working-hours range from an icon-only button", async () => {
+    const client = makeClient(makeSettings({ workingHoursEnabled: true }));
+    render(<SettingsWindow client={client} />);
+
+    await openSettingsTab("Working Hours");
+    const addButton = screen.getByRole("button", {
+      name: "Add Monday range",
+    });
+    expect(addButton.textContent).toBe("");
+
+    fireEvent.click(addButton);
+
+    expect(screen.getByLabelText("Monday start 2")).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Remove Monday range 1" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Remove Monday range 2" }),
+    ).toBeTruthy();
+  });
+
+  it("copies all Monday ranges to selected weekdays", async () => {
+    const client = makeClient(
+      makeSettings({
+        workingHoursEnabled: true,
+        workingHoursMonday: {
+          enabled: true,
+          ranges: [
+            { fromMinutes: 540, toMinutes: 720 },
+            { fromMinutes: 780, toMinutes: 1020 },
+          ],
+        },
+        workingHoursTuesday: {
+          enabled: true,
+          ranges: [{ fromMinutes: 600, toMinutes: 660 }],
+        },
+      }),
+    );
+    render(<SettingsWindow client={client} />);
+
+    await openSettingsTab("Working Hours");
+    fireEvent.click(screen.getByRole("button", { name: "Copy Monday ranges" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Tuesday" }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+
+    expect(
+      (screen.getByLabelText("Tuesday start 1") as HTMLInputElement).value,
+    ).toBe("09:00");
+    expect(
+      (screen.getByLabelText("Tuesday end 1") as HTMLInputElement).value,
+    ).toBe("12:00");
+    expect(
+      (screen.getByLabelText("Tuesday start 2") as HTMLInputElement).value,
+    ).toBe("13:00");
+    expect(
+      (screen.getByLabelText("Tuesday end 2") as HTMLInputElement).value,
+    ).toBe("17:00");
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(client.setSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workingHoursTuesday: {
+            enabled: true,
+            ranges: [
+              { fromMinutes: 540, toMinutes: 720 },
+              { fromMinutes: 780, toMinutes: 1020 },
+            ],
+          },
+        }),
+      );
+    });
+  });
+
   it("saves an edited working-hours range", async () => {
     const client = makeClient(makeSettings({ workingHoursEnabled: true }));
     render(<SettingsWindow client={client} />);
@@ -308,7 +537,7 @@ describe("SettingsWindow", () => {
     expect(screen.getByLabelText("Monday start 2")).toBeTruthy();
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Remove Monday range 1" }),
+      screen.getByRole("button", { name: "Remove Monday range 2" }),
     );
 
     expect(screen.queryByLabelText("Monday start 2")).toBeNull();
@@ -401,6 +630,52 @@ describe("SettingsWindow", () => {
     expect(
       (screen.getByLabelText("Message") as HTMLTextAreaElement).value,
     ).toBe("Stand up.");
+  });
+
+  it("labels break type, frequency and length consistently", async () => {
+    const client = makeClient(makeSettings());
+    render(<SettingsWindow client={client} />);
+
+    await screen.findByLabelText("Break type");
+    const breaksGroup = document.querySelector<HTMLElement>(
+      '[data-settings-group="Breaks"]',
+    );
+    expect(breaksGroup).not.toBeNull();
+
+    const group = within(breaksGroup as HTMLElement);
+    const typeLabel = group.getByText("Break type").closest("label");
+    const frequencyLabel = group.getByText("Frequency").closest("label");
+    const lengthLabel = group.getByText("Length").closest("label");
+
+    expect(typeLabel).not.toBeNull();
+    expect(frequencyLabel).not.toBeNull();
+    expect(lengthLabel).not.toBeNull();
+    expect(frequencyLabel?.className).toBe(typeLabel?.className);
+    expect(lengthLabel?.className).toBe(typeLabel?.className);
+  });
+
+  it("renders two-digit duration seconds without native number spinners", async () => {
+    const client = makeClient(
+      makeSettings({
+        breakFrequencySeconds: 20 * 60 + 34,
+        breakLengthSeconds: 59,
+      }),
+    );
+    render(<SettingsWindow client={client} />);
+
+    const frequencySeconds = (await screen.findByLabelText(
+      "Break frequency in seconds",
+    )) as HTMLInputElement;
+    const lengthSeconds = screen.getByLabelText(
+      "Break length in seconds",
+    ) as HTMLInputElement;
+
+    expect(frequencySeconds.type).toBe("text");
+    expect(frequencySeconds.inputMode).toBe("numeric");
+    expect(frequencySeconds.value).toBe("34");
+    expect(lengthSeconds.type).toBe("text");
+    expect(lengthSeconds.inputMode).toBe("numeric");
+    expect(lengthSeconds.value).toBe("59");
   });
 
   it("saves an edited break type and frequency", async () => {
