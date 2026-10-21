@@ -32,6 +32,7 @@
 - M4 阶段 4 设置页签（2026-10-19）：按原版恢复 `General`、`Working Hours`、`Customization`、`System` 四页签；默认 General，共用 draft 与顶部 Save，切页不丢修改
 - M4 阶段 4 C3/C4 修正与验收（2026-10-21）：General 顺序改为 `Breaks → Smart Breaks → Snooze → Skip → Advanced`，`Breaks enabled` 放入 Breaks 标题行；`Break type`、`Frequency`、`Length` 标题与控件基线统一，秒字段可完整显示两位数字；Working Hours 使用紧凑的原生 `time` 控件（保留时钟图标），单一时间段不显示删除，`+` 新增行，复制面板可复制到多个星期；复制到已启用星期时时间框会同步刷新；专项人工复验全部通过
 - M4 阶段 4 Windows 验收收口（2026-10-21）：C0-C2、C5-C7 人工通过；连同此前结果，A1-A11、A14、B1-B7、C0-C7 均已通过。A12/A13 按用户决定暂缓到 M5 发布产物和实际使用中验证；D1-D4 自启动继续随 Windows 打包发布阶段验证。PLAN-0002 阶段 4 标记 `done`，SPEC-0003/0008 标记 `done`，SPEC-0006/0007 因发布后验证保持 `in-progress`
+- M4 阶段 4 提交：`codex/m4-phase-4` 提交 `9f1881c`，以 `--no-ff` 合入 `master`（merge `995dc64`）并推送 `origin/master`
 
 ## 关键约定
 

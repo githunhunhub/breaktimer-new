@@ -26,3 +26,9 @@
 
 - 本会话只修改文档与 AI 记录，未修改 `app/` 代码。
 - 使用 `git diff --check` 检查文档空白错误，并检索状态文案确保 roadmap、PLAN、spec 与验收清单一致。
+
+## 提交
+
+- 阶段分支提交：`9f1881c`（`codex/m4-phase-4`）。
+- 合并提交：`995dc64`（`--no-ff` 合入 `master`）。
+- 阶段分支与 `master` 均已推送至 `origin`。
