@@ -1,8 +1,9 @@
 # SPEC-0002：Popup 休息窗全屏输入阻断（保留可选视觉遮罩）
 
-- 状态：in-progress
+- 状态：done
 - 实现状态：阶段 2 基础实现完成；2026-10-21 A8/A9/A14 Windows 专项人工复验通过；
-  `showBackdrop=false`、推迟/跳过与混合 DPI 仍待专项验证
+  2026-10-22 `showBackdrop=false`、推迟/跳过与混合 DPI 专项人工验收通过；
+  当前 Windows 范围内验收完成
 - 日期：2026-10-13
 - 关联：ADR-0002 · ADR-0004 · ADR-0007 · 旧实现 `breaktimer-app/app/main/lib/windows.ts`、`ipc.ts`、`breaks.ts` 与 `renderer/components/break.tsx`
 
@@ -33,16 +34,16 @@ M4 阶段 4 人工验收确认，Popup 模式需要提供应用层输入阻断�
 
 ## 验收标准（可测）
 
-- [ ] 休息前提示条不可聚焦，不打断用户当前应用。
-- [ ] 激活 Popup 休息后，每个显示器都被休息窗完整覆盖，包括任务栏和托盘区域。
-- [ ] 激活 Popup 休息后，底层应用、任务栏和托盘都不能接收鼠标点击。
-- [ ] `showBackdrop=true` 时显示半透明遮罩，窗口几何仍为完整显示器 bounds。
-- [ ] `showBackdrop=false` 时休息卡在显示器中居中，窗口仍覆盖完整显示器并阻断输入。
-- [ ] 激活休息期间按钮始终显示 `Cancel Break`，点击后关闭所有显示器的休息窗并进入结束流程。
-- [ ] 应用内除 `Cancel Break` 外没有可绕过休息的退出入口；Alt+Tab、Windows 键、任务管理器不属于阻断承诺。
-- [ ] 启用推迟时，提示条中的「Snooze」按推迟时长重新调度；启用跳过时，「Skip」按正常频率重新调度。
-- [ ] 多显示器下，主窗口发起的结束/进度同步能广播到其它显示器窗口（各窗进度一致）。
-- [ ] 当前里程碑只验收 Windows；macOS/Linux 的平台限制与运行验收后续需要时单独立项，不将 Windows 结果外推为跨平台通过。
+- [x] 休息前提示条不可聚焦，不打断用户当前应用。
+- [x] 激活 Popup 休息后，每个显示器都被休息窗完整覆盖，包括任务栏和托盘区域。
+- [x] 激活 Popup 休息后，底层应用、任务栏和托盘都不能接收鼠标点击。
+- [x] `showBackdrop=true` 时显示半透明遮罩，窗口几何仍为完整显示器 bounds。
+- [x] `showBackdrop=false` 时休息卡在显示器中居中，窗口仍覆盖完整显示器并阻断输入。
+- [x] 激活休息期间按钮始终显示 `Cancel Break`，点击后关闭所有显示器的休息窗并进入结束流程。
+- [x] 应用内除 `Cancel Break` 外没有可绕过休息的退出入口；Alt+Tab、Windows 键、任务管理器不属于阻断承诺。
+- [x] 启用推迟时，提示条中的「Snooze」按推迟时长重新调度；启用跳过时，「Skip」按正常频率重新调度。
+- [x] 多显示器下，主窗口发起的结束/进度同步能广播到其它显示器窗口（各窗进度一致）。
+- [x] 当前里程碑只验收 Windows；macOS/Linux 的平台限制与运行验收后续需要时单独立项，不将 Windows 结果外推为跨平台通过。
 
 ## 非目标 / 边界
 
@@ -68,7 +69,7 @@ M4 阶段 4 人工验收确认，Popup 模式需要提供应用层输入阻断�
 - [x] 2026-10-19 根据 A8/A9 反馈记录可聚焦输入阻断覆盖层决策（ADR-0007）。
 - [x] 用窗口展示策略与几何单测锁定新行为，并实现提示条/激活休息的分阶段焦点策略和完整 bounds。
 - [x] 在 Windows 双显示器上复验完整覆盖、任务栏/托盘输入阻断、`Cancel Break` 退出和托盘恢复。
-- [ ] 补做 `showBackdrop=false`、推迟/跳过与混合 DPI 专项验收；macOS/Linux 移出当前范围。
+- [x] 补做 `showBackdrop=false`、推迟/跳过与混合 DPI 专项验收；macOS/Linux 移出当前范围。
 
 ## 验收记录
 
@@ -79,7 +80,8 @@ M4 阶段 4 人工验收确认，Popup 模式需要提供应用层输入阻断�
 - 2026-10-19：自动化验证通过：Rust 83 tests、`cargo fmt --check`、`cargo check --locked --all-targets`，以及前端 21 tests、lint/typecheck/format/build；Windows 双屏运行期检查确认两个休息窗均覆盖完整显示器 bounds，任务栏与托盘点击命中休息窗，`Cancel Break` 后恢复 explorer。
 - 2026-10-21：用户确认 A8/A9/A14 Windows 专项复验通过；完整覆盖、任务栏/托盘输入阻断、
   `Cancel Break` 退出与托盘恢复均符合预期。
-- 待人工验收：`showBackdrop=false`、推迟/跳过按钮与混合 DPI。macOS/Linux 移出当前范围。
+- 2026-10-22：用户确认 `showBackdrop=false`、推迟/跳过按钮与混合 DPI 专项人工验收通过；
+  Windows 范围内验收完成，macOS/Linux 仍移出当前范围。
 
 ## 变更记录
 
@@ -91,3 +93,4 @@ M4 阶段 4 人工验收确认，Popup 模式需要提供应用层输入阻断�
 | 2026-10-19 | 按 A8/A9 反馈调整：激活 Popup 休息改为可聚焦应用层输入阻断；所有显示器始终使用完整 bounds；`showBackdrop` 仅控制视觉；退出按钮统一为 `Cancel Break`（ADR-0007） |
 | 2026-10-19 | 修复 Windows 副屏只覆盖左上区域与事件循环创建窗口死锁；自动化验证完成，待 A8/A9/A14 人工复验 |
 | 2026-10-21 | A8/A9/A14 Windows 专项人工复验通过；当前里程碑范围收敛为 Windows，剩余 `showBackdrop=false`、推迟/跳过与混合 DPI 待专项验证 |
+| 2026-10-22 | `showBackdrop=false`、推迟/跳过与混合 DPI 专项人工验收通过；SPEC 标记 `done` |

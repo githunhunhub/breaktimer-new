@@ -1,15 +1,15 @@
 //! System tray (SPEC-0006).
 //!
-//! Tauri/muda only exposes whole-menu replacement, so the menu is rebuilt from
-//! a [`TraySnapshot`] whenever that snapshot changes (ADR-0006). The snapshot
-//! derivation itself is pure so every state and label is unit-testable without
-//! a running application.
+//! The root menu stays bound to the tray icon for the application lifetime.
+//! Snapshots update existing item text in place and only adjust dynamic item
+//! layout when the available actions change (ADR-0010). Snapshot derivation
+//! remains pure so every state and label is testable without a running app.
 
 use std::sync::Mutex;
 
 use chrono::{DateTime, Local, Timelike, Utc};
 use tauri::image::Image;
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+use tauri::menu::{IsMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Manager, Runtime};
 
@@ -63,38 +63,274 @@ pub struct TraySnapshot {
     pub show_start_break: bool,
 }
 
-/// Last menu snapshot applied to the tray icon, used to skip redundant rebuilds.
-pub struct TrayStateStore {
+/// Menu-item presence that determines the dynamic portion of the root menu.
+///
+/// Text is intentionally absent: minute-by-minute countdown changes must not
+/// require removing or inserting native menu items (ADR-0010).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+struct TrayMenuLayout {
+    show_status: bool,
+    show_disabled: bool,
+    show_top_separator: bool,
+    show_enable: bool,
+    show_disable: bool,
+    show_start_break: bool,
+    show_bottom_separator: bool,
+}
+
+impl TrayMenuLayout {
+    fn from_snapshot(snapshot: &TraySnapshot) -> Self {
+        let show_status = snapshot.status_label.is_some();
+        let show_disabled = snapshot.disabled_label.is_some();
+        let show_top_separator = show_status || show_disabled;
+        let show_bottom_separator =
+            snapshot.show_enable || snapshot.show_disable || snapshot.show_start_break;
+
+        Self {
+            show_status,
+            show_disabled,
+            show_top_separator,
+            show_enable: snapshot.show_enable,
+            show_disable: snapshot.show_disable,
+            show_start_break: snapshot.show_start_break,
+            show_bottom_separator,
+        }
+    }
+
+    fn items<'a, R: Runtime>(self, handles: &'a TrayMenuHandles<R>) -> Vec<&'a dyn IsMenuItem<R>> {
+        let mut items: Vec<&dyn IsMenuItem<R>> = Vec::new();
+        if self.show_status {
+            items.push(&handles.status);
+        }
+        if self.show_disabled {
+            items.push(&handles.disabled);
+        }
+        if self.show_top_separator {
+            items.push(&handles.top_separator);
+        }
+        if self.show_enable {
+            items.push(&handles.enable);
+        }
+        if self.show_disable {
+            items.push(&handles.disable);
+        }
+        if self.show_start_break {
+            items.push(&handles.start_break);
+        }
+        if self.show_bottom_separator {
+            items.push(&handles.bottom_separator);
+        }
+        items
+    }
+}
+
+/// Stable native menu handles used for every in-place refresh.
+struct TrayMenuHandles<R: Runtime> {
+    menu: Menu<R>,
+    status: MenuItem<R>,
+    disabled: MenuItem<R>,
+    enable: MenuItem<R>,
+    disable: Submenu<R>,
+    start_break: MenuItem<R>,
+    top_separator: PredefinedMenuItem<R>,
+    bottom_separator: PredefinedMenuItem<R>,
+}
+
+impl<R: Runtime> Clone for TrayMenuHandles<R> {
+    fn clone(&self) -> Self {
+        Self {
+            menu: self.menu.clone(),
+            status: self.status.clone(),
+            disabled: self.disabled.clone(),
+            enable: self.enable.clone(),
+            disable: self.disable.clone(),
+            start_break: self.start_break.clone(),
+            top_separator: self.top_separator.clone(),
+            bottom_separator: self.bottom_separator.clone(),
+        }
+    }
+}
+
+impl<R: Runtime> TrayMenuHandles<R> {
+    fn new(app: &AppHandle<R>) -> AppResult<Self> {
+        let menu = Menu::new(app)?;
+        let status = MenuItem::with_id(
+            app,
+            STATUS_MENU_ID,
+            "Next break in less than a minute",
+            false,
+            None::<&str>,
+        )?;
+        let disabled = MenuItem::with_id(
+            app,
+            DISABLED_MENU_ID,
+            "Disabled for <1m",
+            false,
+            None::<&str>,
+        )?;
+        let enable = MenuItem::with_id(app, ENABLE_MENU_ID, "Enable", true, None::<&str>)?;
+        let disable_indefinitely = MenuItem::with_id(
+            app,
+            DISABLE_INDEFINITELY_MENU_ID,
+            "Indefinitely",
+            true,
+            None::<&str>,
+        )?;
+        let disable_30_minutes = MenuItem::with_id(
+            app,
+            DISABLE_30_MINUTES_MENU_ID,
+            "30 minutes",
+            true,
+            None::<&str>,
+        )?;
+        let disable_1_hour =
+            MenuItem::with_id(app, DISABLE_1_HOUR_MENU_ID, "1 hour", true, None::<&str>)?;
+        let disable_2_hours =
+            MenuItem::with_id(app, DISABLE_2_HOURS_MENU_ID, "2 hours", true, None::<&str>)?;
+        let disable_4_hours =
+            MenuItem::with_id(app, DISABLE_4_HOURS_MENU_ID, "4 hours", true, None::<&str>)?;
+        let disable_rest_of_day = MenuItem::with_id(
+            app,
+            DISABLE_REST_OF_DAY_MENU_ID,
+            "Rest of day",
+            true,
+            None::<&str>,
+        )?;
+        let disable = Submenu::with_id_and_items(
+            app,
+            DISABLE_MENU_ID,
+            "Disable...",
+            true,
+            &[
+                &disable_indefinitely,
+                &disable_30_minutes,
+                &disable_1_hour,
+                &disable_2_hours,
+                &disable_4_hours,
+                &disable_rest_of_day,
+            ],
+        )?;
+        let start_break = MenuItem::with_id(
+            app,
+            START_BREAK_MENU_ID,
+            "Start break now",
+            true,
+            None::<&str>,
+        )?;
+        let settings = MenuItem::with_id(app, SETTINGS_MENU_ID, "Settings...", true, None::<&str>)?;
+        let about = MenuItem::with_id(app, ABOUT_MENU_ID, "About...", true, None::<&str>)?;
+        let quit = MenuItem::with_id(app, QUIT_MENU_ID, "Quit", true, None::<&str>)?;
+        let top_separator = PredefinedMenuItem::separator(app)?;
+        let bottom_separator = PredefinedMenuItem::separator(app)?;
+
+        // Dynamic items are inserted before these fixed commands. Keeping the
+        // root and fixed handles unchanged is what prevents Windows from
+        // tearing down an open popup menu during countdown refreshes.
+        menu.append_items(&[&settings, &about, &quit])?;
+
+        Ok(Self {
+            menu,
+            status,
+            disabled,
+            enable,
+            disable,
+            start_break,
+            top_separator,
+            bottom_separator,
+        })
+    }
+
+    fn apply_snapshot(
+        &self,
+        snapshot: &TraySnapshot,
+        previous_layout: TrayMenuLayout,
+        next_layout: TrayMenuLayout,
+    ) -> tauri::Result<()> {
+        if let Some(label) = snapshot.status_label.as_deref() {
+            self.status.set_text(label)?;
+        }
+        if let Some(label) = snapshot.disabled_label.as_deref() {
+            self.disabled.set_text(label)?;
+        }
+
+        if previous_layout == next_layout {
+            return Ok(());
+        }
+
+        self.remove_dynamic_items(previous_layout)?;
+        for (position, item) in next_layout.items(self).into_iter().enumerate() {
+            self.menu.insert(item, position)?;
+        }
+        Ok(())
+    }
+
+    fn remove_dynamic_items(&self, layout: TrayMenuLayout) -> tauri::Result<()> {
+        if layout.show_status {
+            self.menu.remove(&self.status)?;
+        }
+        if layout.show_disabled {
+            self.menu.remove(&self.disabled)?;
+        }
+        if layout.show_top_separator {
+            self.menu.remove(&self.top_separator)?;
+        }
+        if layout.show_enable {
+            self.menu.remove(&self.enable)?;
+        }
+        if layout.show_disable {
+            self.menu.remove(&self.disable)?;
+        }
+        if layout.show_start_break {
+            self.menu.remove(&self.start_break)?;
+        }
+        if layout.show_bottom_separator {
+            self.menu.remove(&self.bottom_separator)?;
+        }
+        Ok(())
+    }
+}
+
+/// Last snapshot and dynamic layout applied to the stable root menu.
+struct TrayStateStore<R: Runtime> {
+    handles: TrayMenuHandles<R>,
+    layout: TrayMenuLayout,
     last_snapshot: Option<TraySnapshot>,
 }
 
 /// Creates the tray icon with its initial menu (SPEC-0006).
 pub fn init<R: Runtime>(app: &AppHandle<R>) -> AppResult<()> {
+    let snapshot = app.state::<AppState>().tray_snapshot(Utc::now());
+    let handles = TrayMenuHandles::new(app)?;
+    let layout = TrayMenuLayout::from_snapshot(&snapshot);
+    handles.apply_snapshot(&snapshot, TrayMenuLayout::default(), layout)?;
+
     let icon = Image::from_bytes(include_bytes!("../../icons/32x32.png"))?;
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
         .tooltip("BreakTimer")
+        .menu(&handles.menu)
         .show_menu_on_left_click(true)
         .on_menu_event(handle_menu_event)
         .build(app)?;
 
     app.manage(Mutex::new(TrayStateStore {
-        last_snapshot: None,
+        handles,
+        layout,
+        last_snapshot: Some(snapshot),
     }));
     Ok(())
 }
 
-/// Rebuilds the tray menu when [`AppState::tray_snapshot`] changed (SPEC-0006).
+/// Applies changed tray contents to the stable root menu (SPEC-0006).
 ///
-/// The lock only guards the snapshot comparison and update. The tray calls stay
-/// outside it because `TrayIcon::set_menu`/`set_title` marshal onto the main
-/// thread and block until it runs the task, while menu events run on that same
-/// thread and refresh the tray themselves.
+/// The lock only guards state comparison and cloning handles. Menu calls stay
+/// outside it because they marshal onto the main thread, where menu events can
+/// re-enter `refresh`; replacing the root menu is deliberately avoided.
 pub fn refresh<R: Runtime>(app: &AppHandle<R>) {
     let snapshot = app.state::<AppState>().tray_snapshot(Utc::now());
 
-    {
-        let tray_state = app.state::<Mutex<TrayStateStore>>();
+    let (previous_layout, handles) = {
+        let tray_state = app.state::<Mutex<TrayStateStore<R>>>();
         let tray = tray_state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
@@ -102,21 +338,17 @@ pub fn refresh<R: Runtime>(app: &AppHandle<R>) {
         if tray.last_snapshot.as_ref() == Some(&snapshot) {
             return;
         }
-    }
+
+        (tray.layout, tray.handles.clone())
+    };
 
     let Some(icon) = app.tray_by_id(TRAY_ID) else {
         eprintln!("tray icon is not registered");
         return;
     };
 
-    let menu = match build_menu(app, &snapshot) {
-        Ok(menu) => menu,
-        Err(error) => {
-            eprintln!("failed to build tray menu: {error}");
-            return;
-        }
-    };
-    if let Err(error) = icon.set_menu(Some(menu)) {
+    let next_layout = TrayMenuLayout::from_snapshot(&snapshot);
+    if let Err(error) = handles.apply_snapshot(&snapshot, previous_layout, next_layout) {
         eprintln!("failed to update tray menu: {error}");
         return;
     }
@@ -127,125 +359,12 @@ pub fn refresh<R: Runtime>(app: &AppHandle<R>) {
         eprintln!("failed to update tray title: {error}");
     }
 
-    let tray_state = app.state::<Mutex<TrayStateStore>>();
+    let tray_state = app.state::<Mutex<TrayStateStore<R>>>();
     let mut tray = tray_state
         .lock()
         .unwrap_or_else(|poisoned| poisoned.into_inner());
     tray.last_snapshot = Some(snapshot);
-}
-
-fn build_menu<R: Runtime>(app: &AppHandle<R>, snapshot: &TraySnapshot) -> AppResult<Menu<R>> {
-    let status = match snapshot.status_label.as_deref() {
-        Some(label) => Some(MenuItem::with_id(
-            app,
-            STATUS_MENU_ID,
-            label,
-            false,
-            None::<&str>,
-        )?),
-        None => None,
-    };
-    let enable = MenuItem::with_id(app, ENABLE_MENU_ID, "Enable", true, None::<&str>)?;
-    let disable_indefinitely = MenuItem::with_id(
-        app,
-        DISABLE_INDEFINITELY_MENU_ID,
-        "Indefinitely",
-        true,
-        None::<&str>,
-    )?;
-    let disable_30_minutes = MenuItem::with_id(
-        app,
-        DISABLE_30_MINUTES_MENU_ID,
-        "30 minutes",
-        true,
-        None::<&str>,
-    )?;
-    let disable_1_hour =
-        MenuItem::with_id(app, DISABLE_1_HOUR_MENU_ID, "1 hour", true, None::<&str>)?;
-    let disable_2_hours =
-        MenuItem::with_id(app, DISABLE_2_HOURS_MENU_ID, "2 hours", true, None::<&str>)?;
-    let disable_4_hours =
-        MenuItem::with_id(app, DISABLE_4_HOURS_MENU_ID, "4 hours", true, None::<&str>)?;
-    let disable_rest_of_day = MenuItem::with_id(
-        app,
-        DISABLE_REST_OF_DAY_MENU_ID,
-        "Rest of day",
-        true,
-        None::<&str>,
-    )?;
-    let disable = Submenu::with_id_and_items(
-        app,
-        DISABLE_MENU_ID,
-        "Disable...",
-        true,
-        &[
-            &disable_indefinitely,
-            &disable_30_minutes,
-            &disable_1_hour,
-            &disable_2_hours,
-            &disable_4_hours,
-            &disable_rest_of_day,
-        ],
-    )?;
-    let start_break = MenuItem::with_id(
-        app,
-        START_BREAK_MENU_ID,
-        "Start break now",
-        true,
-        None::<&str>,
-    )?;
-    let settings = MenuItem::with_id(app, SETTINGS_MENU_ID, "Settings...", true, None::<&str>)?;
-    let about = MenuItem::with_id(app, ABOUT_MENU_ID, "About...", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, QUIT_MENU_ID, "Quit", true, None::<&str>)?;
-
-    let top_separator = PredefinedMenuItem::separator(app)?;
-    let bottom_separator = PredefinedMenuItem::separator(app)?;
-
-    let mut items: Vec<&dyn tauri::menu::IsMenuItem<R>> = Vec::new();
-    if let Some(status) = &status {
-        items.push(status);
-    }
-    let disabled = disabled_label_item(app, snapshot)?;
-    if let Some(disabled) = &disabled {
-        items.push(disabled);
-    }
-    if !items.is_empty() {
-        items.push(&top_separator);
-    }
-    if snapshot.show_enable {
-        items.push(&enable);
-    }
-    if snapshot.show_disable {
-        items.push(&disable);
-    }
-    if snapshot.show_start_break {
-        items.push(&start_break);
-    }
-    if snapshot.show_enable || snapshot.show_disable || snapshot.show_start_break {
-        items.push(&bottom_separator);
-    }
-    items.push(&settings);
-    items.push(&about);
-    items.push(&quit);
-
-    Ok(Menu::with_items(app, &items)?)
-}
-
-/// The `Disabled for …` line is a disabled menu item, like the legacy tray.
-fn disabled_label_item<R: Runtime>(
-    app: &AppHandle<R>,
-    snapshot: &TraySnapshot,
-) -> AppResult<Option<MenuItem<R>>> {
-    match snapshot.disabled_label.as_deref() {
-        Some(label) => Ok(Some(MenuItem::with_id(
-            app,
-            DISABLED_MENU_ID,
-            label,
-            false,
-            None::<&str>,
-        )?)),
-        None => Ok(None),
-    }
+    tray.layout = next_layout;
 }
 
 fn handle_menu_event<R: Runtime>(app: &AppHandle<R>, event: tauri::menu::MenuEvent) {
@@ -559,6 +678,46 @@ mod tests {
         assert!(snapshot.show_disable);
         assert!(snapshot.show_start_break);
         assert!(!snapshot.show_enable);
+    }
+
+    #[test]
+    fn countdown_text_changes_do_not_change_the_native_menu_layout() {
+        let settings = Settings {
+            break_frequency_seconds: 120,
+            ..Settings::default()
+        };
+        let mut scheduler = BreakScheduler::new_at(at(0));
+        scheduler.restart(&settings, at(0));
+
+        let one_minute = snapshot(
+            &scheduler,
+            &settings,
+            at(30),
+            true,
+            SystemActivity::Active,
+            None,
+        );
+        let under_a_minute = snapshot(
+            &scheduler,
+            &settings,
+            at(60),
+            true,
+            SystemActivity::Active,
+            None,
+        );
+
+        assert_eq!(
+            one_minute.status_label.as_deref(),
+            Some("Next break in 1 minute")
+        );
+        assert_eq!(
+            under_a_minute.status_label.as_deref(),
+            Some("Next break in less than a minute")
+        );
+        assert_eq!(
+            TrayMenuLayout::from_snapshot(&one_minute),
+            TrayMenuLayout::from_snapshot(&under_a_minute)
+        );
     }
 
     #[test]

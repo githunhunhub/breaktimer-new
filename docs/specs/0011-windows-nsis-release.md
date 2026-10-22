@@ -2,7 +2,8 @@
 
 - 状态：done
 - 实现状态：NSIS 配置、便携 ZIP 脚本、最终发布构建与产物记录已完成；NSIS 安装/卸载、
-  图标、版本与登录自启动已人工验收通过；便携 ZIP 自动冒烟通过
+  图标、版本、登录自启动与便携 ZIP 完整流程已人工验收通过；最终 NSIS 已从当前
+  已验收的发布版可执行文件重新生成
 - 日期：2026-10-21
 - 关联：ADR-0008 · ADR-0009 · PLAN-0002 · SPEC-0007 · SPEC-0012
 
@@ -63,9 +64,9 @@ Windows 发布产物，并让登录自启动、发布后托盘状态和安装流
 
 | 产物 | 大小 | SHA256 |
 | --- | ---: | --- |
-| `app/src-tauri/target/release/breaktimer.exe` | 10,968,064 bytes | `3915BCAB8CBC9B7F801A51383CE3AC4B4E7367F992E1311EFCEE9B129CE391F2` |
-| `app/src-tauri/target/release/bundle/nsis/BreakTimer_0.1.0_x64-setup.exe` | 4,321,502 bytes | `235954913A1D460751016A235049BDA5EFE1828F286C03A1006464BC9536B6F5` |
-| `app/src-tauri/target/release/bundle/portable/BreakTimer_0.1.0_x64-portable.zip` | 5,868,903 bytes | `1058E5FDB01230F5F8574D68FA0088B0CA2DF4C9E05E3ED577FA5C0F1B7A461B` |
+| `app/src-tauri/target/release/breaktimer.exe` | 10,970,112 bytes | `F1BF9F969EF4E65E4750B4E9DD1C10E1B2A12862E61DC10E6CC1F34447C39D90` |
+| `app/src-tauri/target/release/bundle/nsis/BreakTimer_0.1.0_x64-setup.exe` | 4,375,677 bytes | `B126B8419C69E8BEE48E6FC3F24E326B0D6AFB06163CC72D9852B6C276EAEF9D` |
+| `app/src-tauri/target/release/bundle/portable/BreakTimer_0.1.0_x64-portable.zip` | 5,870,023 bytes | `716F56399423276E56851A858A8C8B702ACCBDA32555054A21888D2FEFE1112B` |
 
 - 发布版 `ProductName` 为 `BreakTimer`，`ProductVersion` 与 `FileVersion` 均为 `0.1.0`。
 - NSIS 安装包 Authenticode 状态为 `NotSigned`，SmartScreen 可能提示；这是当前已知非阻断项。
@@ -80,7 +81,7 @@ Windows 发布产物，并让登录自启动、发布后托盘状态和安装流
 - [x] 执行完整前端、Rust 与 Tauri 发布构建检查。
 - [x] 实现便携 ZIP 打包脚本，并从同一发布版可执行文件生成 NSIS 与 ZIP。
 - [x] 记录两种产物路径、大小与哈希，提供 Windows 安装、便携运行和登录自启动人工验收清单。
-- [x] 更新已通过的 SPEC-0007、SPEC-0011 与相关计划状态；SPEC-0012 保留未通过的便携人工验收项。
+- [x] 更新 SPEC-0007、SPEC-0011 与相关计划状态；SPEC-0012 便携人工验收通过后同步标记 `done`。
 
 ## 变更记录
 
@@ -91,3 +92,4 @@ Windows 发布产物，并让登录自启动、发布后托盘状态和安装流
 | 2026-10-22 | NSIS current-user 配置与便携 ZIP 构建入口完成；待最终发布构建、产物哈希和人工安装/自启动验收 |
 | 2026-10-22 | 最终 NSIS 与便携 ZIP 构建完成并记录大小/哈希；便携 ZIP 解压运行冒烟通过；等待安装/卸载、自启动与发布后状态人工验收 |
 | 2026-10-22 | 用户人工验收通过 NSIS 安装/卸载、产品名、版本、安装器/托盘图标与 D1-D4 登录自启动；便携 ZIP 的自动运行与 AppData 隔离冒烟继续作为发布产物证据，完整便携人工验收仍由 SPEC-0012 跟踪 |
+| 2026-10-22 | 三项便携反馈修复后重新生成发布版可执行文件与便携 ZIP，并从该可执行文件生成 NSIS；最终产物 `breaktimer.exe`、NSIS 与便携 ZIP 已属于同一代代码，全部人工验收通过 |
