@@ -8,7 +8,6 @@
 - 阶段：M0-M5 全部完成，重构阶段结束；Windows 发布产物、便携版、三项试用反馈修复与相关人工验收均已完成；后续进入正常的新需求/问题处理流程，当前仍只面向 Windows
 - 新代码目录：`app/`（pnpm + Vite + React/TS 前端，`src-tauri/` Rust 后端）
 - 旧源码：`breaktimer-app/` 以 git submodule 引用上游，钉在 commit `2d67243`（≈ v2.1.0-54）
-- AI 学习笔记目录：`ai-notes/`
 - 技术选型：**Tauri v2（Rust）+ 前端保留 React + TypeScript**（ADR-0002）
 - 遮挡方案：每显示器一个无边框/透明/置顶/跨工作区窗口；提示条不可聚焦，激活 Popup 休息后切换为可聚焦输入阻断层并用显示器 bounds 铺满，不调用原生全屏（ADR-0004、ADR-0007）；`showBackdrop` 只控制视觉遮罩，`false` 时仍是完整透明覆盖层，应用内只通过 `Cancel Break` 退出
 - 声音方案：Rust `rodio` 播放嵌入 WAV，后端在休息开始/结束转换时触发（ADR-0003）
@@ -48,6 +47,7 @@
 - AI 文件不得写入 `app/`。
 - 文档工作流：一需求一 spec（`docs/specs/NNNN-*.md`），索引在 `docs/specs/README.md`；小需求计划写在 spec 内，大工程才用 `docs/plans/`；流程细则见 `AGENTS.md`。
 - 跨设备同步：能仅凭仓库复现的内容全部纳入 Git；只排除密钥、机器本地状态、依赖目录、构建产物与缓存。
+- 打包需显式授权：只有用户明确要求“打包”或生成安装包、发布包时才执行；例行验证中的前端 `pnpm build` 不算打包。
 
 ## 后续入口
 

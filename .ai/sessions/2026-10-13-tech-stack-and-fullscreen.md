@@ -11,7 +11,6 @@
 - 新增 `docs/decisions/0002-technology-stack.md`。
 - 补全 `docs/overview.md`（范围/非目标）、`docs/architecture.md`（目标架构与差异表）、`docs/glossary.md`（术语）。
 - 更新 `docs/roadmap.md` 与 `.ai/memory.md`。
-- 新增学习笔记 `ai-notes/02-tauri-desktop-stack-and-windowing.md`。
 - 确认全屏休息窗为软遮挡 + 允许手动结束，写入 `docs/specs/0002-break-window-fullscreen-overlay.md`（状态 confirmed）。
 - 补齐剩余需求 spec：SPEC-0003 休息调度 / 0004 工作时段 / 0005 闲置重置 / 0006 系统托盘 / 0007 自启动 / 0008 通知模式 / 0009 声音 / 0010 设置持久化与设置窗口。
 
