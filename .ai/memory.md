@@ -42,7 +42,7 @@
 - 开发临时产物清理（2026-10-22）：已删除 `bundle/portable/` 下的验收临时目录、冒烟目录与截图，仅保留正式便携 ZIP；源码扫描无待提交的临时/调试文件
 - 应用更名（2026-10-22，SPEC-0013 / ADR-0011）：用户可见名为 `BreakTimer-new`，npm/Cargo/可执行文件为 `breaktimer-new`，Rust library 为 `breaktimer_new_lib`，identifier 为 `com.githunhunhub.breaktimernew`；旧 `com.breaktimer.app` 数据与注册项不迁移、不清理
 - 应用更名验证（2026-10-22）：前端 format/lint/typecheck/test（40）/build 与 Rust fmt/check/test（93）通过；运行进程为 `target\debug\breaktimer-new.exe`，窗口/About/tray 使用新名，新 Roaming/LocalAppData 目录生成，单实例与设置保存/重启恢复通过；旧 identity 数据前后哈希不变。用户人工验收通过，未执行打包
-- 历史路径清理（2026-10-22）：`master` 的全部 32 个提交已重写，真实 Windows 用户目录替换为 `%USERPROFILE%`，真实仓库绝对路径替换为 `<repo-root>`；原有提交说明、作者、时间和 merge 结构保留。其他已合并功能分支已删除，仅保留 `master`
+- 历史路径清理（2026-10-22）：`master` 的全部 32 个提交已重写，真实 Windows 用户目录替换为 `%USERPROFILE%`，真实仓库绝对路径替换为 `<repo-root>`；独立核验确认父关系、提交说明、作者、时间和 merge 结构保留，文件差异仅为占位符替换。高置信度密钥扫描为 0 命中，含旧路径的临时 bundle 与对比仓库已删除；其他已合并功能分支已删除，仅保留 `master`
 
 ## 关键约定
 
