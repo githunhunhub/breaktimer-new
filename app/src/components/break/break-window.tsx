@@ -28,8 +28,6 @@ interface BreakWindowProps {
   client?: BreakClient;
 }
 
-const PROMPT_GRACE_MS = 60_000;
-
 function messageFrom(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause);
 }
@@ -135,16 +133,16 @@ export function BreakWindow({ client = ipc }: BreakWindowProps) {
   const prompt = useMemo(() => {
     if (!status?.promptStartedAt || !status.promptDeadlineAt) return null;
 
-    const elapsed = Math.max(0, now - status.promptStartedAt);
+    const duration = Math.max(
+      1,
+      status.promptDeadlineAt - status.promptStartedAt,
+    );
+    const elapsed = clamp(now - status.promptStartedAt, 0, duration);
     const remaining = Math.max(0, status.promptDeadlineAt - now);
 
     return {
-      phase: elapsed < PROMPT_GRACE_MS ? "grace" : "countdown",
       secondsRemaining: Math.ceil(remaining / 1000),
-      progress:
-        elapsed < PROMPT_GRACE_MS
-          ? 0
-          : clamp((elapsed - PROMPT_GRACE_MS) / PROMPT_GRACE_MS, 0, 1),
+      progress: elapsed / duration,
     };
   }, [now, status]);
 
@@ -186,7 +184,6 @@ export function BreakWindow({ client = ipc }: BreakWindowProps) {
   if (!status.breakStartedAt) {
     const showPostpone = settings.postponeBreakEnabled && status.allowPostpone;
     const showSkip = settings.skipBreakEnabled;
-    const isCountdown = prompt?.phase === "countdown";
 
     return (
       <main className="flex h-full w-full items-center justify-center overflow-hidden bg-transparent p-2">
@@ -197,23 +194,19 @@ export function BreakWindow({ client = ipc }: BreakWindowProps) {
             color: settings.textColor,
           }}
         >
-          {isCountdown && (
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 left-0 transition-[width] duration-100 ease-linear"
-              style={{
-                backgroundColor: settings.textColor,
-                opacity: 0.15,
-                width: `${(prompt?.progress ?? 0) * 100}%`,
-              }}
-            />
-          )}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 transition-[width] duration-100 ease-linear"
+            style={{
+              backgroundColor: settings.textColor,
+              opacity: 0.15,
+              width: `${(prompt?.progress ?? 0) * 100}%`,
+            }}
+          />
 
           <div className="relative min-w-0">
             <h1 className="truncate text-base font-semibold tracking-tight">
-              {isCountdown
-                ? `Break starting in ${prompt?.secondsRemaining ?? 0}s...`
-                : "Start your break when ready..."}
+              Break starting in {prompt?.secondsRemaining ?? 0}s...
             </h1>
             <p className="truncate text-xs font-medium opacity-75">
               {formatTimeSinceLastBreak(status.timeSinceLastBreakSeconds)}

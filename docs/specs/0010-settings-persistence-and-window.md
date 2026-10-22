@@ -4,7 +4,8 @@
 - 实现状态：阶段 4 Windows 设置窗口与四页签已完成，C0-C7 人工验收通过；
   阶段 5 Theme、Backdrop、关闭隐藏、托盘恢复与 Quit 退出均已人工验收通过；
   2026-10-22 试用发现 Theme 卡片未实时展示所选背景色和文字色，已补齐整卡预览与
-  Reset 样式并通过组件测试与便携版人工验收
+  Reset 样式并通过组件测试与便携版人工验收；同日确认 Windows `System` 页签不再展示
+  仅 macOS 生效的 `Menu Bar Text`，并通过用户人工验收
 - 日期：2026-10-13
 - 关联：ADR-0002 · 旧实现 `breaktimer-app/app/main/lib/store.ts`、`renderer` 设置页
 
@@ -37,6 +38,9 @@
     仍执行真正退出。
 11. 从托盘 `Settings...` 重新打开设置时，无论窗口已隐藏、最小化或失去焦点，都应恢复、
     显示并聚焦到设置窗口。
+12. 当前 Windows-only 范围内，`System` 页签只展示实际生效的 `Start at login` 分组；
+    仅 macOS 生效的 `Menu Bar Text` 不展示。持久化字段 `trayTextEnabled`、
+    `trayTextMode` 与 macOS 标题逻辑保留，避免破坏设置兼容性。
 
 ## 验收标准（可测）
 
@@ -60,6 +64,7 @@
 - [x] 点击设置窗口右上角 `X` 后应用继续运行，托盘图标与调度不受影响。
 - [x] 设置窗口隐藏、最小化或失焦后，点击托盘 `Settings...` 都恢复并聚焦同一窗口。
 - [x] 托盘 `Quit` 仍能真正退出应用。
+- [x] Windows `System` 页签不显示 `Menu Bar Text`，且仍可正常编辑并保存 `Start at login`。
 
 ## 非目标 / 边界
 
@@ -88,6 +93,13 @@
 - [x] 阶段 5 补齐 `Customization` 的 `Theme`、`Backdrop` 分组与全部剩余字段。
 - [x] 阶段 5 收口时注册主窗口关闭拦截，并统一托盘与单实例的设置窗口恢复逻辑。
 - [x] 为 Theme 卡片增加可选样式入口，并补充颜色控件驱动整卡预览的组件测试。
+- [x] 从 Windows `System` 页签移除 `TrayCard`，补充 System 分组回归测试；保留设置字段与
+  macOS 标题实现。
+
+## 验收记录
+
+- 2026-10-22：Windows `System` 页签仅保留 `Start at login`，`Menu Bar Text` 不再渲染；
+  设置字段兼容性保持不变，组件测试、运行态冒烟和用户人工验收通过。
 
 ## 变更记录
 
@@ -110,3 +122,5 @@
 | 2026-10-22 | 用户人工验收通过：Theme/Reset/Backdrop 按依赖规则生效并可一次 Save 持久化；`X` 隐藏后应用继续运行；隐藏、最小化、失焦窗口均可由托盘恢复；托盘 `Quit` 正常退出 |
 | 2026-10-22 | 便携发布版试用发现 Theme 分组只显示颜色控件，卡片本身不随 draft 变色；确认按旧版行为补齐整卡实时预览，SPEC 回到 `in-progress` |
 | 2026-10-22 | `SettingsCard` 增加可选样式入口，Theme 整卡随 draft 背景色/文字色实时更新，Reset 使用跟随文字色的透明按钮；组件测试覆盖初始值、修改与 Reset，33 项设置窗口测试与便携版人工验收通过；SPEC 标记 `done` |
+| 2026-10-22 | 用户反馈 Windows `System` 页签的 `Menu Bar Text` 无实际作用；确认 Windows UI 仅保留 `Start at login`，SPEC 回到 `in-progress` 等待人工复验 |
+| 2026-10-22 | Windows `System` 页签移除 `TrayCard`，补充无 `Menu Bar Text` 且保留 `Start at login` 的回归测试；运行态与用户人工验收通过，SPEC 重新标记 `done` |

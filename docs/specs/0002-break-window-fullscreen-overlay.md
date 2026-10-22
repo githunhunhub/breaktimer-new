@@ -3,7 +3,8 @@
 - 状态：done
 - 实现状态：阶段 2 基础实现完成；2026-10-21 A8/A9/A14 Windows 专项人工复验通过；
   2026-10-22 `showBackdrop=false`、推迟/跳过与混合 DPI 专项人工验收通过；
-  当前 Windows 范围内验收完成
+  当前 Windows 范围内验收完成；同日移除独立的 `Start your break when ready...`
+  阶段，改为进入休息前直接显示单段 60 秒倒计时，并通过自动验证与用户人工验收
 - 日期：2026-10-13
 - 关联：ADR-0002 · ADR-0004 · ADR-0007 · 旧实现 `breaktimer-app/app/main/lib/windows.ts`、`ipc.ts`、`breaks.ts` 与 `renderer/components/break.tsx`
 
@@ -29,7 +30,9 @@ M4 阶段 4 人工验收确认，Popup 模式需要提供应用层输入阻断�
    - `showBackdrop=false`：窗口仍铺满显示器并阻断输入，但视觉上只显示居中休息卡。
 5. 窗口内容包含休息标题、文案、进度/倒计时，以及 `Cancel Break` 按钮；激活休息期间该按钮始终使用
    `Cancel Break` 文案。
-6. 休息前提示条仍为不可聚焦窗口，不打断用户当前应用；提示条中的「开始 / 推迟 / 跳过」行为保持不变。
+6. 休息前提示条仍为不可聚焦窗口，不打断用户当前应用；提示条直接显示单段 60 秒
+   `Break starting in Ns...` 倒计时，不再先显示 `Start your break when ready...` 阶段；
+   提示条中的「开始 / 推迟 / 跳过」行为保持不变。
 7. 手动 `Cancel Break` 与倒计时自然结束走同一条结束流程：关闭所有显示器的休息窗，交由调度层记录并安排下一次休息。
 
 ## 验收标准（可测）
@@ -42,6 +45,8 @@ M4 阶段 4 人工验收确认，Popup 模式需要提供应用层输入阻断�
 - [x] 激活休息期间按钮始终显示 `Cancel Break`，点击后关闭所有显示器的休息窗并进入结束流程。
 - [x] 应用内除 `Cancel Break` 外没有可绕过休息的退出入口；Alt+Tab、Windows 键、任务管理器不属于阻断承诺。
 - [x] 启用推迟时，提示条中的「Snooze」按推迟时长重新调度；启用跳过时，「Skip」按正常频率重新调度。
+- [x] 进入休息前立即显示单段 60 秒 `Break starting in Ns...` 倒计时，不出现
+  `Start your break when ready...` 独立阶段。
 - [x] 多显示器下，主窗口发起的结束/进度同步能广播到其它显示器窗口（各窗进度一致）。
 - [x] 当前里程碑只验收 Windows；macOS/Linux 的平台限制与运行验收后续需要时单独立项，不将 Windows 结果外推为跨平台通过。
 
@@ -70,6 +75,7 @@ M4 阶段 4 人工验收确认，Popup 模式需要提供应用层输入阻断�
 - [x] 用窗口展示策略与几何单测锁定新行为，并实现提示条/激活休息的分阶段焦点策略和完整 bounds。
 - [x] 在 Windows 双显示器上复验完整覆盖、任务栏/托盘输入阻断、`Cancel Break` 退出和托盘恢复。
 - [x] 补做 `showBackdrop=false`、推迟/跳过与混合 DPI 专项验收；macOS/Linux 移出当前范围。
+- [x] 移除前端 grace/countdown 双阶段与后端 120 秒总时长，改为单段 60 秒提示并补回归测试。
 
 ## 验收记录
 
@@ -82,6 +88,9 @@ M4 阶段 4 人工验收确认，Popup 模式需要提供应用层输入阻断�
   `Cancel Break` 退出与托盘恢复均符合预期。
 - 2026-10-22：用户确认 `showBackdrop=false`、推迟/跳过按钮与混合 DPI 专项人工验收通过；
   Windows 范围内验收完成，macOS/Linux 仍移出当前范围。
+- 2026-10-22：前端 format/lint/typecheck/test（39 项）/build、Rust fmt/check/test（93 项）
+  与 `git diff --check` 通过；Windows 双显示器运行态确认提示条立即显示
+  `Break starting in Ns...`，旧 `Start your break when ready...` 不再出现；用户人工验收通过。
 
 ## 变更记录
 
@@ -94,3 +103,5 @@ M4 阶段 4 人工验收确认，Popup 模式需要提供应用层输入阻断�
 | 2026-10-19 | 修复 Windows 副屏只覆盖左上区域与事件循环创建窗口死锁；自动化验证完成，待 A8/A9/A14 人工复验 |
 | 2026-10-21 | A8/A9/A14 Windows 专项人工复验通过；当前里程碑范围收敛为 Windows，剩余 `showBackdrop=false`、推迟/跳过与混合 DPI 待专项验证 |
 | 2026-10-22 | `showBackdrop=false`、推迟/跳过与混合 DPI 专项人工验收通过；SPEC 标记 `done` |
+| 2026-10-22 | 用户试用反馈 `Start your break when ready...` 与 `Break starting in ...` 功能重复；确认改为进入休息前直接显示单段 60 秒倒计时，SPEC 回到 `in-progress` |
+| 2026-10-22 | 移除 grace/countdown 双阶段与 120 秒总时长，改为单段 60 秒提示并补回归测试；运行态与用户人工验收通过，SPEC 重新标记 `done` |

@@ -15,7 +15,6 @@ import { SmartBreaksCard } from "./smart-breaks-card";
 import { SnoozeCard } from "./snooze-card";
 import { StartupCard } from "./startup-card";
 import { ThemeCard } from "./theme-card";
-import { TrayCard } from "./tray-card";
 import { WorkingHoursCard } from "./working-hours-card";
 
 export interface SettingsClient {
@@ -225,10 +224,7 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
           )}
 
           {activeTab === "system" && (
-            <>
-              <StartupCard settings={draft} onPatch={updateDraft} />
-              <TrayCard settings={draft} onPatch={updateDraft} />
-            </>
+            <StartupCard settings={draft} onPatch={updateDraft} />
           )}
 
           {error && (

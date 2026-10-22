@@ -23,7 +23,7 @@
 - M4 阶段 3：工作时段逐日/多时间段判定、进入工作时段重置、空闲阈值重置与可选通知、长 tick/锁屏恢复全部接入；设置窗口新增 Working Hours 与 Smart Breaks 分组
 - M4 阶段 3 验证：Rust all-target tests、locked all-target check 通过；前端 test/lint/typecheck/format/build 通过；测试覆盖工作时段边界、空闲重置与通知开关、禁用空闲、长休眠/锁屏恢复
 - M4 阶段 3 提交：`codex/m4-phase-3` 提交 `82f2db3`，以 `--no-ff` 合入 `master`（merge `541158c`）并推送 `origin/master`
-- M4 阶段 4：托盘最初按 `TraySnapshot` 快照整体重建菜单（1 秒 tick + 状态变更刷新）；2026-10-22 因 Windows 菜单自动关闭/白点已改为稳定根菜单原地更新（ADR-0010）。临时禁用写入并持久化 `disableEndTime` 且到期由 tick 自动恢复、`flow` 按 `notificationType` 分流 Notification 模式（发通知 + 立即续排，不建窗口）、接入官方 autostart 插件（开发构建跳过注册）、设置窗口补 Start at login/Breaks/Menu Bar Text/Audio 分组与提示音试听；原取舍见 ADR-0006
+- M4 阶段 4：托盘最初按 `TraySnapshot` 快照整体重建菜单（1 秒 tick + 状态变更刷新）；2026-10-22 因 Windows 菜单自动关闭/白点已改为稳定根菜单原地更新（ADR-0010）。临时禁用写入并持久化 `disableEndTime` 且到期由 tick 自动恢复、`flow` 按 `notificationType` 分流 Notification 模式（发通知 + 立即续排，不建窗口）、接入官方 autostart 插件（开发构建跳过注册）、设置窗口补 Start at login/Breaks/Menu Bar Text/Audio 分组与提示音试听；原取舍见 ADR-0006。Menu Bar Text 分组后来已从 Windows UI 移除
 - M4 阶段 4 验证：Rust fmt/check locked all-targets 与 `cargo test --all-targets` 83 tests 通过；前端 lint/typecheck/format/test（24 tests）/build 通过；`pnpm tauri:dev` 运行时冒烟通过（托盘初始化与每秒刷新无错误输出）
 - 托盘重要实现细节：菜单与标题调用会 marshal 到主线程并阻塞等待，菜单事件也在主线程刷新托盘；刷新实现先克隆稳定菜单句柄，锁只包住快照比较与记录，原生菜单调用在锁外执行（避免重入等待）
 - M4 阶段 4 A8/A9 修复：设置字段改为 `Break type`（`Popup break` / `Notification`）；Popup 激活休息覆盖每个显示器完整 bounds、可聚焦并阻断任务栏/托盘，`Cancel Break` 统一退出；混合 DPI 下先移动再缩放，窗口创建移到工作线程并用全局锁串行化（ADR-0007）
@@ -42,6 +42,8 @@
 - 开发临时产物清理（2026-10-22）：已删除 `bundle/portable/` 下的验收临时目录、冒烟目录与截图，仅保留正式便携 ZIP；源码扫描无待提交的临时/调试文件
 - 应用更名（2026-10-22，SPEC-0013 / ADR-0011）：用户可见名为 `BreakTimer-new`，npm/Cargo/可执行文件为 `breaktimer-new`，Rust library 为 `breaktimer_new_lib`，identifier 为 `com.githunhunhub.breaktimernew`；旧 `com.breaktimer.app` 数据与注册项不迁移、不清理
 - 应用更名验证（2026-10-22）：前端 format/lint/typecheck/test（40）/build 与 Rust fmt/check/test（93）通过；运行进程为 `target\debug\breaktimer-new.exe`，窗口/About/tray 使用新名，新 Roaming/LocalAppData 目录生成，单实例与设置保存/重启恢复通过；旧 identity 数据前后哈希不变。用户人工验收通过，未执行打包
+- 休息前提示（2026-10-22）：移除 grace/countdown 双阶段与后端 120 秒总时长，进入提示后立即显示单段 60 秒 `Break starting in Ns...`；开始、推迟、跳过与自然开始休息行为保持不变
+- Windows System 页签（2026-10-22）：仅展示实际生效的 `Start at login`，不再显示 macOS-only 的 `Menu Bar Text`；`trayTextEnabled`、`trayTextMode` 与 macOS 标题逻辑继续保留，避免破坏设置兼容性
 - 历史路径清理（2026-10-22）：`master` 的全部 32 个提交已重写，真实 Windows 用户目录替换为 `%USERPROFILE%`，真实仓库绝对路径替换为 `<repo-root>`；独立核验确认父关系、提交说明、作者、时间和 merge 结构保留，文件差异仅为占位符替换。高置信度密钥扫描为 0 命中，含旧路径的临时 bundle 与对比仓库已删除；其他已合并功能分支已删除，仅保留 `master`
 
 ## 关键约定

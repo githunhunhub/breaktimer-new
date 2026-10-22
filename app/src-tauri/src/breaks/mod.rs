@@ -43,12 +43,9 @@ pub fn is_in_working_hours_at(
 
 /// Pre-break prompt timing (SPEC-0002).
 ///
-/// The prompt first shows a grace period where the user can start early, then a
-/// countdown; if the user does nothing the break starts on its own. The legacy
-/// renderer used the same 60s + 60s split.
-pub const PROMPT_GRACE_SECONDS: i64 = 60;
-pub const PROMPT_COUNTDOWN_SECONDS: i64 = 60;
-pub const PROMPT_TOTAL_SECONDS: i64 = PROMPT_GRACE_SECONDS + PROMPT_COUNTDOWN_SECONDS;
+/// The prompt shows one countdown; if the user does nothing the break starts on
+/// its own when the countdown reaches zero.
+pub const PROMPT_DURATION_SECONDS: i64 = 60;
 
 /// Where the scheduler currently is in the break cycle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -208,7 +205,7 @@ impl BreakScheduler {
 
     pub fn prompt_deadline_at(&self) -> Option<DateTime<Utc>> {
         self.prompted_at
-            .map(|started_at| started_at + Duration::seconds(PROMPT_TOTAL_SECONDS))
+            .map(|started_at| started_at + Duration::seconds(PROMPT_DURATION_SECONDS))
     }
 
     pub fn is_break_tracking(&self) -> bool {
@@ -1011,7 +1008,7 @@ mod tests {
     }
 
     #[test]
-    fn prompt_reports_its_grace_and_deadline_timestamps() {
+    fn prompt_reports_the_single_countdown_deadline() {
         let settings = settings();
         let mut scheduler = BreakScheduler::new_at(at(0));
         scheduler.restart(&settings, at(0));
@@ -1022,7 +1019,7 @@ mod tests {
         assert_eq!(status.prompt_started_at, Some(at(60).timestamp_millis()));
         assert_eq!(
             status.prompt_deadline_at,
-            Some((at(60) + Duration::seconds(PROMPT_TOTAL_SECONDS)).timestamp_millis())
+            Some((at(60) + Duration::seconds(60)).timestamp_millis())
         );
     }
 
@@ -1036,13 +1033,13 @@ mod tests {
             BreakTick::BreakPrompted
         );
 
-        // Still inside the prompt window: nothing happens yet.
-        assert_eq!(tick(&mut scheduler, &settings, 179), BreakTick::None);
-        // The deadline (60s prompt + 60s countdown) auto-starts the break.
+        // Still inside the 60s prompt window: nothing happens yet.
+        assert_eq!(tick(&mut scheduler, &settings, 119), BreakTick::None);
+        // The single countdown deadline auto-starts the break.
         assert_eq!(
-            tick(&mut scheduler, &settings, 180),
+            tick(&mut scheduler, &settings, 120),
             BreakTick::BreakStarted(BreakStart {
-                end_at: at(300),
+                end_at: at(240),
                 started_from_tray: false,
             })
         );

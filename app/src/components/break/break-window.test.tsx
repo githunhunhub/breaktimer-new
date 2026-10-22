@@ -61,7 +61,7 @@ function makePromptStatus(now = Date.now()): BreakStatus {
     breakEndAt: null,
     nextBreakAt: null,
     promptStartedAt: now,
-    promptDeadlineAt: now + 120_000,
+    promptDeadlineAt: now + 60_000,
     timeSinceLastBreakSeconds: 1200,
     allowPostpone: true,
     startedFromTray: false,
@@ -110,14 +110,13 @@ function makeClient(settings: Settings, status: BreakStatus): BreakClient {
 }
 
 describe("BreakWindow", () => {
-  it("shows the prompt and starts the break on request", async () => {
+  it("shows the single countdown prompt immediately and starts on request", async () => {
     const client = makeClient(makeSettings(), makePromptStatus());
 
     render(<BreakWindow client={client} />);
 
-    expect(
-      await screen.findByText("Start your break when ready..."),
-    ).toBeTruthy();
+    expect(await screen.findByText("Break starting in 60s...")).toBeTruthy();
+    expect(screen.queryByText("Start your break when ready...")).toBeNull();
     expect(screen.getByText("20m since last break")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "Start" }));
@@ -127,10 +126,10 @@ describe("BreakWindow", () => {
     });
   });
 
-  it("shows the countdown phase and respects disabled actions", async () => {
+  it("shows the countdown and respects disabled actions", async () => {
     const now = Date.now();
     const status = {
-      ...makePromptStatus(now - 61_000),
+      ...makePromptStatus(now - 10_000),
       allowPostpone: false,
     };
     const client = makeClient(
@@ -140,7 +139,7 @@ describe("BreakWindow", () => {
 
     render(<BreakWindow client={client} />);
 
-    expect(await screen.findByText("Break starting in 59s...")).toBeTruthy();
+    expect(await screen.findByText("Break starting in 50s...")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Snooze" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Skip" })).toBeNull();
   });

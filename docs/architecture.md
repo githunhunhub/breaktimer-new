@@ -34,15 +34,18 @@
 - 后端已建立 `state`、`breaks`、`flow`、`system_state`、`windows`、`tray`、`notifications`、`sounds`、`autostart` 模块边界；阶段 2 已接入调度、休息窗与声音，阶段 3 已接入工作时段、闲置重置和休眠/锁屏恢复，阶段 4 已接入托盘、通知模式与自启动。
 - IPC 已打通并集中封装：设置、应用信息、休息状态、开始/结束/推迟/跳过/立即休息，以及设置页的提示音试听命令。
 - 设置后端已支持默认值合并、旧版本迁移、JSON 持久化与应用状态字段（含 `disableEndTime`）；
-  设置窗口已实现四页签、跨页 draft、点击 Save 提交与 Theme 整卡实时预览，全部字段已通过
-  Windows 人工验收。
+  设置窗口已实现四页签、跨页 draft、点击 Save 提交与 Theme 整卡实时预览，并通过 Windows
+  人工验收；`System` 页签仅展示实际生效的 `Start at login`，macOS-only 的 `Menu Bar Text`
+  字段与标题逻辑仍保留在持久化和后端兼容层。
 - 保存设置会先持久化，再应用纯函数计算出的副作用：自启动变化、从禁用切到启用时重置计时，以及调度器重启；开发构建跳过真实自启动注册。
-- `BreakScheduler` 已具备 `Idle / Working / OnBreak / Postponed` 状态机、1 秒 tick、提示倒计时、完成判定、推迟/跳过/立即休息与重启/重置接口；每次 tick 通过 `SchedulerContext` 消费工作时段与系统活动状态，长 tick/锁屏恢复不会补发过期休息。
+- `BreakScheduler` 已具备 `Idle / Working / OnBreak / Postponed` 状态机、1 秒 tick、单段
+  60 秒休息前倒计时、完成判定、推迟/跳过/立即休息与重启/重置接口；每次 tick 通过
+  `SchedulerContext` 消费工作时段与系统活动状态，长 tick/锁屏恢复不会补发过期休息。
 - `system_state` 通过 `SystemStateProvider` 隔离平台查询：空闲时长使用 `system-idle-time`，Windows 用输入桌面句柄探测锁屏；macOS/Linux 兼容分支不在当前验收范围（ADR-0005）。
-- `windows` 按显示器创建无边框、透明、置顶、跨工作区的覆盖窗；提示条保持不可聚焦，激活 Popup
-  休息后切换为可聚焦并覆盖完整显示器 bounds，阻断底层应用、任务栏和托盘输入；`showBackdrop`
-  只影响渲染层视觉，不再改变窗口几何（ADR-0007）。`flow` 统一编排窗口、声音与 `break-status` 广播，
-  避免多窗口重复副作用。
+- `windows` 按显示器创建无边框、透明、置顶、跨工作区的覆盖窗；提示条保持不可聚焦并直接显示
+  单段 60 秒倒计时，激活 Popup 休息后切换为可聚焦并覆盖完整显示器 bounds，阻断底层应用、
+  任务栏和托盘输入；`showBackdrop` 只影响渲染层视觉，不再改变窗口几何（ADR-0007）。
+  `flow` 统一编排窗口、声音与 `break-status` 广播，避免多窗口重复副作用。
 - `sounds` 使用 Rust `rodio` 播放嵌入的 WAV 资源（ADR-0003），`SoundType=None` 静音。
 - `tray` 把菜单与标题所需信息归一化为纯函数快照（状态、下次休息文案、禁用剩余时长、标题）。
   根菜单只绑定托盘一次，倒计时与禁用时长通过稳定菜单项原地改文本，只有可用操作变化时才

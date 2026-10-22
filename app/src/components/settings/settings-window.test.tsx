@@ -136,6 +136,20 @@ describe("SettingsWindow", () => {
     ).toBeTruthy();
   });
 
+  it("does not show the macOS-only menu bar text controls on Windows", async () => {
+    const client = makeClient(makeSettings());
+
+    render(<SettingsWindow client={client} />);
+
+    await openSettingsTab("System");
+
+    expect(screen.getByText("Start at login")).toBeTruthy();
+    expect(screen.queryByText("Menu Bar Text")).toBeNull();
+    expect(
+      screen.queryByRole("switch", { name: "Show menu bar text" }),
+    ).toBeNull();
+  });
+
   it("loads Snooze, Skip and Advanced with legacy dependency states", async () => {
     const client = makeClient(
       makeSettings({
@@ -947,44 +961,5 @@ describe("SettingsWindow", () => {
         }),
       );
     });
-  });
-
-  it("edits the menu bar text mode", async () => {
-    const client = makeClient(
-      makeSettings({
-        trayTextEnabled: true,
-        trayTextMode: "TIME_TO_NEXT_BREAK",
-      }),
-    );
-    render(<SettingsWindow client={client} />);
-
-    await openSettingsTab("System");
-    const mode = screen.getByLabelText("Text") as HTMLSelectElement;
-    expect(mode.disabled).toBe(false);
-
-    fireEvent.change(mode, { target: { value: "TIME_SINCE_LAST_BREAK" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-
-    await waitFor(() => {
-      expect(client.setSettings).toHaveBeenCalledWith(
-        expect.objectContaining({ trayTextMode: "TIME_SINCE_LAST_BREAK" }),
-      );
-    });
-  });
-
-  it("enables the menu bar text selector with its switch", async () => {
-    const client = makeClient(makeSettings({ trayTextEnabled: false }));
-    render(<SettingsWindow client={client} />);
-
-    await openSettingsTab("System");
-    expect((screen.getByLabelText("Text") as HTMLSelectElement).disabled).toBe(
-      true,
-    );
-
-    fireEvent.click(screen.getByRole("switch", { name: "Show menu bar text" }));
-
-    expect((screen.getByLabelText("Text") as HTMLSelectElement).disabled).toBe(
-      false,
-    );
   });
 });
