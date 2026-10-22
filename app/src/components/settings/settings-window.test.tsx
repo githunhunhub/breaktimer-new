@@ -124,6 +124,18 @@ describe("SettingsWindow", () => {
     ).toBeTruthy();
   });
 
+  it("names BreakTimer-new in the launch-at-login description", async () => {
+    const client = makeClient(makeSettings());
+
+    render(<SettingsWindow client={client} />);
+
+    await openSettingsTab("System");
+
+    expect(
+      screen.getByText("Automatically start BreakTimer-new when you log in."),
+    ).toBeTruthy();
+  });
+
   it("loads Snooze, Skip and Advanced with legacy dependency states", async () => {
     const client = makeClient(
       makeSettings({

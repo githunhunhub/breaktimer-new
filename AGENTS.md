@@ -5,7 +5,8 @@
 
 ## 项目一句话
 
-把旧版 BreakTimer（`breaktimer-app/`，Electron 桌面应用）重构为 `app/` 下的全新实现。
+把旧版 BreakTimer（`breaktimer-app/`，Electron 桌面应用）重写为独立的
+`BreakTimer-new` 项目，新实现位于 `app/`。
 
 ## 目录地图
 

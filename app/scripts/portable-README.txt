@@ -1,7 +1,7 @@
-BreakTimer Portable
-===================
+BreakTimer-new Portable
+=======================
 
-Run breaktimer.exe directly from this folder. Installation is not required.
+Run breaktimer-new.exe directly from this folder. Installation is not required.
 
 Portable data
 -------------
@@ -12,16 +12,16 @@ Settings and WebView2 data are stored next to the executable:
   data\webview2\
 
 The data folder is created on first successful launch. Keep this folder with
-the executable when moving the portable copy. Delete it to reset BreakTimer.
+the executable when moving the portable copy. Delete it to reset BreakTimer-new.
 
 The portable copy uses the same Windows app identity as the installed version,
-so only one BreakTimer instance can run at a time.
+so only one BreakTimer-new instance can run at a time.
 
 Launch at login
 ---------------
 
 If Launch at login is enabled, Windows registers the current path of
-breaktimer.exe. Turn it off and on again after moving the portable folder.
+breaktimer-new.exe. Turn it off and on again after moving the portable folder.
 
 Requirements
 ------------

@@ -80,7 +80,7 @@ fn verify_writable(data_dir: &Path) -> Result<(), AppPathError> {
             .create_new(true)
             .write(true)
             .open(&probe_path)?;
-        probe.write_all(b"breaktimer")?;
+        probe.write_all(b"breaktimer-new")?;
         probe.flush()
     })();
 
@@ -106,7 +106,7 @@ mod tests {
         fn new(name: &str) -> Self {
             let id = NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed);
             let path = std::env::temp_dir().join(format!(
-                "breaktimer-paths-{name}-{}-{id}",
+                "breaktimer-new-paths-{name}-{}-{id}",
                 std::process::id()
             ));
             fs::create_dir_all(&path).unwrap();
@@ -125,9 +125,9 @@ mod tests {
     }
 
     fn executable_in(directory: &Path) -> PathBuf {
-        let app_dir = directory.join("BreakTimer");
+        let app_dir = directory.join("BreakTimer-new");
         fs::create_dir_all(&app_dir).unwrap();
-        app_dir.join("breaktimer.exe")
+        app_dir.join("breaktimer-new.exe")
     }
 
     #[test]

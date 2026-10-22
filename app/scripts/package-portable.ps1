@@ -8,7 +8,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $appRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $tauriRoot = Join-Path $appRoot "src-tauri"
 $targetDir = Join-Path $tauriRoot "target\release"
-$executable = Join-Path $targetDir "breaktimer.exe"
+$executable = Join-Path $targetDir "breaktimer-new.exe"
 $readme = Join-Path $PSScriptRoot "portable-README.txt"
 
 if (-not [System.IO.File]::Exists($executable)) {
@@ -29,13 +29,13 @@ $outputRoot = Join-Path $targetDir "bundle\portable"
 [System.IO.Directory]::CreateDirectory($outputRoot) | Out-Null
 
 $stagingRoot = Join-Path $outputRoot (".staging-" + [System.Guid]::NewGuid().ToString("N"))
-$packageDir = Join-Path $stagingRoot "BreakTimer"
-$zipPath = Join-Path $outputRoot "BreakTimer_${version}_x64-portable.zip"
+$packageDir = Join-Path $stagingRoot "BreakTimer-new"
+$zipPath = Join-Path $outputRoot "BreakTimer-new_${version}_x64-portable.zip"
 
 [System.IO.Directory]::CreateDirectory($packageDir) | Out-Null
 
 try {
-    Copy-Item -LiteralPath $executable -Destination (Join-Path $packageDir "breaktimer.exe")
+    Copy-Item -LiteralPath $executable -Destination (Join-Path $packageDir "breaktimer-new.exe")
     Copy-Item -LiteralPath $readme -Destination (Join-Path $packageDir "README.txt")
     [System.IO.File]::WriteAllBytes(
         (Join-Path $packageDir "portable.flag"),
@@ -50,12 +50,12 @@ try {
         [System.IO.Compression.ZipArchiveMode]::Create
     )
     try {
-        $archive.CreateEntry("BreakTimer/") | Out-Null
-        foreach ($name in @("breaktimer.exe", "portable.flag", "README.txt")) {
+        $archive.CreateEntry("BreakTimer-new/") | Out-Null
+        foreach ($name in @("breaktimer-new.exe", "portable.flag", "README.txt")) {
             [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
                 $archive,
                 (Join-Path $packageDir $name),
-                "BreakTimer/$name",
+                "BreakTimer-new/$name",
                 [System.IO.Compression.CompressionLevel]::Optimal
             ) | Out-Null
         }
@@ -68,20 +68,20 @@ try {
     try {
         $entries = @($archive.Entries | ForEach-Object { $_.FullName })
         $required = @(
-            "BreakTimer/",
-            "BreakTimer/breaktimer.exe",
-            "BreakTimer/portable.flag",
-            "BreakTimer/README.txt"
+            "BreakTimer-new/",
+            "BreakTimer-new/breaktimer-new.exe",
+            "BreakTimer-new/portable.flag",
+            "BreakTimer-new/README.txt"
         )
         foreach ($entry in $required) {
             if ($entries -notcontains $entry) {
                 throw "Portable ZIP is missing required entry: $entry"
             }
         }
-        if ($entries | Where-Object { $_ -notlike "BreakTimer/*" }) {
-            throw "Portable ZIP contains an entry outside the BreakTimer directory."
+        if ($entries | Where-Object { $_ -notlike "BreakTimer-new/*" }) {
+            throw "Portable ZIP contains an entry outside the BreakTimer-new directory."
         }
-        if ($entries | Where-Object { $_ -like "BreakTimer/data/*" }) {
+        if ($entries | Where-Object { $_ -like "BreakTimer-new/data/*" }) {
             throw "Portable ZIP must not include a data directory."
         }
     }

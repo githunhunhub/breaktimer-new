@@ -21,7 +21,7 @@ export function StartupCard({ settings, onPatch }: StartupCardProps) {
       <CardHeader>
         <CardTitle className="text-base">Start at login</CardTitle>
         <CardDescription>
-          Automatically start BreakTimer when you log in.
+          Automatically start BreakTimer-new when you log in.
         </CardDescription>
       </CardHeader>
       <CardContent>

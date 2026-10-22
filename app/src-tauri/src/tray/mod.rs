@@ -17,7 +17,7 @@ use crate::breaks::{BreakPhase, BreakScheduler, SystemActivity};
 use crate::error::AppResult;
 use crate::flow;
 use crate::state::{AppState, Settings, SettingsEffects, TrayTextMode};
-use crate::windows;
+use crate::{PRODUCT_NAME, windows};
 
 const TRAY_ID: &str = "main";
 
@@ -307,7 +307,7 @@ pub fn init<R: Runtime>(app: &AppHandle<R>) -> AppResult<()> {
     let icon = Image::from_bytes(include_bytes!("../../icons/32x32.png"))?;
     TrayIconBuilder::with_id(TRAY_ID)
         .icon(icon)
-        .tooltip("BreakTimer")
+        .tooltip(PRODUCT_NAME)
         .menu(&handles.menu)
         .show_menu_on_left_click(true)
         .on_menu_event(handle_menu_event)
@@ -445,16 +445,22 @@ fn seconds_until_end_of_day() -> i64 {
 
 /// About dialog (SPEC-0006), parented to the settings window when it exists.
 ///
-/// Mirrors the legacy message box, including the build/website/source lines.
+fn about_content(version: &str) -> String {
+    format!(
+        "{PRODUCT_NAME}\n\nBuild: {version}\n\nProject Source:\n\
+         https://gitee.com/githunee/breaktimer-new\n\n\
+         Upstream BreakTimer:\n\
+         https://github.com/tom-james-watson/breaktimer-app\n\n\
+         Distributed under GPL-3.0-or-later license."
+    )
+}
+
+/// Shows the product identity, current project source, and upstream origin.
 fn show_about_window<R: Runtime>(app: &AppHandle<R>) {
     use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 
     let version = app.package_info().version.to_string();
-    let content = format!(
-        "BreakTimer\n\nBuild: {version}\n\nWebsite:\nhttps://breaktimer.app\n\n\
-         Source Code:\nhttps://github.com/tom-james-watson/breaktimer-app\n\n\
-         Distributed under GPL-3.0-or-later license."
-    );
+    let content = about_content(&version);
     let mut builder = app
         .dialog()
         .message(content)
@@ -871,6 +877,22 @@ mod tests {
     #[test]
     fn rest_of_day_is_positive_even_just_before_midnight() {
         assert!(seconds_until_end_of_day() >= 1);
+    }
+
+    #[test]
+    fn about_content_identifies_the_new_project_and_its_upstream() {
+        let content = about_content("0.1.0");
+
+        assert!(content.starts_with(
+            "BreakTimer-new\n\nBuild: 0.1.0\n\nProject Source:\nhttps://gitee.com/githunee/breaktimer-new"
+        ));
+        assert!(
+            content.contains(
+                "Upstream BreakTimer:\nhttps://github.com/tom-james-watson/breaktimer-app"
+            )
+        );
+        assert!(content.contains("Distributed under GPL-3.0-or-later license."));
+        assert!(!content.contains("https://breaktimer.app"));
     }
 
     #[test]

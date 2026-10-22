@@ -19,5 +19,6 @@
 | [SPEC-0010](0010-settings-persistence-and-window.md) | 设置持久化与设置窗口 | done | ADR-0002 | `app/`（四页签、Theme 整卡实时预览、关闭隐藏、托盘恢复与 Quit 均通过 Windows 人工验收） |
 | [SPEC-0011](0011-windows-nsis-release.md) | Windows 发布产物（NSIS 与便携 ZIP） | done | ADR-0008 · ADR-0009 · SPEC-0007 · SPEC-0012 | `app/src-tauri/tauri.conf.json`、安装包、便携 ZIP 与发布版可执行文件（NSIS 安装/卸载、图标、版本与登录自启人工通过；产物哈希已记录） |
 | [SPEC-0012](0012-portable-zip.md) | Windows 便携 ZIP | done | ADR-0009 · SPEC-0007 · SPEC-0011 | `app/scripts/package-portable.ps1`、`app/src-tauri/src/app_paths.rs`（完整便携流程、异常标记、安装版互斥、便携自启动与 NSIS 隔离均通过） |
+| [SPEC-0013](0013-app-rename.md) | 应用更名为 BreakTimer-new | done | ADR-0011 · SPEC-0007 · SPEC-0010 · SPEC-0011 · SPEC-0012 | `app/src-tauri/tauri.conf.json`、`app/package.json`、Cargo/Rust 入口、托盘/窗口与服务设置文案、便携脚本（自动化、运行时与 Windows 人工验收均通过） |
 
 <!-- 新增 spec 后在此表追加一行。状态：draft / confirmed / in-progress / done / superseded -->

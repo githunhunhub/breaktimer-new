@@ -169,7 +169,7 @@ mod tests {
     use super::*;
 
     fn temp_path(name: &str) -> PathBuf {
-        let dir = std::env::temp_dir().join("breaktimer-tests");
+        let dir = std::env::temp_dir().join("breaktimer-new-tests");
         fs::create_dir_all(&dir).unwrap();
         dir.join(name)
     }

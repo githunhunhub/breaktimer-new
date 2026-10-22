@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    breaktimer_lib::run()
+    breaktimer_new_lib::run()
 }

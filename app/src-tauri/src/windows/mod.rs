@@ -23,6 +23,7 @@ use tauri::{
     WebviewWindowBuilder, Window, WindowEvent,
 };
 
+use crate::PRODUCT_NAME;
 use crate::app_paths::AppPaths;
 use crate::error::AppResult;
 use crate::state::Settings;
@@ -413,7 +414,7 @@ fn ensure_windows<R: Runtime>(app: &AppHandle<R>) -> AppResult<()> {
 fn build_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> AppResult<WebviewWindow<R>> {
     let data_directory = app.state::<AppPaths>().webview2_dir.clone();
     let window = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
-        .title("BreakTimer")
+        .title(PRODUCT_NAME)
         .decorations(false)
         .transparent(true)
         .always_on_top(true)

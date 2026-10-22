@@ -57,7 +57,7 @@ pub fn get_app_info(app: AppHandle, state: State<'_, AppState>) -> AppInfo {
         .config()
         .product_name
         .clone()
-        .unwrap_or_else(|| app.package_info().name.clone());
+        .unwrap_or_else(|| crate::PRODUCT_NAME.to_string());
 
     AppInfo {
         name,
@@ -120,13 +120,13 @@ mod tests {
     #[test]
     fn app_info_serializes_with_frontend_field_names() {
         let value = serde_json::to_value(AppInfo {
-            name: "BreakTimer".to_string(),
+            name: "BreakTimer-new".to_string(),
             version: "0.1.0".to_string(),
             settings_path: "settings.json".to_string(),
         })
         .unwrap();
 
-        assert_eq!(value["name"], "BreakTimer");
+        assert_eq!(value["name"], "BreakTimer-new");
         assert_eq!(value["version"], "0.1.0");
         assert_eq!(value["settingsPath"], "settings.json");
     }

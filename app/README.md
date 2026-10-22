@@ -1,6 +1,6 @@
-# BreakTimer app
+# BreakTimer-new app
 
-Tauri v2 + React + TypeScript implementation of BreakTimer.
+Tauri v2 + React + TypeScript implementation of `BreakTimer-new`.
 
 Project documentation lives in [`../docs`](../docs); start with
 [`../docs/roadmap.md`](../docs/roadmap.md) and

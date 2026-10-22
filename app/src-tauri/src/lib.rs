@@ -20,6 +20,8 @@ use tauri::Manager;
 use app_paths::AppPaths;
 use state::{AppState, SettingsEffects, SettingsStore};
 
+pub const PRODUCT_NAME: &str = "BreakTimer-new";
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -31,7 +33,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(
             tauri_plugin_autostart::Builder::new()
-                .app_name("BreakTimer")
+                .app_name(PRODUCT_NAME)
                 .build(),
         )
         .on_window_event(|window, event| windows::handle_window_event(window, event))
@@ -46,9 +48,9 @@ pub fn run() {
 
                     app.dialog()
                         .message(format!(
-                            "BreakTimer could not prepare its portable data directory.\n\n{error}"
+                            "{PRODUCT_NAME} could not prepare its portable data directory.\n\n{error}"
                         ))
-                        .title("BreakTimer")
+                        .title(PRODUCT_NAME)
                         .kind(MessageDialogKind::Error)
                         .blocking_show();
                     app.handle().exit(1);

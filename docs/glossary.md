@@ -4,6 +4,8 @@
 
 | 术语 | 英文 | 含义 |
 | --- | --- | --- |
+| 产品名 | Product name | 用户可见的 `BreakTimer-new`；技术包名和可执行文件使用小写 `breaktimer-new` |
+| 应用标识 | Application identifier | Tauri/Windows 身份 `com.githunhunhub.breaktimernew`，决定独立的数据、单实例、自启动与卸载身份 |
 | 休息 | Break | 一次提醒或强制的休息 |
 | 全屏遮挡层 | Backdrop | 休息时铺满每个显示器的覆盖层；可显示半透明视觉遮罩，也可只显示居中休息卡 |
 | 输入阻断覆盖层 | Input-blocking overlay | 覆盖完整显示器 bounds、置顶且可聚焦的应用窗口，使底层应用、任务栏和托盘不能接收鼠标输入 |

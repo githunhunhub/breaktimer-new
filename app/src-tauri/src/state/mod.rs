@@ -248,7 +248,7 @@ mod tests {
     }
 
     fn temp_store(name: &str) -> SettingsStore {
-        let dir = std::env::temp_dir().join("breaktimer-state-tests");
+        let dir = std::env::temp_dir().join("breaktimer-new-state-tests");
         fs::create_dir_all(&dir).unwrap();
         SettingsStore::load(PathBuf::from(dir).join(name)).unwrap()
     }

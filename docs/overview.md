@@ -3,7 +3,8 @@
 ## 目标
 
 1. **学习 AI 编程**：把本次重构当作「如何更好地用 AI 完成项目开发」的实践，关键技术结论按文档工作流沉淀到 `docs/` 与 `.ai/sessions/`。
-2. **重构 BreakTimer**：用 Tauri v2（Rust）替换原项目的 Electron（见 ADR-0002）。
+2. **重写 BreakTimer**：用 Tauri v2（Rust）实现独立的 `BreakTimer-new`，
+   替换原项目的 Electron（见 ADR-0002、ADR-0011）。
 
 ## 范围（In scope）
 
@@ -16,6 +17,7 @@
 - 设置持久化与设置窗口。
 - 系统通知（`Notification` 模式）。
 - 自启动（auto-launch）。
+- 独立的 `BreakTimer-new` 产品名与 `com.githunhunhub.breaktimernew` 应用身份。
 - 当前验收与发布平台：Windows（x64）；macOS/Linux 暂不纳入当前里程碑。
 
 ## 非目标（Out of scope）
@@ -33,3 +35,4 @@
 - 前端尽量复用旧 UI 资产（React + TypeScript）
 - 技术栈：以 `docs/architecture.md` 与 `docs/decisions/0002-technology-stack.md` 为准
 - 旧实现仅作参考：`breaktimer-app/`
+- 不迁移、清理或兼容旧 `BreakTimer` 的数据、自启动和安装身份。

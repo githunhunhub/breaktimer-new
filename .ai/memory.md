@@ -4,8 +4,8 @@
 
 ## 当前状态
 
-- 项目：BreakTimer 重构（两重目的：学习 AI 编程 + 替换 Electron）
-- 阶段：M0-M5 全部完成，重构阶段结束；Windows 发布产物、便携版、三项试用反馈修复与相关人工验收均已完成；后续进入正常的新需求/问题处理流程，当前仍只面向 Windows
+- 项目：BreakTimer-new（两重目的：学习 AI 编程 + 替换 Electron）
+- 阶段：M0-M5 全部完成，重构阶段结束；应用已建立独立的 `BreakTimer-new` 产品名与 `com.githunhunhub.breaktimernew` identity；后续进入正常的新需求/问题处理流程，当前仍只面向 Windows
 - 新代码目录：`app/`（pnpm + Vite + React/TS 前端，`src-tauri/` Rust 后端）
 - 旧源码：`breaktimer-app/` 以 git submodule 引用上游，钉在 commit `2d67243`（≈ v2.1.0-54）
 - 技术选型：**Tauri v2（Rust）+ 前端保留 React + TypeScript**（ADR-0002）
@@ -33,13 +33,15 @@
 - M4 阶段 4 Windows 验收收口（2026-10-21）：C0-C2、C5-C7 人工通过；连同此前结果，A1-A11、A14、B1-B7、C0-C7 均已通过。当时 A12/A13 与 D1-D4 暂缓到 M5 发布产物验证；这些项目后来均已在 M5 通过
 - M4 阶段 4 提交：`codex/m4-phase-4` 提交 `9f1881c`，以 `--no-ff` 合入 `master`（merge `995dc64`）并推送 `origin/master`
 - M4 阶段 5 收尾（2026-10-22）：设置窗口 `X` 改为隐藏到托盘，托盘 `Settings...` 与单实例共用 `unminimize -> show -> focus` 恢复流程并在 100ms 后二次聚焦；Theme/Backdrop 已纳入 `Customization`；托盘 `Quit` 通过显式退出标记放行关闭
-- 便携 ZIP（SPEC-0012）：仅可执行文件同目录的普通文件 `portable.flag` 启用便携模式；设置写入 `data\settings.json`，主窗口与休息窗口共用 `data\webview2\`，目录不可写时原生报错退出且不回退 AppData；`pnpm portable:build` 生成顶层 `BreakTimer\` 的无安装 ZIP
+- 便携 ZIP（SPEC-0012）：仅可执行文件同目录的普通文件 `portable.flag` 启用便携模式；设置写入 `data\settings.json`，主窗口与休息窗口共用 `data\webview2\`，目录不可写时原生报错退出且不回退 AppData；更名后 `pnpm portable:build` 将生成顶层 `BreakTimer-new\` 与 `breaktimer-new.exe` 的无安装 ZIP（尚未获授权重新打包）
 - 阶段 5 最终验证（2026-10-22）：前端 format/lint/typecheck/test（39）/build 通过；Rust fmt/check/test（92）通过；最终 NSIS、发布版 exe 与便携 ZIP 均由同一代代码生成
 - 阶段 5 最终产物（2026-10-22）：exe 10,970,112 bytes `F1BF9F969EF4E65E4750B4E9DD1C10E1B2A12862E61DC10E6CC1F34447C39D90`；NSIS 4,375,677 bytes `B126B8419C69E8BEE48E6FC3F24E326B0D6AFB06163CC72D9852B6C276EAEF9D`（NotSigned）；便携 ZIP 5,870,023 bytes `716F56399423276E56851A858A8C8B702ACCBDA32555054A21888D2FEFE1112B`
 - 便携反馈修复（2026-10-22）：`idleResetEnabled=false` 时完全忽略 `Idle`，5 分钟调度回归在第 300 秒仍触发；托盘根菜单只绑定一次，倒计时用 `set_text` 原地更新，仅操作布局变化时调整动态项；Theme 整卡随 draft 背景色/文字色预览
 - 最终便携 ZIP 冒烟（2026-10-22）：独立解压可直接运行，`get_app_info.settingsPath` 指向解压目录；保存后生成同目录 `data\settings.json` 与 `data\webview2\EBWebView`；`WM_CLOSE` 只隐藏不退出；第二实例恢复隐藏/最小化窗口并获得前台焦点；重启后设置保留；AppData 无文件修改；临时目录和进程已清理
 - 阶段 5 人工验收（2026-10-22）：用户最终确认三项便携反馈修复、完整便携流程、同名目录标记、不可写目录失败、安装版互斥、便携自启动、NSIS 隔离、菜单保持与无残影、A12/A13 全部通过；SPEC-0002/0005/0006/0010/0012 均为 `done`，PLAN-0002 阶段 5、PLAN-0002 与 M5 均完成
 - 开发临时产物清理（2026-10-22）：已删除 `bundle/portable/` 下的验收临时目录、冒烟目录与截图，仅保留正式便携 ZIP；源码扫描无待提交的临时/调试文件
+- 应用更名（2026-10-22，SPEC-0013 / ADR-0011）：用户可见名为 `BreakTimer-new`，npm/Cargo/可执行文件为 `breaktimer-new`，Rust library 为 `breaktimer_new_lib`，identifier 为 `com.githunhunhub.breaktimernew`；旧 `com.breaktimer.app` 数据与注册项不迁移、不清理
+- 应用更名验证（2026-10-22）：前端 format/lint/typecheck/test（40）/build 与 Rust fmt/check/test（93）通过；运行进程为 `target\debug\breaktimer-new.exe`，窗口/About/tray 使用新名，新 Roaming/LocalAppData 目录生成，单实例与设置保存/重启恢复通过；旧 identity 数据前后哈希不变。用户人工验收通过，未执行打包
 
 ## 关键约定
 
@@ -51,7 +53,7 @@
 
 ## 后续入口
 
-- 当前无重构阶段、验收或发布阻塞；SPEC-0002/0005/0006/0010/0012 均已同步为 `done`。
+- 当前无重构阶段、验收或发布阻塞；SPEC-0002/0005/0006/0010/0012/0013 均已同步为 `done`。
 - 后续新功能或问题按正常开发流程处理：先确认需求，再新建或更新 `docs/specs/`，按风险补测试，
   自动验证与必要人工验收通过后再提交；不再使用 M0-M5 重构阶段作为任务组织方式。
 - macOS/Linux 仍不在当前范围；需要支持时应作为独立需求和验收项立项。
