@@ -325,29 +325,24 @@ impl BreakScheduler {
             self.paused_until_active = true;
         }
 
-        if let SystemActivity::Idle { idle_seconds } = context.activity {
-            let idle_reset_seconds = u64::from(settings.idle_reset_length_seconds.max(1));
-            if settings.idle_reset_enabled && idle_seconds >= idle_reset_seconds {
-                if self.idle_reset_active {
-                    return BreakTick::None;
+        if settings.idle_reset_enabled {
+            if let SystemActivity::Idle { idle_seconds } = context.activity {
+                let idle_reset_seconds = u64::from(settings.idle_reset_length_seconds.max(1));
+                if idle_seconds >= idle_reset_seconds {
+                    if self.idle_reset_active {
+                        return BreakTick::None;
+                    }
+
+                    self.clear_pending_break();
+                    self.last_completed_break_at = now;
+                    self.paused_until_active = true;
+                    self.idle_reset_active = true;
+                    self.postponed_count = 0;
+                    return BreakTick::IdleReset(IdleReset {
+                        idle_seconds,
+                        notify: settings.idle_reset_notification,
+                    });
                 }
-
-                self.clear_pending_break();
-                self.last_completed_break_at = now;
-                self.paused_until_active = true;
-                self.idle_reset_active = true;
-                self.postponed_count = 0;
-                return BreakTick::IdleReset(IdleReset {
-                    idle_seconds,
-                    notify: settings.idle_reset_notification,
-                });
-            }
-
-            if !settings.idle_reset_enabled {
-                self.clear_pending_break();
-                self.paused_until_active = true;
-                self.idle_reset_active = false;
-                return BreakTick::None;
             }
         }
 
@@ -780,48 +775,43 @@ mod tests {
     }
 
     #[test]
-    fn disabled_idle_reset_pauses_without_resetting_the_timer() {
+    fn disabled_idle_reset_ignores_idle_ticks_and_keeps_the_original_schedule() {
         let settings = Settings {
-            break_frequency_seconds: 60,
+            break_frequency_seconds: 300,
             idle_reset_enabled: false,
-            idle_reset_length_seconds: 30,
+            idle_reset_length_seconds: 5,
             ..settings()
         };
         let mut scheduler = BreakScheduler::new_at(at(0));
         scheduler.restart(&settings, at(0));
-        tick(&mut scheduler, &settings, 10);
+
+        for second in 1..=299 {
+            let idle = SchedulerContext {
+                now: at(second),
+                in_working_hours: true,
+                activity: SystemActivity::Idle {
+                    idle_seconds: second as u64,
+                },
+            };
+
+            assert_eq!(
+                scheduler.tick(&settings, idle),
+                BreakTick::None,
+                "tick at {second}s"
+            );
+            assert_eq!(
+                scheduler.next_break_at(),
+                Some(at(300)),
+                "next break moved after idle tick at {second}s"
+            );
+        }
 
         let idle = SchedulerContext {
-            now: at(20),
+            now: at(300),
             in_working_hours: true,
-            activity: SystemActivity::Idle { idle_seconds: 30 },
+            activity: SystemActivity::Idle { idle_seconds: 300 },
         };
-        let long_idle = SchedulerContext {
-            now: at(60),
-            in_working_hours: true,
-            activity: SystemActivity::Idle { idle_seconds: 70 },
-        };
-        let still_idle = SchedulerContext {
-            now: at(100),
-            in_working_hours: true,
-            activity: SystemActivity::Idle { idle_seconds: 110 },
-        };
-        let active = SchedulerContext {
-            now: at(101),
-            in_working_hours: true,
-            activity: SystemActivity::Active,
-        };
-
-        assert_eq!(scheduler.tick(&settings, idle), BreakTick::None);
-        assert_eq!(scheduler.next_break_at(), None);
-        assert_eq!(scheduler.last_completed_break_at(), at(0));
-        assert_eq!(scheduler.tick(&settings, long_idle), BreakTick::None);
-        assert_eq!(scheduler.last_completed_break_at(), at(0));
-        assert_eq!(scheduler.tick(&settings, still_idle), BreakTick::None);
-        assert_eq!(scheduler.last_completed_break_at(), at(0));
-        assert_eq!(scheduler.tick(&settings, active), BreakTick::None);
-        assert_eq!(scheduler.last_completed_break_at(), at(0));
-        assert_eq!(scheduler.next_break_at(), Some(at(161)));
+        assert_eq!(scheduler.tick(&settings, idle), BreakTick::BreakPrompted);
     }
 
     #[test]

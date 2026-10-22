@@ -825,6 +825,52 @@ describe("SettingsWindow", () => {
     });
   });
 
+  it("previews drafted Theme colors on the whole card", async () => {
+    const client = makeClient(
+      makeSettings({
+        backgroundColor: "#123456",
+        textColor: "#fedcba",
+      }),
+    );
+    render(<SettingsWindow client={client} />);
+
+    await openSettingsTab("Customization");
+    const themeCard = document.querySelector<HTMLElement>(
+      '[data-settings-group="Theme"]',
+    );
+    const primary = screen.getByLabelText("Primary color");
+    const text = screen.getByLabelText("Text color");
+    const reset = screen.getByRole("button", { name: "Reset" });
+
+    expect(themeCard).not.toBeNull();
+    expect(getComputedStyle(themeCard as HTMLElement).backgroundColor).toBe(
+      "rgb(18, 52, 86)",
+    );
+    expect(getComputedStyle(themeCard as HTMLElement).color).toBe(
+      "rgb(254, 220, 186)",
+    );
+
+    fireEvent.change(primary, { target: { value: "#234567" } });
+    fireEvent.change(text, { target: { value: "#abcdef" } });
+
+    expect(getComputedStyle(themeCard as HTMLElement).backgroundColor).toBe(
+      "rgb(35, 69, 103)",
+    );
+    expect(getComputedStyle(themeCard as HTMLElement).color).toBe(
+      "rgb(171, 205, 239)",
+    );
+    expect((reset as HTMLElement).style.color).toBe("rgb(171, 205, 239)");
+
+    fireEvent.click(reset);
+
+    expect(getComputedStyle(themeCard as HTMLElement).backgroundColor).toBe(
+      "rgb(22, 160, 133)",
+    );
+    expect(getComputedStyle(themeCard as HTMLElement).color).toBe(
+      "rgb(255, 255, 255)",
+    );
+  });
+
   it("disables Backdrop controls outside Popup mode", async () => {
     const client = makeClient(
       makeSettings({ notificationType: "NOTIFICATION", showBackdrop: true }),

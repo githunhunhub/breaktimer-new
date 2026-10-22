@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import {
   Card,
@@ -21,6 +21,7 @@ interface SettingsCardProps {
   helperText?: string;
   children?: ReactNode;
   toggle?: SettingsCardToggle;
+  style?: CSSProperties;
 }
 
 /** Shared settings group frame matching the legacy header-toggle layout (SPEC-0010). */
@@ -29,9 +30,10 @@ export function SettingsCard({
   helperText,
   children,
   toggle,
+  style,
 }: SettingsCardProps) {
   return (
-    <Card data-settings-group={title}>
+    <Card data-settings-group={title} style={style}>
       <CardHeader className="flex-row items-center justify-between gap-4">
         <CardTitle className="text-base">{title}</CardTitle>
         {toggle && (

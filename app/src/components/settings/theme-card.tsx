@@ -15,8 +15,13 @@ const DEFAULT_TEXT_COLOR = "#ffffff";
 const DEFAULT_BACKDROP_OPACITY = 0.7;
 
 export function ThemeCard({ settings, onPatch }: ThemeCardProps) {
+  const themeStyle = {
+    backgroundColor: settings.backgroundColor,
+    color: settings.textColor,
+  };
+
   return (
-    <SettingsCard title="Theme">
+    <SettingsCard title="Theme" style={themeStyle}>
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-6">
           <div className="flex flex-col gap-2">
@@ -48,6 +53,11 @@ export function ThemeCard({ settings, onPatch }: ThemeCardProps) {
           <Button
             type="button"
             variant="outline"
+            className="!bg-transparent hover:!bg-current/10 active:!bg-current/20"
+            style={{
+              color: settings.textColor,
+              borderColor: `${settings.textColor}4D`,
+            }}
             onClick={() =>
               onPatch({
                 backgroundColor: DEFAULT_BACKGROUND_COLOR,

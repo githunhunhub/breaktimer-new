@@ -1,6 +1,6 @@
 # PLAN-0002：按依赖顺序实现各功能模块（M4）
 
-- 状态：confirmed
+- 状态：done
 - 日期：2026-10-13
 - 关联：SPEC-0002 ~ SPEC-0010 · PLAN-0001
 
@@ -73,10 +73,10 @@
 
 ## 阶段 5｜收尾：补全设置 UI 与 Windows 打包发布
 
-- 状态：in-progress（2026-10-21 开始；2026-10-22 完成发布构建、NSIS/自启动人工验收与便携自动冒烟；
-  便携完整人工验收和 A12/A13 仍未完成）
+- 状态：done（2026-10-21 开始；2026-10-22 完成最终发布构建、Windows 人工验收与收口）
 - 目标：设置窗口覆盖全部字段，跑通 Windows 打包与发布（M5 前置）。
-- 关联：SPEC-0002、SPEC-0006、SPEC-0007、SPEC-0010、SPEC-0011、SPEC-0012、ADR-0008、ADR-0009。
+- 关联：SPEC-0002、SPEC-0005、SPEC-0006、SPEC-0007、SPEC-0010、SPEC-0011、SPEC-0012、
+  ADR-0008、ADR-0009、ADR-0010。
 - 任务：
 - [x] `Customization` 补齐 Theme、Backdrop，设置窗口覆盖 `Settings` 全部字段并逐字段生效。
 - [x] 用组件测试覆盖颜色编辑、Reset、Backdrop 依赖禁用与一次 Save 持久化。
@@ -88,8 +88,12 @@
 - [x] 用测试覆盖关闭策略、恢复动作顺序、便携路径解析与可写性失败。
 - [x] 执行前端、Rust 与 Tauri 发布构建检查，记录 NSIS、便携 ZIP 和可执行文件产物。
 - [x] 用 Windows 发布产物验证 D1-D4 自启动与登录启动。
-- [ ] 用 Windows 发布产物验证 A12/A13 状态展示与真实使用场景。
-- [ ] 按 spec 逐条回归验收，更新 spec 状态为 `done`。
+- [x] 修复关闭闲置重置后短暂 `Idle` 仍暂停并重排 5 分钟倒计时的问题，覆盖第 300 秒回归。
+- [x] 托盘根菜单只绑定一次，倒计时文本原地更新，避免打开菜单后自动关闭与白点（ADR-0010）。
+- [x] Theme 卡片使用 draft 背景色/文字色整卡实时预览，Reset 按钮跟随文字色。
+- [x] 用新的便携 ZIP 人工验收上述三项修复，并完成剩余便携流程与 A12/A13。
+- [x] 用 Windows 发布产物验证 A12/A13 状态展示与真实使用场景。
+- [x] 按 spec 逐条回归验收，更新 spec 状态为 `done`。
 - 验收：当前 Windows 范围内的 spec 验收标准通过；`pnpm tauri:build` 产出 NSIS 安装包，
   `pnpm portable:build` 产出可解压直接运行且数据留在程序目录的便携 ZIP。
 
@@ -101,9 +105,9 @@
 
 | 产物 | 大小 | SHA256 |
 | --- | ---: | --- |
-| `app/src-tauri/target/release/breaktimer.exe` | 10,968,064 bytes | `3915BCAB8CBC9B7F801A51383CE3AC4B4E7367F992E1311EFCEE9B129CE391F2` |
-| `app/src-tauri/target/release/bundle/nsis/BreakTimer_0.1.0_x64-setup.exe` | 4,321,502 bytes | `235954913A1D460751016A235049BDA5EFE1828F286C03A1006464BC9536B6F5` |
-| `app/src-tauri/target/release/bundle/portable/BreakTimer_0.1.0_x64-portable.zip` | 5,868,903 bytes | `1058E5FDB01230F5F8574D68FA0088B0CA2DF4C9E05E3ED577FA5C0F1B7A461B` |
+| `app/src-tauri/target/release/breaktimer.exe` | 10,970,112 bytes | `F1BF9F969EF4E65E4750B4E9DD1C10E1B2A12862E61DC10E6CC1F34447C39D90` |
+| `app/src-tauri/target/release/bundle/nsis/BreakTimer_0.1.0_x64-setup.exe` | 4,375,677 bytes | `B126B8419C69E8BEE48E6FC3F24E326B0D6AFB06163CC72D9852B6C276EAEF9D` |
+| `app/src-tauri/target/release/bundle/portable/BreakTimer_0.1.0_x64-portable.zip` | 5,870,023 bytes | `716F56399423276E56851A858A8C8B702ACCBDA32555054A21888D2FEFE1112B` |
 
 NSIS 安装包与发布版可执行文件版本均为 `0.1.0`；NSIS 当前未签名。
 最终便携 ZIP 已在独立临时目录完成真实解压运行冒烟：设置与 WebView2 数据写入
@@ -132,3 +136,6 @@ NSIS 安装包与发布版可执行文件版本均为 `0.1.0`；NSIS 当前未�
 | 2026-10-21 | 阶段 5 人工验收发现设置窗口关闭与托盘恢复问题；追加免安装便携 ZIP（ADR-0009、SPEC-0012），并纳入本轮收口 |
 | 2026-10-22 | Theme/Backdrop、关闭隐藏、托盘恢复与便携布局实现完成；前端 `38` 项、Rust `91` 项测试通过，待最终发布构建与人工验收 |
 | 2026-10-22 | 用户人工验收通过 Theme/Backdrop、关闭隐藏、托盘恢复、Quit、NSIS 安装/卸载、图标/版本与 D1-D4 登录自启动；便携 ZIP 完整人工验收和 A12/A13 仍未执行，阶段 5 保持 `in-progress` |
+| 2026-10-22 | 便携版试用反馈：关闭闲置重置后倒计时仍被短暂 `Idle` 反复重排、托盘菜单数秒后自动关闭并残留白点、Theme 卡片缺少整卡实时预览；SPEC-0005/0010 回到 `in-progress`，SPEC-0006 继续 `in-progress`，先补测试与运行证据再修复 |
+| 2026-10-22 | 三项便携反馈修复与自动验证完成：关闭闲置重置时忽略 `Idle`、托盘稳定根菜单原地更新、Theme 整卡实时预览；前端 39 项、Rust 92 项测试通过 |
+| 2026-10-22 | 最终收口：用户确认三项修复、完整便携流程、安装版互斥、便携自启动、菜单保持与无残影、A12/A13 全部通过；SPEC-0002/0005/0006/0010/0012 标记 `done`，阶段 5 与 PLAN-0002 完成 |
