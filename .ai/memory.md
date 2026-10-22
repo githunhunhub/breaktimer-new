@@ -31,7 +31,7 @@
 - M4 阶段 4 设置页签（2026-10-19）：按原版恢复 `General`、`Working Hours`、`Customization`、`System` 四页签；默认 General，共用 draft 与顶部 Save，切页不丢修改
 - M4 阶段 4 C3/C4 修正与验收（2026-10-21）：General 顺序改为 `Breaks → Smart Breaks → Snooze → Skip → Advanced`，`Breaks enabled` 放入 Breaks 标题行；`Break type`、`Frequency`、`Length` 标题与控件基线统一，秒字段可完整显示两位数字；Working Hours 使用紧凑的原生 `time` 控件（保留时钟图标），单一时间段不显示删除，`+` 新增行，复制面板可复制到多个星期；复制到已启用星期时时间框会同步刷新；专项人工复验全部通过
 - M4 阶段 4 Windows 验收收口（2026-10-21）：C0-C2、C5-C7 人工通过；连同此前结果，A1-A11、A14、B1-B7、C0-C7 均已通过。当时 A12/A13 与 D1-D4 暂缓到 M5 发布产物验证；这些项目后来均已在 M5 通过
-- M4 阶段 4 提交：`codex/m4-phase-4` 提交 `9f1881c`，以 `--no-ff` 合入 `master`（merge `995dc64`）并推送 `origin/master`
+- M4 阶段 4 提交：`codex/m4-phase-4` 提交 `75f86c3`，以 `--no-ff` 合入 `master`（merge `b3827fb`）并推送 `origin/master`
 - M4 阶段 5 收尾（2026-10-22）：设置窗口 `X` 改为隐藏到托盘，托盘 `Settings...` 与单实例共用 `unminimize -> show -> focus` 恢复流程并在 100ms 后二次聚焦；Theme/Backdrop 已纳入 `Customization`；托盘 `Quit` 通过显式退出标记放行关闭
 - 便携 ZIP（SPEC-0012）：仅可执行文件同目录的普通文件 `portable.flag` 启用便携模式；设置写入 `data\settings.json`，主窗口与休息窗口共用 `data\webview2\`，目录不可写时原生报错退出且不回退 AppData；更名后 `pnpm portable:build` 将生成顶层 `BreakTimer-new\` 与 `breaktimer-new.exe` 的无安装 ZIP（尚未获授权重新打包）
 - 阶段 5 最终验证（2026-10-22）：前端 format/lint/typecheck/test（39）/build 通过；Rust fmt/check/test（92）通过；最终 NSIS、发布版 exe 与便携 ZIP 均由同一代代码生成
@@ -42,6 +42,7 @@
 - 开发临时产物清理（2026-10-22）：已删除 `bundle/portable/` 下的验收临时目录、冒烟目录与截图，仅保留正式便携 ZIP；源码扫描无待提交的临时/调试文件
 - 应用更名（2026-10-22，SPEC-0013 / ADR-0011）：用户可见名为 `BreakTimer-new`，npm/Cargo/可执行文件为 `breaktimer-new`，Rust library 为 `breaktimer_new_lib`，identifier 为 `com.githunhunhub.breaktimernew`；旧 `com.breaktimer.app` 数据与注册项不迁移、不清理
 - 应用更名验证（2026-10-22）：前端 format/lint/typecheck/test（40）/build 与 Rust fmt/check/test（93）通过；运行进程为 `target\debug\breaktimer-new.exe`，窗口/About/tray 使用新名，新 Roaming/LocalAppData 目录生成，单实例与设置保存/重启恢复通过；旧 identity 数据前后哈希不变。用户人工验收通过，未执行打包
+- 历史路径清理（2026-10-22）：`master` 的全部 32 个提交已重写，真实 Windows 用户目录替换为 `%USERPROFILE%`，真实仓库绝对路径替换为 `<repo-root>`；原有提交说明、作者、时间和 merge 结构保留。其他已合并功能分支已删除，仅保留 `master`
 
 ## 关键约定
 
@@ -50,6 +51,7 @@
 - 文档工作流：一需求一 spec（`docs/specs/NNNN-*.md`），索引在 `docs/specs/README.md`；小需求计划写在 spec 内，大工程才用 `docs/plans/`；流程细则见 `AGENTS.md`。
 - 跨设备同步：能仅凭仓库复现的内容全部纳入 Git；只排除密钥、机器本地状态、依赖目录、构建产物与缓存。
 - 打包需显式授权：只有用户明确要求“打包”或生成安装包、发布包时才执行；例行验证中的前端 `pnpm build` 不算打包。
+- 会话、验收和 AI 文档不得记录真实用户名或本机绝对路径，统一使用 `%USERPROFILE%`、`%APPDATA%`、`<repo-root>` 等占位符。
 
 ## 后续入口
 

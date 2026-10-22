@@ -29,6 +29,6 @@
 
 ## 提交
 
-- 阶段分支提交：`9f1881c`（`codex/m4-phase-4`）。
-- 合并提交：`995dc64`（`--no-ff` 合入 `master`）。
+- 阶段分支提交：`75f86c3`（`codex/m4-phase-4`）。
+- 合并提交：`b3827fb`（`--no-ff` 合入 `master`）。
 - 阶段分支与 `master` 均已推送至 `origin`。

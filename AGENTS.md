@@ -64,6 +64,7 @@
 - **引用方向固定**：`plan → spec → ADR`；代码/测试注释引用 spec 编号。
 - **ADR 只增不改**；spec 可更新，但改动记进「变更记录」。
 - 状态生命周期：`draft → confirmed → in-progress → done`（另有 `superseded` / `rejected`）。
+- **本机路径不入库**：会话、验收和 AI 文档不得记录真实用户名或本机绝对路径；统一使用 `%USERPROFILE%`、`%APPDATA%`、`<repo-root>` 等占位符。
 - 不为琐碎改动建 spec；只为有长期价值的需求建。
 
 ## 常用命令
