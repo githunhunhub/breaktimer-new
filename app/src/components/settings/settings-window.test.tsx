@@ -733,6 +733,134 @@ describe("SettingsWindow", () => {
     });
   });
 
+  it("orders Customization as Theme, Audio and Backdrop", async () => {
+    const client = makeClient(makeSettings());
+    render(<SettingsWindow client={client} />);
+
+    await openSettingsTab("Customization");
+    const titles = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        '[data-slot="card"] [data-slot="card-title"]',
+      ),
+    ).map((title) => title.textContent);
+
+    expect(titles).toEqual(["Theme", "Audio", "Backdrop"]);
+  });
+
+  it("loads and saves Theme and Backdrop edits in one draft", async () => {
+    const client = makeClient(
+      makeSettings({
+        backgroundColor: "#123456",
+        textColor: "#fedcba",
+        showBackdrop: true,
+        backdropOpacity: 0.45,
+      }),
+    );
+    render(<SettingsWindow client={client} />);
+
+    await openSettingsTab("Customization");
+    const primary = screen.getByLabelText("Primary color") as HTMLInputElement;
+    const text = screen.getByLabelText("Text color") as HTMLInputElement;
+    const opacity = screen.getByLabelText(
+      "Backdrop opacity",
+    ) as HTMLInputElement;
+
+    expect(primary.value).toBe("#123456");
+    expect(text.value).toBe("#fedcba");
+    expect(opacity.min).toBe("0.2");
+    expect(opacity.max).toBe("1");
+    expect(opacity.step).toBe("0.05");
+    expect(opacity.value).toBe("0.45");
+
+    fireEvent.change(primary, { target: { value: "#234567" } });
+    fireEvent.change(text, { target: { value: "#abcdef" } });
+    fireEvent.change(opacity, { target: { value: "0.6" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(client.setSettings).toHaveBeenCalledTimes(1);
+      expect(client.setSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          backgroundColor: "#234567",
+          textColor: "#abcdef",
+          backdropOpacity: 0.6,
+        }),
+      );
+    });
+  });
+
+  it("resets Theme colors and backdrop opacity together", async () => {
+    const client = makeClient(
+      makeSettings({
+        backgroundColor: "#123456",
+        textColor: "#abcdef",
+        backdropOpacity: 0.25,
+      }),
+    );
+    render(<SettingsWindow client={client} />);
+
+    await openSettingsTab("Customization");
+    fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+
+    expect(
+      (screen.getByLabelText("Primary color") as HTMLInputElement).value,
+    ).toBe("#16a085");
+    expect(
+      (screen.getByLabelText("Text color") as HTMLInputElement).value,
+    ).toBe("#ffffff");
+    expect(
+      (screen.getByLabelText("Backdrop opacity") as HTMLInputElement).value,
+    ).toBe("0.7");
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(client.setSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          backgroundColor: "#16a085",
+          textColor: "#ffffff",
+          backdropOpacity: 0.7,
+        }),
+      );
+    });
+  });
+
+  it("disables Backdrop controls outside Popup mode", async () => {
+    const client = makeClient(
+      makeSettings({ notificationType: "NOTIFICATION", showBackdrop: true }),
+    );
+    render(<SettingsWindow client={client} />);
+
+    await openSettingsTab("Customization");
+    const backdropSwitch = screen.getByRole("switch", {
+      name: "Show backdrop",
+    });
+    const opacity = screen.getByLabelText(
+      "Backdrop opacity",
+    ) as HTMLInputElement;
+
+    expect(backdropSwitch.hasAttribute("disabled")).toBe(true);
+    expect(opacity.disabled).toBe(true);
+  });
+
+  it("keeps the Backdrop switch available while its opacity is disabled", async () => {
+    const client = makeClient(
+      makeSettings({ notificationType: "POPUP", showBackdrop: false }),
+    );
+    render(<SettingsWindow client={client} />);
+
+    await openSettingsTab("Customization");
+    const backdropSwitch = screen.getByRole("switch", {
+      name: "Show backdrop",
+    });
+    const opacity = screen.getByLabelText(
+      "Backdrop opacity",
+    ) as HTMLInputElement;
+
+    expect(backdropSwitch.hasAttribute("disabled")).toBe(false);
+    expect(opacity.disabled).toBe(true);
+  });
+
   it("saves an edited volume and hides the preview when the sound is off", async () => {
     const client = makeClient(
       makeSettings({ soundType: "PING", breakSoundVolume: 1 }),

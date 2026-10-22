@@ -1,3 +1,4 @@
+mod app_paths;
 mod autostart;
 mod breaks;
 mod commands;
@@ -16,6 +17,7 @@ use std::time::Duration;
 use chrono::Utc;
 use tauri::Manager;
 
+use app_paths::AppPaths;
 use state::{AppState, SettingsEffects, SettingsStore};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -23,10 +25,7 @@ pub fn run() {
     tauri::Builder::default()
         // Register first: re-launches are handled before any other plugin setup.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.show();
-                let _ = window.set_focus();
-            }
+            windows::restore_settings_window(app);
         }))
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
@@ -35,11 +34,32 @@ pub fn run() {
                 .app_name("BreakTimer")
                 .build(),
         )
+        .on_window_event(|window, event| windows::handle_window_event(window, event))
         .setup(|app| {
             let config_dir = app.path().app_config_dir()?;
-            fs::create_dir_all(&config_dir)?;
+            let local_data_dir = app.path().app_local_data_dir()?;
+            let executable = std::env::current_exe()?;
+            let paths = match app_paths::prepare(&executable, &config_dir, &local_data_dir) {
+                Ok(paths) => paths,
+                Err(error) => {
+                    use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 
-            let store = SettingsStore::load(config_dir.join("settings.json"))?;
+                    app.dialog()
+                        .message(format!(
+                            "BreakTimer could not prepare its portable data directory.\n\n{error}"
+                        ))
+                        .title("BreakTimer")
+                        .kind(MessageDialogKind::Error)
+                        .blocking_show();
+                    app.handle().exit(1);
+                    return Ok(());
+                }
+            };
+            if let Some(settings_dir) = paths.settings_path.parent() {
+                fs::create_dir_all(settings_dir)?;
+            }
+
+            let store = SettingsStore::load(paths.settings_path.clone())?;
             let state = AppState::new(store);
             let settings = state.store.settings();
 
@@ -64,8 +84,11 @@ pub fn run() {
             app.manage(state);
 
             let handle = app.handle();
+            let webview2_dir = paths.webview2_dir.clone();
+            app.manage::<AppPaths>(paths);
             tray::init(handle)?;
             windows::init(handle)?;
+            windows::create_main_window(handle, &webview2_dir)?;
             sounds::init(handle)?;
             tray::refresh(handle);
             spawn_scheduler_tick(app.handle().clone());

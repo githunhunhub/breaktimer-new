@@ -5,7 +5,7 @@
 ## 当前状态
 
 - 项目：BreakTimer 重构（两重目的：学习 AI 编程 + 替换 Electron）
-- 阶段：M0/M1/M2/M3/M4 完成；当前只面向 Windows，macOS/Linux 暂不纳入范围；下一步 M5 测试与 Windows 打包发布
+- 阶段：M0/M1/M2/M3/M4 完成；M5 阶段 5 的代码、自动测试、NSIS/便携构建和便携冒烟已完成；NSIS 与 D1-D4 已人工通过，便携完整验收和 A12/A13 仍未验证；当前只面向 Windows
 - 新代码目录：`app/`（pnpm + Vite + React/TS 前端，`src-tauri/` Rust 后端）
 - 旧源码：`breaktimer-app/` 以 git submodule 引用上游，钉在 commit `2d67243`（≈ v2.1.0-54）
 - AI 学习笔记目录：`ai-notes/`
@@ -33,6 +33,13 @@
 - M4 阶段 4 C3/C4 修正与验收（2026-10-21）：General 顺序改为 `Breaks → Smart Breaks → Snooze → Skip → Advanced`，`Breaks enabled` 放入 Breaks 标题行；`Break type`、`Frequency`、`Length` 标题与控件基线统一，秒字段可完整显示两位数字；Working Hours 使用紧凑的原生 `time` 控件（保留时钟图标），单一时间段不显示删除，`+` 新增行，复制面板可复制到多个星期；复制到已启用星期时时间框会同步刷新；专项人工复验全部通过
 - M4 阶段 4 Windows 验收收口（2026-10-21）：C0-C2、C5-C7 人工通过；连同此前结果，A1-A11、A14、B1-B7、C0-C7 均已通过。A12/A13 按用户决定暂缓到 M5 发布产物和实际使用中验证；D1-D4 自启动继续随 Windows 打包发布阶段验证。PLAN-0002 阶段 4 标记 `done`，SPEC-0003/0008 标记 `done`，SPEC-0006/0007 因发布后验证保持 `in-progress`
 - M4 阶段 4 提交：`codex/m4-phase-4` 提交 `9f1881c`，以 `--no-ff` 合入 `master`（merge `995dc64`）并推送 `origin/master`
+- M4 阶段 5 收尾（2026-10-22）：设置窗口 `X` 改为隐藏到托盘，托盘 `Settings...` 与单实例共用 `unminimize -> show -> focus` 恢复流程并在 100ms 后二次聚焦；Theme/Backdrop 已纳入 `Customization`；托盘 `Quit` 通过显式退出标记放行关闭
+- 便携 ZIP（SPEC-0012）：仅可执行文件同目录的普通文件 `portable.flag` 启用便携模式；设置写入 `data\settings.json`，主窗口与休息窗口共用 `data\webview2\`，目录不可写时原生报错退出且不回退 AppData；`pnpm portable:build` 生成顶层 `BreakTimer\` 的无安装 ZIP
+- 阶段 5 验证（2026-10-22）：前端 format/lint/typecheck/test（38）/build 通过；Rust fmt/check/test（91）通过；最终 NSIS、发布版 exe 与便携 ZIP 已生成
+- 阶段 5 最终产物（2026-10-22）：exe 10,968,064 bytes `3915BCAB8CBC9B7F801A51383CE3AC4B4E7367F992E1311EFCEE9B129CE391F2`；NSIS 4,321,502 bytes `235954913A1D460751016A235049BDA5EFE1828F286C03A1006464BC9536B6F5`（NotSigned）；便携 ZIP 5,868,903 bytes `1058E5FDB01230F5F8574D68FA0088B0CA2DF4C9E05E3ED577FA5C0F1B7A461B`
+- 最终便携 ZIP 冒烟（2026-10-22）：独立解压可直接运行，`get_app_info.settingsPath` 指向解压目录；保存后生成同目录 `data\settings.json` 与 `data\webview2\EBWebView`；`WM_CLOSE` 只隐藏不退出；第二实例恢复隐藏/最小化窗口并获得前台焦点；重启后设置保留；AppData 无文件修改；临时目录和进程已清理
+- 阶段 5 人工验收（2026-10-22）：用户在 6 项清单中确认第 1-4 项全部通过；第 5 项便携 ZIP 完整人工验收/安装版互斥/便携自启动、第 6 项 A12/A13 未验证。SPEC-0007/0010/0011 已标 `done`，SPEC-0006/0012、PLAN-0002 阶段 5 与 M5 保持 `in-progress`
+- 开发临时产物清理（2026-10-22）：已删除 `bundle/portable/` 下的验收临时目录、冒烟目录与截图，仅保留正式便携 ZIP；源码扫描无待提交的临时/调试文件
 
 ## 关键约定
 
@@ -43,9 +50,12 @@
 
 ## 待办 / 阻塞
 
-- SPEC-0010 当前为 `in-progress`：四页签与 C0-C7 已全部人工通过；Theme、遮罩颜色/透明度等剩余字段留阶段 5。
+- SPEC-0010 已 `done`：四页签与 C0-C7、Theme/Reset/Backdrop、`X` 隐藏、托盘恢复和 Quit 均已通过 Windows 人工验收。
 - SPEC-0002：A8/A9/A14 已在 Windows 人工通过；继续验证 `showBackdrop=false`、推迟/跳过与混合 DPI；macOS/Linux 不在当前范围。
 - SPEC-0009：播放通道、资源映射与 Windows 真实音频人工验收已完成，状态 `done`。
-- SPEC-0006/0007 当前为 `in-progress`：Windows 主流程已完成；A12/A13 与 D1-D4 必须在 M5 发布产物和真实使用/登录场景通过后才改 `done`。
+- SPEC-0006 当前为 `in-progress`：Windows 托盘主流程与设置窗口恢复已通过；只剩 A12/A13 发布后实际使用验证。
+- SPEC-0007 已 `done`：D1-D4 登录自启动、关闭移除与发布产物注册路径均已通过人工验收。
+- SPEC-0011 已 `done`：最终构建、哈希记录、NSIS 安装/卸载、图标、版本与登录自启动已通过；便携 ZIP 自动冒烟通过。
+- SPEC-0012 当前为 `in-progress`：便携自动冒烟已完成；待用户验证完整便携流程、安装版互斥、便携自启动、目录移动和异常标记场景。
 - SPEC-0003、SPEC-0008 已 `done`：托盘触发、Popup/Notification 分流、通知续排与声音均已通过 Windows 人工验收。
-- 按 `docs/plans/0002-implementation-phases.md` 继续：先完成阶段 5「设置补全与 Windows 打包发布」，再做 A12/A13 与自启动发布后验收。
+- 按 `docs/plans/0002-implementation-phases.md` 继续：先完成 SPEC-0012 的便携人工验收，再在 Windows 发布产物中验证 A12/A13；完成前阶段 5 与 M5 不标记 `done`。

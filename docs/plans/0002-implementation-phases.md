@@ -73,14 +73,42 @@
 
 ## 阶段 5｜收尾：补全设置 UI 与 Windows 打包发布
 
+- 状态：in-progress（2026-10-21 开始；2026-10-22 完成发布构建、NSIS/自启动人工验收与便携自动冒烟；
+  便携完整人工验收和 A12/A13 仍未完成）
 - 目标：设置窗口覆盖全部字段，跑通 Windows 打包与发布（M5 前置）。
-- 关联：SPEC-0010 剩余、M5。
+- 关联：SPEC-0002、SPEC-0006、SPEC-0007、SPEC-0010、SPEC-0011、SPEC-0012、ADR-0008、ADR-0009。
 - 任务：
-- [ ] 设置窗口覆盖 `Settings` 全部字段，逐字段生效。
-- [ ] Windows 打包脚本与图标/资源（复用旧版资源）。
-- [ ] 用 Windows 发布产物验证 A12/A13 状态展示、D1-D4 自启动与登录启动。
+- [x] `Customization` 补齐 Theme、Backdrop，设置窗口覆盖 `Settings` 全部字段并逐字段生效。
+- [x] 用组件测试覆盖颜色编辑、Reset、Backdrop 依赖禁用与一次 Save 持久化。
+- [x] Windows bundle 收敛为 NSIS，保留 BreakTimer 产品名、标识、版本和旧版图标。
+- [x] 修复设置窗口关闭行为：主窗口 `X` 隐藏到托盘，只有托盘 `Quit` 真正退出。
+- [x] 统一托盘与单实例的设置窗口恢复逻辑，覆盖隐藏、最小化、失焦和菜单关闭后的二次聚焦。
+- [x] 实现 `portable.flag` 检测、同目录 `data` 布局和不可写错误，并为全部 WebView 窗口指定数据目录。
+- [x] 增加 `pnpm portable:build`，从发布版可执行文件生成便携 ZIP 与说明文件。
+- [x] 用测试覆盖关闭策略、恢复动作顺序、便携路径解析与可写性失败。
+- [x] 执行前端、Rust 与 Tauri 发布构建检查，记录 NSIS、便携 ZIP 和可执行文件产物。
+- [x] 用 Windows 发布产物验证 D1-D4 自启动与登录启动。
+- [ ] 用 Windows 发布产物验证 A12/A13 状态展示与真实使用场景。
 - [ ] 按 spec 逐条回归验收，更新 spec 状态为 `done`。
-- 验收：当前 Windows 范围内的 spec 验收标准通过；`pnpm tauri:build` 产出安装包/可执行文件。
+- 验收：当前 Windows 范围内的 spec 验收标准通过；`pnpm tauri:build` 产出 NSIS 安装包，
+  `pnpm portable:build` 产出可解压直接运行且数据留在程序目录的便携 ZIP。
+
+### 阶段 5 最终构建产物（2026-10-22）
+
+最终构建先执行 `pnpm tauri:build`，再执行 `pnpm portable:build`，最后执行
+`pnpm tauri bundle --bundles nsis --no-binary-patching`，确保 NSIS 与便携 ZIP
+使用同一份发布版可执行文件。
+
+| 产物 | 大小 | SHA256 |
+| --- | ---: | --- |
+| `app/src-tauri/target/release/breaktimer.exe` | 10,968,064 bytes | `3915BCAB8CBC9B7F801A51383CE3AC4B4E7367F992E1311EFCEE9B129CE391F2` |
+| `app/src-tauri/target/release/bundle/nsis/BreakTimer_0.1.0_x64-setup.exe` | 4,321,502 bytes | `235954913A1D460751016A235049BDA5EFE1828F286C03A1006464BC9536B6F5` |
+| `app/src-tauri/target/release/bundle/portable/BreakTimer_0.1.0_x64-portable.zip` | 5,868,903 bytes | `1058E5FDB01230F5F8574D68FA0088B0CA2DF4C9E05E3ED577FA5C0F1B7A461B` |
+
+NSIS 安装包与发布版可执行文件版本均为 `0.1.0`；NSIS 当前未签名。
+最终便携 ZIP 已在独立临时目录完成真实解压运行冒烟：设置与 WebView2 数据写入
+`BreakTimer\data\`，关闭设置窗口后进程继续运行，第二实例可恢复并聚焦同一窗口，
+重启后设置保留，启动与保存期间 AppData 无文件变更。
 
 ## 变更记录
 
@@ -100,3 +128,7 @@
 | 2026-10-21 | 按 C3 反馈把 Snooze/Skip/Advanced 提前纳入阶段 4，重做 General 分组顺序与 Working Hours 行内布局 |
 | 2026-10-21 | 按 C3/C4 专项复验反馈对齐 Breaks 字段基线、修复两位秒数显示，并恢复紧凑原生时间控件 |
 | 2026-10-21 | 阶段 4 收口：C0-C2、C5-C7 人工验收通过；A12/A13 与 D 组转入 M5 发布产物和真实使用期验证；macOS/Linux 移出当前范围 |
+| 2026-10-21 | 进入阶段 5：补齐 Theme/Backdrop；Windows 发布收敛为 NSIS（ADR-0008、SPEC-0011） |
+| 2026-10-21 | 阶段 5 人工验收发现设置窗口关闭与托盘恢复问题；追加免安装便携 ZIP（ADR-0009、SPEC-0012），并纳入本轮收口 |
+| 2026-10-22 | Theme/Backdrop、关闭隐藏、托盘恢复与便携布局实现完成；前端 `38` 项、Rust `91` 项测试通过，待最终发布构建与人工验收 |
+| 2026-10-22 | 用户人工验收通过 Theme/Backdrop、关闭隐藏、托盘恢复、Quit、NSIS 安装/卸载、图标/版本与 D1-D4 登录自启动；便携 ZIP 完整人工验收和 A12/A13 仍未执行，阶段 5 保持 `in-progress` |
