@@ -8,11 +8,13 @@ import type { Settings, SoundType } from "@/types/settings";
 
 import { AdvancedCard } from "./advanced-card";
 import { AudioCard } from "./audio-card";
+import { BackdropCard } from "./backdrop-card";
 import { BreaksCard } from "./breaks-card";
 import { SkipCard } from "./skip-card";
 import { SmartBreaksCard } from "./smart-breaks-card";
 import { SnoozeCard } from "./snooze-card";
 import { StartupCard } from "./startup-card";
+import { ThemeCard } from "./theme-card";
 import { TrayCard } from "./tray-card";
 import { WorkingHoursCard } from "./working-hours-card";
 
@@ -211,11 +213,15 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
           )}
 
           {activeTab === "customization" && (
-            <AudioCard
-              settings={draft}
-              onPatch={updateDraft}
-              onPreview={handlePreview}
-            />
+            <>
+              <ThemeCard settings={draft} onPatch={updateDraft} />
+              <AudioCard
+                settings={draft}
+                onPatch={updateDraft}
+                onPreview={handlePreview}
+              />
+              <BackdropCard settings={draft} onPatch={updateDraft} />
+            </>
           )}
 
           {activeTab === "system" && (

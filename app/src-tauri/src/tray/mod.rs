@@ -264,9 +264,9 @@ fn handle_menu_event<R: Runtime>(app: &AppHandle<R>, event: tauri::menu::MenuEve
         START_BREAK_MENU_ID => {
             flow::start_break_now(app, &state);
         }
-        SETTINGS_MENU_ID => show_settings_window(app),
+        SETTINGS_MENU_ID => windows::restore_settings_window(app),
         ABOUT_MENU_ID => show_about_window(app),
-        QUIT_MENU_ID => app.exit(0),
+        QUIT_MENU_ID => windows::request_quit(app),
         _ => {}
     }
 }
@@ -322,17 +322,6 @@ fn seconds_until_end_of_day() -> i64 {
     let seconds_today =
         i64::from(now.hour()) * 3600 + i64::from(now.minute()) * 60 + i64::from(now.second());
     (86_400 - 1 - seconds_today).max(1)
-}
-
-fn show_settings_window<R: Runtime>(app: &AppHandle<R>) {
-    if let Some(window) = app.get_webview_window("main") {
-        if let Err(error) = window.show() {
-            eprintln!("failed to show settings window: {error}");
-        }
-        if let Err(error) = window.set_focus() {
-            eprintln!("failed to focus settings window: {error}");
-        }
-    }
 }
 
 /// About dialog (SPEC-0006), parented to the settings window when it exists.

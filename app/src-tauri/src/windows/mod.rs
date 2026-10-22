@@ -9,18 +9,63 @@
 //! cannot fall through to the desktop, taskbar, or tray. Geometry still uses
 //! monitor bounds rather than native fullscreen (ADR-0004, ADR-0007).
 
-use std::sync::{Mutex, OnceLock};
+use std::{
+    path::Path,
+    sync::{
+        Mutex, OnceLock,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
+};
 
 use tauri::{
     AppHandle, Manager, PhysicalPosition, PhysicalSize, Runtime, WebviewUrl, WebviewWindow,
-    WebviewWindowBuilder,
+    WebviewWindowBuilder, Window, WindowEvent,
 };
 
+use crate::app_paths::AppPaths;
 use crate::error::AppResult;
 use crate::state::Settings;
 
 /// Label prefix for every break overlay window.
 pub const BREAK_WINDOW_PREFIX: &str = "break-";
+pub const SETTINGS_WINDOW_LABEL: &str = "main";
+
+const SETTINGS_REFOCUS_DELAY: Duration = Duration::from_millis(100);
+
+#[derive(Debug, Default)]
+pub struct LifecycleState {
+    quitting: AtomicBool,
+}
+
+impl LifecycleState {
+    fn is_quitting(&self) -> bool {
+        self.quitting.load(Ordering::SeqCst)
+    }
+
+    fn begin_quit(&self) {
+        self.quitting.store(true, Ordering::SeqCst);
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SettingsCloseBehavior {
+    Allow,
+    Hide,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SettingsRestoreStep {
+    Unminimize,
+    Show,
+    Focus,
+}
+
+pub const SETTINGS_RESTORE_STEPS: [SettingsRestoreStep; 3] = [
+    SettingsRestoreStep::Unminimize,
+    SettingsRestoreStep::Show,
+    SettingsRestoreStep::Focus,
+];
 
 /// Prompt bar base size, in logical pixels. The width grows when the optional
 /// postpone/skip buttons are enabled, matching the legacy window layout.
@@ -241,9 +286,98 @@ where
     Ok(())
 }
 
-/// Wires the window subsystem. Windows are created on demand per break.
-pub fn init<R: Runtime>(_app: &AppHandle<R>) -> AppResult<()> {
+/// Wires the window subsystem. The main window is created explicitly so it can
+/// share the configured WebView2 data directory with every break window.
+pub fn init<R: Runtime>(app: &AppHandle<R>) -> AppResult<()> {
+    app.manage(LifecycleState::default());
     Ok(())
+}
+
+pub fn create_main_window<R: Runtime>(
+    app: &AppHandle<R>,
+    data_directory: &Path,
+) -> AppResult<WebviewWindow<R>> {
+    let config = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|window| window.label == SETTINGS_WINDOW_LABEL)
+        .cloned()
+        .ok_or_else(|| crate::error::AppError::message("main window configuration is missing"))?;
+
+    let window = WebviewWindowBuilder::from_config(app, &config)?
+        .data_directory(data_directory.to_path_buf())
+        .build()?;
+    Ok(window)
+}
+
+pub fn settings_close_behavior(label: &str, quitting: bool) -> SettingsCloseBehavior {
+    if label == SETTINGS_WINDOW_LABEL && !quitting {
+        SettingsCloseBehavior::Hide
+    } else {
+        SettingsCloseBehavior::Allow
+    }
+}
+
+pub fn handle_window_event<R: Runtime>(window: &Window<R>, event: &WindowEvent) {
+    let WindowEvent::CloseRequested { api, .. } = event else {
+        return;
+    };
+
+    let quitting = window.app_handle().state::<LifecycleState>().is_quitting();
+    if settings_close_behavior(window.label(), quitting) == SettingsCloseBehavior::Hide {
+        api.prevent_close();
+        if let Err(error) = window.hide() {
+            eprintln!("failed to hide the settings window: {error}");
+        }
+    }
+}
+
+/// Restores the one settings window from any hidden, minimized or unfocused
+/// state. The delayed second focus handles the tray menu closing after the
+/// event and taking activation back on Windows.
+pub fn restore_settings_window<R: Runtime>(app: &AppHandle<R>) {
+    let Some(window) = app.get_webview_window(SETTINGS_WINDOW_LABEL) else {
+        return;
+    };
+    apply_settings_restore(&window);
+
+    let delayed_app = app.clone();
+    let spawn_result = std::thread::Builder::new()
+        .name("settings-refocus".into())
+        .spawn(move || {
+            std::thread::sleep(SETTINGS_REFOCUS_DELAY);
+            let dispatch = delayed_app.clone();
+            let _ = delayed_app.run_on_main_thread(move || {
+                if let Some(window) = dispatch.get_webview_window(SETTINGS_WINDOW_LABEL) {
+                    if let Err(error) = window.set_focus() {
+                        eprintln!("failed to refocus the settings window: {error}");
+                    }
+                }
+            });
+        });
+    if let Err(error) = spawn_result {
+        eprintln!("failed to schedule the settings window refocus: {error}");
+    }
+}
+
+fn apply_settings_restore<R: Runtime>(window: &WebviewWindow<R>) {
+    for step in SETTINGS_RESTORE_STEPS {
+        let result = match step {
+            SettingsRestoreStep::Unminimize => window.unminimize(),
+            SettingsRestoreStep::Show => window.show(),
+            SettingsRestoreStep::Focus => window.set_focus(),
+        };
+        if let Err(error) = result {
+            eprintln!("failed to {step:?} the settings window: {error}");
+        }
+    }
+}
+
+pub fn request_quit<R: Runtime>(app: &AppHandle<R>) {
+    app.state::<LifecycleState>().begin_quit();
+    app.exit(0);
 }
 
 fn label_for(index: usize) -> String {
@@ -277,6 +411,7 @@ fn ensure_windows<R: Runtime>(app: &AppHandle<R>) -> AppResult<()> {
 }
 
 fn build_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> AppResult<WebviewWindow<R>> {
+    let data_directory = app.state::<AppPaths>().webview2_dir.clone();
     let window = WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))
         .title("BreakTimer")
         .decorations(false)
@@ -288,6 +423,7 @@ fn build_window<R: Runtime>(app: &AppHandle<R>, label: &str) -> AppResult<Webvie
         .shadow(false)
         .focusable(false)
         .visible(false)
+        .data_directory(data_directory)
         .build()?;
 
     Ok(window)
@@ -319,6 +455,42 @@ fn apply_presentation<R: Runtime>(window: &WebviewWindow<R>, presentation: Windo
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn closing_the_settings_window_hides_it_to_the_tray() {
+        assert_eq!(
+            settings_close_behavior("main", false),
+            SettingsCloseBehavior::Hide
+        );
+    }
+
+    #[test]
+    fn closing_the_settings_window_during_quit_is_allowed() {
+        assert_eq!(
+            settings_close_behavior("main", true),
+            SettingsCloseBehavior::Allow
+        );
+    }
+
+    #[test]
+    fn closing_break_windows_is_always_allowed() {
+        assert_eq!(
+            settings_close_behavior("break-0", false),
+            SettingsCloseBehavior::Allow
+        );
+    }
+
+    #[test]
+    fn restoring_the_settings_window_unminimizes_then_shows_then_focuses() {
+        assert_eq!(
+            SETTINGS_RESTORE_STEPS,
+            [
+                SettingsRestoreStep::Unminimize,
+                SettingsRestoreStep::Show,
+                SettingsRestoreStep::Focus,
+            ]
+        );
+    }
 
     fn monitor() -> MonitorBounds {
         MonitorBounds {

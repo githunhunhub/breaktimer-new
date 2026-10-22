@@ -253,6 +253,13 @@ mod tests {
         SettingsStore::load(PathBuf::from(dir).join(name)).unwrap()
     }
 
+    fn active_app_state(store: SettingsStore) -> AppState {
+        AppState::new_with_system_state_provider(
+            store,
+            Box::new(FakeSystemStateProvider::new(vec![SystemActivity::Active])),
+        )
+    }
+
     #[test]
     fn applies_reset_and_restart_to_the_scheduler() {
         let store = temp_store("settings-effects.json");
@@ -327,7 +334,7 @@ mod tests {
             ..Settings::default()
         };
         store.set_settings(settings).unwrap();
-        let state = AppState::new(store);
+        let state = active_app_state(store);
         let now = DateTime::from_timestamp(1_700_000_000, 0).unwrap();
 
         assert_eq!(state.tick(now), BreakTick::None);
@@ -357,7 +364,7 @@ mod tests {
             ..Settings::default()
         };
         store.set_settings(settings).unwrap();
-        let state = AppState::new(store);
+        let state = active_app_state(store);
         let now = DateTime::from_timestamp(1_700_000_000, 0).unwrap();
 
         state.tick(now);
@@ -383,7 +390,7 @@ mod tests {
             ..Settings::default()
         };
         store.set_settings(settings).unwrap();
-        let state = AppState::new(store);
+        let state = active_app_state(store);
         let now = DateTime::from_timestamp(1_700_000_000, 0).unwrap();
 
         state.tick(now);
