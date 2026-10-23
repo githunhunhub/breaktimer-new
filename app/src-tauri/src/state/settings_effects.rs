@@ -9,7 +9,7 @@ pub struct SettingsEffects {
     pub auto_launch: Option<bool>,
     /// True only when breaks transition from disabled to enabled.
     pub reset_time_since_last_break: bool,
-    /// The scheduler restarts after each settings save.
+    /// The scheduler restarts when the frequency or enabled state changes.
     pub restart_scheduler: bool,
 }
 
@@ -18,7 +18,8 @@ impl SettingsEffects {
         Self {
             auto_launch: (current.auto_launch != next.auto_launch).then_some(next.auto_launch),
             reset_time_since_last_break: !current.breaks_enabled && next.breaks_enabled,
-            restart_scheduler: true,
+            restart_scheduler: current.break_frequency_seconds != next.break_frequency_seconds
+                || current.breaks_enabled != next.breaks_enabled,
         }
     }
 }
@@ -106,13 +107,26 @@ mod tests {
     }
 
     #[test]
-    fn every_settings_save_requests_scheduler_restart() {
+    fn restarts_only_for_frequency_or_enabled_state_changes() {
         let current = Settings::default();
-        let next = Settings {
+        let unrelated = Settings {
+            break_length_seconds: 90,
+            ..current.clone()
+        };
+        let frequency_changed = Settings {
             break_frequency_seconds: 900,
             ..current.clone()
         };
+        let enabled_changed = Settings {
+            breaks_enabled: false,
+            ..current.clone()
+        };
 
-        assert!(SettingsEffects::between(&current, &next).restart_scheduler);
+        assert!(
+            !SettingsEffects::between(&current, &unrelated).restart_scheduler,
+            "saving an unrelated setting must keep the current countdown"
+        );
+        assert!(SettingsEffects::between(&current, &frequency_changed).restart_scheduler);
+        assert!(SettingsEffects::between(&current, &enabled_changed).restart_scheduler);
     }
 }

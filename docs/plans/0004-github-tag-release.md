@@ -25,7 +25,7 @@ Tauri v2、Rust 2024、Windows NSIS。
 ## Global Constraints
 
 - 仅 `vMAJOR.MINOR.PATCH` Tag Push 触发；普通 push 不构建、不发布。
-- Tag 提交必须已包含在 GitHub `master`；CI 不自动改写版本文件。
+- 日常开发在 `develop`；Tag 提交必须已包含在 GitHub `master`，CI 不自动改写版本文件。
 - `package.json`、`tauri.conf.json`、`Cargo.toml`、`Cargo.lock` 四处版本必须一致。
 - Workflow 默认 `contents: read`，仅 release Job 使用 `contents: write`。
 - Release 只在 meta、Windows build、changelog 全部成功后创建。
@@ -185,6 +185,21 @@ Expected: Tag 创建在 `master` HEAD，脚本只打印推送命令，不执行�
 - 先推送 `master` 到 GitHub 和 Gitee，再只创建并推送 GitHub Tag。
 - 不执行 `git push --tags`，也不创建 Gitee Tag 或 Release。
 
+## Task 2B：发布资产版本前缀
+
+**Files:**
+
+- Modify: `app/scripts/release-version.mjs`
+- Modify: `app/scripts/release-version.test.mjs`
+- Modify: `app/scripts/package-portable.ps1`
+- Modify: `.github/workflows/release.yml`
+
+- [x] **Step 1: 固定发布文件名**
+
+- 安装包输出为 `BreakTimer-new_vX.Y.Z_x64-setup.exe`。
+- 便携 ZIP 输出为 `BreakTimer-new_vX.Y.Z_x64-portable.zip`。
+- 版本文件仍保存纯 SemVer `X.Y.Z`，不得把 `v` 写入 `package.json`、Tauri 配置或 Cargo 文件。
+
 ## Task 3：变更日志配置
 
 **Files:**
@@ -343,6 +358,11 @@ Expected: PASS，输出四处版本均为 `0.1.0`。
   NSIS、便携 ZIP、`CHANGES.md` 与 `SHA256SUMS.txt`，R11 通过。
 - 2026-10-23：新增 `pnpm release <version>` 单命令入口；PowerShell 语法检查通过，脏工作区
   会在版本修改前拒绝，`package.json` 哈希保持不变。
+- 2026-10-23：确认 `develop` 为日常开发分支、`master` 为发版分支；补充发布资产必须带
+  `v` 版本前缀的要求。
+- 2026-10-23：`asset-name` 单元测试 2 项、前端全套 72 项、Rust 全套 108 项、前端
+  format/lint/typecheck/build 与 Rust fmt/check 均通过；本地及 CI 命名统一为
+  `BreakTimer-new_vX.Y.Z_x64-*`，实际 GitHub Release 待下一次正式 Tag 验证。
 
 ## 变更记录
 
@@ -350,3 +370,4 @@ Expected: PASS，输出四处版本均为 `0.1.0`。
 | ---------- | ---------------------------------------------------------- |
 | 2026-10-23 | 创建并进入实现；采用严格版本一致性和单一 Release Workflow  |
 | 2026-10-23 | 增加单命令发布入口；GitHub 为主仓库，Gitee 仅备份 `master` |
+| 2026-10-23 | 增加 `develop` 日常开发、`master` 发版边界，并修复发布资产版本号缺少 `v` |

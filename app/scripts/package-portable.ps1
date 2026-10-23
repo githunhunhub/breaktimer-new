@@ -25,12 +25,17 @@ if ([string]::IsNullOrWhiteSpace($version)) {
     throw "package.json does not contain a version."
 }
 
+$portableName = (& node (Join-Path $PSScriptRoot "release-version.mjs") "asset-name" "portable" $version).Trim()
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($portableName)) {
+    throw "Failed to resolve the portable ZIP file name."
+}
+
 $outputRoot = Join-Path $targetDir "bundle\portable"
 [System.IO.Directory]::CreateDirectory($outputRoot) | Out-Null
 
 $stagingRoot = Join-Path $outputRoot (".staging-" + [System.Guid]::NewGuid().ToString("N"))
 $packageDir = Join-Path $stagingRoot "BreakTimer-new"
-$zipPath = Join-Path $outputRoot "BreakTimer-new_${version}_x64-portable.zip"
+$zipPath = Join-Path $outputRoot $portableName
 
 [System.IO.Directory]::CreateDirectory($packageDir) | Out-Null
 

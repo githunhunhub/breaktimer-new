@@ -41,14 +41,37 @@ git submodule update --init --recursive
 
 提交前可用 `git status --short --ignored` 检查是否有本应入库的文件被错误忽略。
 
+## 分支策略
+
+- `develop`：日常开发、提交和推送分支。
+- `master`：发版专用分支，只接收 `develop` 的发版合入和发布脚本生成的版本提交。
+- GitHub Tag 必须从 `master` 创建；Gitee 只备份 `develop` 与 `master`。
+
+开发前切换到 `develop` 并与 GitHub 同步：
+
+```powershell
+git switch develop
+git pull --ff-only github develop
+```
+
+日常提交后同时推送到两个远程：
+
+```powershell
+git push github develop
+git push origin develop
+```
+
+正式发版时先把已确认的 `develop` 合入 `master`，再从 `master` 执行发布命令。不要在
+`master` 上直接开发或提交普通修复。
+
 ## 打包与发布
 
 正式发布以 GitHub Actions 为准：
 
 - GitHub 推送 `vMAJOR.MINOR.PATCH` Tag 后，自动完成版本校验、前端/Rust 门禁、Windows
   打包、变更日志和 GitHub Release。
-- 普通 `master` 提交不会触发打包或发布。
-- GitHub 是主要仓库；Gitee 只作为 `master` 代码备份，不接收发布 Tag，也不自动生成
+- `master` 是发版专用分支；普通 `develop` 提交不会触发打包或发布。
+- GitHub 是主要仓库；Gitee 只作为 `develop` 与 `master` 代码备份，不接收发布 Tag，也不自动生成
   Gitee Release。
 - Workflow 定义见 [`.github/workflows/release.yml`](.github/workflows/release.yml)，
   需求与验收见 [`SPEC-0015`](docs/specs/0015-github-tag-release.md)。
@@ -58,6 +81,9 @@ git submodule update --init --recursive
 以下示例发布 `0.2.0`。日常发布只需要在仓库根目录执行：
 
 ```powershell
+git switch master
+git pull --ff-only github master
+git merge --no-ff develop
 cd D:\code\breaktimer-new\app
 pnpm release 0.2.0
 ```
@@ -88,15 +114,15 @@ Release。
 
 Release 应包含：
 
-- `BreakTimer-new_<version>_x64-setup.exe`
-- `BreakTimer-new_<version>_x64-portable.zip`
+- `BreakTimer-new_v<version>_x64-setup.exe`
+- `BreakTimer-new_v<version>_x64-portable.zip`
 - `CHANGES.md`
 - `SHA256SUMS.txt`
 
 下载安装包后可核对哈希：
 
 ```powershell
-Get-FileHash .\BreakTimer-new_0.2.0_x64-setup.exe -Algorithm SHA256
+Get-FileHash .\BreakTimer-new_v0.2.0_x64-setup.exe -Algorithm SHA256
 ```
 
 `release:version`、`release:check`、`release:tag` 仍保留用于排障或单独执行，但正常发布不再
