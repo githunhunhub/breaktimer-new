@@ -44,10 +44,15 @@
 - 未创建或推送 `v0.1.0`。
 - GitHub Actions 的 Windows runner、Release 权限和资产上传尚未做真实端到端验证。
 
+## 交付
+
+- 实现提交：`f93e159 feat(ci): 添加 GitHub Tag 发布流水线`。
+- `f93e159` 已推送到 GitHub `github/master` 与 Gitee `origin/master`。
+- 文档收口提交随后创建并再次推送两个远程。
+
 ## 后续入口
 
-1. 本轮变更按用户指令提交并推送到 GitHub/Gitee `master`。
-2. 首次发布前确认本地 `master` 与 `github/master` 同步。
-3. 执行 `pnpm release:tag 0.1.0`。
-4. 执行 `git push github v0.1.0`。
-5. 观察 Release Workflow，核对四个 Release 资产后勾选 SPEC-0015 R11。
+1. 首次发布前确认本地 `master` 与 `github/master` 同步。
+2. 执行 `pnpm release:tag 0.1.0`。
+3. 执行 `git push github v0.1.0`。
+4. 观察 Release Workflow，核对四个 Release 资产后勾选 SPEC-0015 R11。

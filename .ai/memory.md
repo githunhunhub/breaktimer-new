@@ -61,7 +61,7 @@
 
 ## 后续入口
 
-- GitHub Tag 发布流水线已实现并完成本地/静态验证；已收到用户提交指令，正在交付到 GitHub 与 Gitee。
+- GitHub Tag 发布流水线已实现并完成本地/静态验证；实现提交 `f93e159` 已推送到 GitHub `github/master` 与 Gitee `origin/master`。
 - 首次 GitHub 发布需先确保 `master` 与 `github/master` 同步，再执行 `pnpm release:tag 0.1.0` 并推送 `v0.1.0`；只有实际 Release 成功后 SPEC-0015 才能改为 `done`。
 - 当前无重构阶段或发布阻塞；SPEC-0002/0005/0006/0010/0012/0013 均已同步为 `done`。
 - 后续新功能或问题按正常开发流程处理：先确认需求，再新建或更新 `docs/specs/`，按风险补测试，
