@@ -23,3 +23,6 @@ M0-M5 已全部完成，重构阶段结束。当前 Windows 发布产物、便�
 - [x] **SPEC-0014｜多语言支持** —— `en-US` / `zh-CN`、跟随系统与手动选择、React/Rust
       共享翻译资源；L1-L15 与验收反馈修复均已通过 Windows 人工验收
       （ADR-0012）
+- [ ] **SPEC-0015｜GitHub Tag 发布流水线** —— 严格校验 `master` Tag 与四处版本，自动完成
+      Windows 构建、`git-cliff` 变更日志和 GitHub Release；流水线已配置，待首个正式 Tag
+      端到端验收（ADR-0013）

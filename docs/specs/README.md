@@ -21,5 +21,6 @@
 | [SPEC-0012](0012-portable-zip.md)                    | Windows 便携 ZIP                             | done      | ADR-0009 · SPEC-0007 · SPEC-0011                                     | `app/scripts/package-portable.ps1`、`app/src-tauri/src/app_paths.rs`（完整便携流程、异常标记、安装版互斥、便携自启动与 NSIS 隔离均通过）           |
 | [SPEC-0013](0013-app-rename.md)                      | 应用更名为 BreakTimer-new                    | done      | ADR-0011 · SPEC-0007 · SPEC-0010 · SPEC-0011 · SPEC-0012             | `app/src-tauri/tauri.conf.json`、`app/package.json`、Cargo/Rust 入口、托盘/窗口与服务设置文案、便携脚本（自动化、运行时与 Windows 人工验收均通过） |
 | [SPEC-0014](0014-multilingual-support.md)            | 多语言支持                                   | done      | ADR-0012 · PLAN-0003 · SPEC-0002 · SPEC-0006 · SPEC-0008 · SPEC-0010 | L1-L15、通知标题修复与 Windows 中英文运行时人工验收全部通过                                                                                        |
+| [SPEC-0015](0015-github-tag-release.md)              | GitHub Tag 发布流水线                        | in-progress | ADR-0013 · PLAN-0004 · SPEC-0011 · SPEC-0012                       | `.github/workflows/release.yml`、`.github/cliff.toml`、发布脚本（本地与静态验证通过，待首个正式 Tag 端到端验收）                                      |
 
 <!-- 新增 spec 后在此表追加一行。状态：draft / confirmed / in-progress / done / superseded -->

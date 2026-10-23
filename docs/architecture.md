@@ -67,6 +67,17 @@
 - `flow` 按 `notificationType` 分流：`Popup` 创建遮罩窗，`Notification` 发系统通知、播放开始音并立即完成本次休息续排，不创建窗口（SPEC-0008，ADR-0006）。
 - 自启动由 `autostart` 模块统一处理：启动时按设置同步注册状态，设置保存时应用变化，开发构建只记录不注册（SPEC-0007）。
 
+### GitHub 发布流水线（SPEC-0015）
+
+- 只有推送 `vMAJOR.MINOR.PATCH` Tag 才触发 `.github/workflows/release.yml`；普通 `master`
+  push 不执行发布。
+- `meta` Job 校验 Tag 提交属于 GitHub `master`，并确认 Tag 版本与 `package.json`、
+  `tauri.conf.json`、`Cargo.toml`、`Cargo.lock` 一致。
+- Windows Job 运行前后端自动化门禁，生成便携 ZIP，并从同一 release executable 生成
+  NSIS；`git-cliff` 从上一发布 Tag 到当前 Tag 的 Conventional Commits 生成 Release Notes。
+- 全部前置 Job 成功后才创建公开 GitHub Release，上传 NSIS、便携 ZIP、`CHANGES.md` 和
+  `SHA256SUMS.txt`。Gitee 发布仍保持独立流程。
+
 ## 与旧架构的关键差异
 
 | 维度          | 旧版（Electron）                                | 新版（Tauri v2）                                                   |

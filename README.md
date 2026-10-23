@@ -11,8 +11,9 @@ BreakTimer-new 是一款 Windows 桌面休息提醒应用。你可以设置工�
 
 ## 下载与安装
 
-前往 [Gitee Releases](https://gitee.com/githunee/breaktimer-new/releases)
-下载最新版本。
+前往 [GitHub Releases](https://github.com/githunhunhub/breaktimer-new/releases)
+下载最新版本；[Gitee Releases](https://gitee.com/githunee/breaktimer-new/releases)
+继续作为国内镜像。
 
 | 版本                       | 适用场景                       | 使用方式                                  |
 | -------------------------- | ------------------------------ | ----------------------------------------- |
@@ -21,7 +22,7 @@ BreakTimer-new 是一款 Windows 桌面休息提醒应用。你可以设置工�
 
 安装版默认按当前用户安装，通常不需要管理员权限。应用和安装包当前没有代码签名，
 Windows SmartScreen 可能显示安全提示；如需继续，请选择“更多信息”，确认文件来自
-本项目的 [Gitee Releases](https://gitee.com/githunee/breaktimer-new/releases)
+本项目的 [GitHub Releases](https://github.com/githunhunhub/breaktimer-new/releases)
 后再选择“仍要运行”。
 
 ### 便携版说明

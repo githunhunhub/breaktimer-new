@@ -1,0 +1,229 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  meta:
+    name: Validate release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Validate tag and versions
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag="$GITHUB_REF_NAME"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Release tags must use vMAJOR.MINOR.PATCH."
+            exit 1
+          fi
+
+          git fetch --no-tags origin master:refs/remotes/origin/master
+          tag_commit="$(git rev-parse "${GITHUB_REF}^{commit}")"
+          if ! git merge-base --is-ancestor "$tag_commit" refs/remotes/origin/master; then
+            echo "::error::Tag $tag must point to a commit contained in master."
+            exit 1
+          fi
+
+          node app/scripts/release-version.mjs check "$tag"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build Windows assets
+    needs: meta
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri -> target
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check frontend
+        run: pnpm format:check
+
+      - name: Lint frontend
+        run: pnpm lint
+
+      - name: Typecheck frontend
+        run: pnpm typecheck
+
+      - name: Test frontend
+        run: pnpm test
+
+      - name: Build frontend
+        run: pnpm build
+
+      - name: Check Rust formatting
+        run: cargo fmt --all --manifest-path src-tauri/Cargo.toml -- --check
+
+      - name: Check Rust
+        run: cargo check --locked --all-targets --manifest-path src-tauri/Cargo.toml
+
+      - name: Test Rust
+        run: cargo test --locked --all-targets --manifest-path src-tauri/Cargo.toml
+
+      - name: Build portable ZIP
+        run: pnpm portable:build
+
+      - name: Build NSIS from release executable
+        run: pnpm tauri bundle --bundles nsis --no-binary-patching
+
+      - name: Prepare release assets
+        shell: pwsh
+        run: |
+          $releaseDir = Join-Path (Get-Location) "release-assets"
+          New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
+
+          $files = @(
+            Get-ChildItem "src-tauri/target/release/bundle/nsis/*-setup.exe"
+            Get-ChildItem "src-tauri/target/release/bundle/portable/*-portable.zip"
+          )
+          if ($files.Count -ne 2) {
+            throw "Expected exactly one NSIS installer and one portable ZIP, found $($files.Count)."
+          }
+
+          $checksums = foreach ($file in $files) {
+            Copy-Item -LiteralPath $file.FullName -Destination $releaseDir
+            $hash = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($file.Name)"
+          }
+          $checksums | Set-Content -Encoding ascii (Join-Path $releaseDir "SHA256SUMS.txt")
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: app/release-assets/*
+          if-no-files-found: error
+          retention-days: 7
+
+  changelog:
+    name: Generate changelog
+    needs: meta
+    runs-on: ubuntu-latest
+    outputs:
+      release_body: ${{ steps.git-cliff.outputs.content }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate a changelog
+        id: git-cliff
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: .github/cliff.toml
+          args: -vv --latest --strip header
+        env:
+          OUTPUT: CHANGES.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Verify changelog
+        shell: bash
+        run: |
+          test -s CHANGES.md
+          grep -q '^- ' CHANGES.md
+
+      - name: Upload changelog
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-changelog
+          path: CHANGES.md
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    name: Publish GitHub Release
+    needs: [meta, build, changelog]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: release-assets
+
+      - name: Download changelog
+        uses: actions/download-artifact@v4
+        with:
+          name: release-changelog
+          path: release-changelog
+
+      - name: Validate release inputs
+        shell: bash
+        env:
+          RELEASE_BODY: ${{ needs.changelog.outputs.release_body }}
+        run: |
+          set -euo pipefail
+          test -s release-changelog/CHANGES.md
+          test -n "$RELEASE_BODY"
+          test "$(find release-assets -maxdepth 1 -type f | wc -l)" -eq 3
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: BreakTimer-new ${{ needs.meta.outputs.version }}
+          body: ${{ needs.changelog.outputs.release_body }}
+          files: |
+            release-assets/*.exe
+            release-assets/*.zip
+            release-assets/SHA256SUMS.txt
+            release-changelog/CHANGES.md
+          fail_on_unmatched_files: true
+          draft: false
+          prerelease: false
+          generate_release_notes: false
