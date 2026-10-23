@@ -2,6 +2,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n";
 import { ipc } from "@/lib/ipc";
 import { cn } from "@/lib/utils";
 import type { Settings, SoundType } from "@/types/settings";
@@ -10,6 +11,7 @@ import { AdvancedCard } from "./advanced-card";
 import { AudioCard } from "./audio-card";
 import { BackdropCard } from "./backdrop-card";
 import { BreaksCard } from "./breaks-card";
+import { LanguageCard } from "./language-card";
 import { SkipCard } from "./skip-card";
 import { SmartBreaksCard } from "./smart-breaks-card";
 import { SnoozeCard } from "./snooze-card";
@@ -29,10 +31,10 @@ interface SettingsWindowProps {
 }
 
 const SETTINGS_TABS = [
-  { value: "general", label: "General" },
-  { value: "working-hours", label: "Working Hours" },
-  { value: "customization", label: "Customization" },
-  { value: "system", label: "System" },
+  { value: "general", labelKey: "settings.tabs.general" },
+  { value: "working-hours", labelKey: "settings.tabs.workingHours" },
+  { value: "customization", labelKey: "settings.tabs.customization" },
+  { value: "system", labelKey: "settings.tabs.system" },
 ] as const;
 
 type SettingsTab = (typeof SETTINGS_TABS)[number]["value"];
@@ -42,6 +44,7 @@ function messageFrom(cause: unknown): string {
 }
 
 export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
+  const { t } = useI18n();
   const [saved, setSaved] = useState<Settings | null>(null);
   const [draft, setDraft] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -138,7 +141,7 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
         ) : (
           <>
             <Loader2 className="size-4 animate-spin" />
-            <span className="sr-only">Loading settings</span>
+            <span className="sr-only">{t("settings.loading")}</span>
           </>
         )}
       </main>
@@ -149,16 +152,16 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
     <main className="flex h-full flex-col">
       <header className="border-b">
         <div className="mx-auto flex h-16 w-full max-w-2xl items-center justify-between px-6">
-          <h1 className="text-xl font-semibold">Settings</h1>
+          <h1 className="text-xl font-semibold">{t("settings.title")}</h1>
           <Button onClick={handleSave} disabled={!dirty || saving}>
             {saving && <Loader2 className="size-4 animate-spin" />}
-            Save
+            {t("settings.save")}
           </Button>
         </div>
         <div className="mx-auto w-full max-w-2xl px-6 pb-4">
           <div
             role="tablist"
-            aria-label="Settings sections"
+            aria-label={t("settings.sectionsLabel")}
             className="bg-muted text-muted-foreground grid h-9 grid-cols-4 items-center rounded-lg p-1"
           >
             {SETTINGS_TABS.map((tab, index) => {
@@ -182,7 +185,7 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
                   onClick={() => setActiveTab(tab.value)}
                   onKeyDown={(event) => handleTabKeyDown(event, index)}
                 >
-                  {tab.label}
+                  {t(tab.labelKey)}
                 </button>
               );
             })}
@@ -224,7 +227,10 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
           )}
 
           {activeTab === "system" && (
-            <StartupCard settings={draft} onPatch={updateDraft} />
+            <>
+              <LanguageCard settings={draft} onPatch={updateDraft} />
+              <StartupCard settings={draft} onPatch={updateDraft} />
+            </>
           )}
 
           {error && (

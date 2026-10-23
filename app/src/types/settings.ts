@@ -19,6 +19,7 @@ export interface WorkingHours {
 }
 
 export interface Settings {
+  language: string | null;
   autoLaunch: boolean;
   breaksEnabled: boolean;
   trayTextEnabled: boolean;

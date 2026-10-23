@@ -11,17 +11,29 @@ export type WorkingHoursDayKey =
 
 export interface WorkingHoursDay {
   key: WorkingHoursDayKey;
-  label: string;
+  labelKey: string;
 }
 
 export const WORKING_HOURS_DAYS: WorkingHoursDay[] = [
-  { key: "workingHoursMonday", label: "Monday" },
-  { key: "workingHoursTuesday", label: "Tuesday" },
-  { key: "workingHoursWednesday", label: "Wednesday" },
-  { key: "workingHoursThursday", label: "Thursday" },
-  { key: "workingHoursFriday", label: "Friday" },
-  { key: "workingHoursSaturday", label: "Saturday" },
-  { key: "workingHoursSunday", label: "Sunday" },
+  { key: "workingHoursMonday", labelKey: "settings.workingHours.days.monday" },
+  {
+    key: "workingHoursTuesday",
+    labelKey: "settings.workingHours.days.tuesday",
+  },
+  {
+    key: "workingHoursWednesday",
+    labelKey: "settings.workingHours.days.wednesday",
+  },
+  {
+    key: "workingHoursThursday",
+    labelKey: "settings.workingHours.days.thursday",
+  },
+  { key: "workingHoursFriday", labelKey: "settings.workingHours.days.friday" },
+  {
+    key: "workingHoursSaturday",
+    labelKey: "settings.workingHours.days.saturday",
+  },
+  { key: "workingHoursSunday", labelKey: "settings.workingHours.days.sunday" },
 ];
 
 export const DEFAULT_WORKING_HOURS_RANGE: WorkingHoursRange = {

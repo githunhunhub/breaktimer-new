@@ -2,12 +2,13 @@
 
 use chrono::Utc;
 use serde::Serialize;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
 
 use crate::autostart;
 use crate::breaks::BreakStatus;
 use crate::error::AppResult;
 use crate::flow;
+use crate::i18n::I18nState;
 use crate::sounds;
 use crate::state::{AppState, Settings, SettingsEffects, SoundType};
 
@@ -31,11 +32,17 @@ pub fn get_settings(state: State<'_, AppState>) -> Settings {
 }
 
 #[tauri::command]
+pub fn get_i18n_state(state: State<'_, AppState>) -> I18nState {
+    state.i18n_state()
+}
+
+#[tauri::command]
 pub fn set_settings(
     app: AppHandle,
     state: State<'_, AppState>,
     settings: Settings,
 ) -> AppResult<()> {
+    let previous_i18n = state.i18n_state();
     let effects = SettingsEffects::between(&state.store.settings(), &settings);
 
     state.store.set_settings(settings.clone())?;
@@ -48,7 +55,17 @@ pub fn set_settings(
     // The tray menu (and any open break window) reads the new settings
     // immediately after a save (SPEC-0006).
     flow::emit_status(&app, state.inner());
+    let next_i18n = state.i18n_state();
+    if locale_changed(&previous_i18n, &next_i18n)
+        && let Err(error) = app.emit(flow::LOCALE_CHANGED_EVENT, next_i18n)
+    {
+        eprintln!("failed to emit locale change: {error}");
+    }
     Ok(())
+}
+
+fn locale_changed(previous: &I18nState, next: &I18nState) -> bool {
+    previous.effective_locale != next.effective_locale
 }
 
 #[tauri::command]
@@ -129,5 +146,29 @@ mod tests {
         assert_eq!(value["name"], "BreakTimer-new");
         assert_eq!(value["version"], "0.1.0");
         assert_eq!(value["settingsPath"], "settings.json");
+    }
+
+    #[test]
+    fn locale_broadcast_is_only_required_when_the_effective_locale_changes() {
+        assert!(!locale_changed(
+            &I18nState {
+                language: None,
+                effective_locale: "en-US".to_string(),
+            },
+            &I18nState {
+                language: Some("en-US".to_string()),
+                effective_locale: "en-US".to_string(),
+            },
+        ));
+        assert!(locale_changed(
+            &I18nState {
+                language: None,
+                effective_locale: "en-US".to_string(),
+            },
+            &I18nState {
+                language: Some("zh-CN".to_string()),
+                effective_locale: "zh-CN".to_string(),
+            },
+        ));
     }
 }

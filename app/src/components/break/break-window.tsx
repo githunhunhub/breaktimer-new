@@ -2,6 +2,7 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n";
 import { ipc } from "@/lib/ipc";
 import type { BreakStatus } from "@/types/breaks";
 import type { Settings } from "@/types/settings";
@@ -10,6 +11,7 @@ import {
   createDarkerRgba,
   formatCountdown,
   formatTimeSinceLastBreak,
+  localizedBreakText,
 } from "./utils";
 
 export interface BreakClient {
@@ -50,6 +52,7 @@ function useNow(active: boolean): number {
 }
 
 export function BreakWindow({ client = ipc }: BreakWindowProps) {
+  const { t, locale } = useI18n();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [status, setStatus] = useState<BreakStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -172,7 +175,7 @@ export function BreakWindow({ client = ipc }: BreakWindowProps) {
     return (
       <main className="flex h-full w-full items-center justify-center bg-transparent">
         <Loader2 className="size-5 animate-spin text-white/80" />
-        <span className="sr-only">Loading break</span>
+        <span className="sr-only">{t("break.loading")}</span>
       </main>
     );
   }
@@ -206,10 +209,12 @@ export function BreakWindow({ client = ipc }: BreakWindowProps) {
 
           <div className="relative min-w-0">
             <h1 className="truncate text-base font-semibold tracking-tight">
-              Break starting in {prompt?.secondsRemaining ?? 0}s...
+              {t("break.startingIn", {
+                seconds: prompt?.secondsRemaining ?? 0,
+              })}
             </h1>
             <p className="truncate text-xs font-medium opacity-75">
-              {formatTimeSinceLastBreak(status.timeSinceLastBreakSeconds)}
+              {formatTimeSinceLastBreak(status.timeSinceLastBreakSeconds, t)}
             </p>
           </div>
 
@@ -220,7 +225,7 @@ export function BreakWindow({ client = ipc }: BreakWindowProps) {
               onClick={() => void runAction(client.beginBreak)}
               variant="outline"
             >
-              Start
+              {t("break.start")}
             </Button>
             {showPostpone && (
               <Button
@@ -229,7 +234,7 @@ export function BreakWindow({ client = ipc }: BreakWindowProps) {
                 onClick={() => void runAction(client.postponeBreak)}
                 variant="outline"
               >
-                Snooze
+                {t("break.snooze")}
               </Button>
             )}
             {showSkip && (
@@ -239,7 +244,7 @@ export function BreakWindow({ client = ipc }: BreakWindowProps) {
                 onClick={() => void runAction(client.skipBreak)}
                 variant="outline"
               >
-                Skip
+                {t("break.skip")}
               </Button>
             )}
           </div>
@@ -288,7 +293,11 @@ export function BreakWindow({ client = ipc }: BreakWindowProps) {
       >
         <div className="flex items-center justify-between gap-4">
           <h1 className="text-3xl font-semibold tracking-tight">
-            {settings.breakTitle}
+            {localizedBreakText(
+              settings.breakTitle,
+              "break.defaultTitle",
+              locale,
+            )}
           </h1>
           {settings.endBreakEnabled && (
             <Button
@@ -297,13 +306,17 @@ export function BreakWindow({ client = ipc }: BreakWindowProps) {
               onClick={() => void runAction(client.endBreak)}
               variant="outline"
             >
-              Cancel Break
+              {t("break.cancel")}
             </Button>
           )}
         </div>
 
         <p className="mt-6 whitespace-pre-line text-lg font-medium opacity-80">
-          {settings.breakMessage}
+          {localizedBreakText(
+            settings.breakMessage,
+            "break.defaultMessage",
+            locale,
+          )}
         </p>
 
         <div className="mt-6 w-full">

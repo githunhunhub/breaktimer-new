@@ -1,18 +1,38 @@
 // Helpers shared by the break overlay components (SPEC-0002).
 // Ported from `breaktimer-app/app/renderer/components/break/utils.ts`.
 
+import { translate, type Translate } from "@/lib/i18n";
+
+/** Maps the legacy English default to the current locale without touching custom text. */
+export function localizedBreakText(
+  value: string,
+  key: string,
+  locale: string,
+): string {
+  return value === translate("en-US", key) ? translate(locale, key) : value;
+}
+
 /** Human-readable "time since last break" label. */
-export function formatTimeSinceLastBreak(seconds: number): string {
+export function formatTimeSinceLastBreak(
+  seconds: number,
+  t: Translate,
+): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
 
+  let duration: string;
   if (hours > 0) {
-    return `${hours}h${minutes > 0 ? ` ${minutes}m` : ""} since last break`;
+    duration =
+      minutes > 0
+        ? t("common.duration.hoursMinutesSpaced", { hours, minutes })
+        : t("common.duration.hours", { count: hours });
+  } else if (minutes > 0) {
+    duration = t("common.duration.minutes", { count: minutes });
+  } else {
+    duration = t("common.duration.lessThanMinute");
   }
-  if (minutes > 0) {
-    return `${minutes}m since last break`;
-  }
-  return "Less than 1m since last break";
+
+  return t("break.timeSince", { duration });
 }
 
 function parseHexChannel(hex: string, start: number): number {

@@ -9,6 +9,8 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { I18nProvider } from "@/lib/i18n";
+import type { I18nClient } from "@/types/i18n";
 import type { BreakStatus } from "@/types/breaks";
 import type { Settings } from "@/types/settings";
 
@@ -18,6 +20,7 @@ afterEach(cleanup);
 
 function makeSettings(overrides: Partial<Settings> = {}): Settings {
   return {
+    language: null,
     autoLaunch: false,
     breaksEnabled: true,
     trayTextEnabled: false,
@@ -109,7 +112,82 @@ function makeClient(settings: Settings, status: BreakStatus): BreakClient {
   };
 }
 
+function makeLocaleClient(): I18nClient {
+  return {
+    getI18nState: vi.fn().mockResolvedValue({
+      language: "zh-CN",
+      effectiveLocale: "zh-CN",
+    }),
+    onLocaleChanged: vi.fn().mockResolvedValue(() => {}),
+  };
+}
+
 describe("BreakWindow", () => {
+  it("renders the prompt and break surface in Simplified Chinese", async () => {
+    const promptClient = makeClient(
+      makeSettings({
+        breakTitle: "Time for a break.",
+        breakMessage: "Rest your eyes.\nStretch your legs.\nBreathe. Relax.",
+      }),
+      makePromptStatus(),
+    );
+
+    const { unmount } = render(
+      <I18nProvider initialLocale="zh-CN" client={makeLocaleClient()}>
+        <BreakWindow client={promptClient} />
+      </I18nProvider>,
+    );
+
+    expect(await screen.findByText("休息将在 60 秒后开始…")).toBeTruthy();
+    expect(screen.getByText("距上次休息 20分钟")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "开始" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "稍后提醒" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "跳过" })).toBeTruthy();
+    unmount();
+
+    const breakClient = makeClient(
+      makeSettings({
+        breakTitle: "Time for a break.",
+        breakMessage: "Rest your eyes.\nStretch your legs.\nBreathe. Relax.",
+      }),
+      makeBreakStatus(),
+    );
+    render(
+      <I18nProvider initialLocale="zh-CN" client={makeLocaleClient()}>
+        <BreakWindow client={breakClient} />
+      </I18nProvider>,
+    );
+
+    expect(await screen.findByText("该休息了。")).toBeTruthy();
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === "P" &&
+          element.textContent === "放松眼睛。\n伸展双腿。\n深呼吸，放松。",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "取消休息" })).toBeTruthy();
+  });
+
+  it("keeps custom break text and HTML-like content unchanged in Chinese", async () => {
+    const client = makeClient(
+      makeSettings({
+        breakTitle: "Time for a break",
+        breakMessage: "<b>Look away</b>",
+      }),
+      makeBreakStatus(),
+    );
+
+    render(
+      <I18nProvider initialLocale="zh-CN" client={makeLocaleClient()}>
+        <BreakWindow client={client} />
+      </I18nProvider>,
+    );
+
+    expect(await screen.findByText("Time for a break")).toBeTruthy();
+    expect(screen.getByText("<b>Look away</b>")).toBeTruthy();
+  });
+
   it("shows the single countdown prompt immediately and starts on request", async () => {
     const client = makeClient(makeSettings(), makePromptStatus());
 

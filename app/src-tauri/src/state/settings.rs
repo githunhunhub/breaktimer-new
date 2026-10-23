@@ -55,6 +55,8 @@ pub struct WorkingHours {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
+    #[serde(default)]
+    pub language: Option<String>,
     pub auto_launch: bool,
     pub breaks_enabled: bool,
     pub tray_text_enabled: bool,
@@ -111,6 +113,7 @@ impl Default for Settings {
         };
 
         Self {
+            language: None,
             auto_launch: true,
             breaks_enabled: true,
             tray_text_enabled: true,
@@ -173,6 +176,16 @@ mod tests {
         assert_eq!(settings.break_length_seconds, 90);
         assert_eq!(settings.break_frequency_seconds, 28 * 60);
         assert_eq!(settings.sound_type, SoundType::Gong);
+    }
+
+    #[test]
+    fn missing_language_defaults_to_follow_system() {
+        let settings: Settings = serde_json::from_str("{}").unwrap();
+        assert_eq!(settings.language, None);
+        assert_eq!(
+            serde_json::to_value(settings).unwrap()["language"],
+            serde_json::Value::Null
+        );
     }
 
     #[test]

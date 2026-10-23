@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/lib/i18n";
 
 import { joinDurationSeconds, splitSeconds } from "./durations";
 
@@ -19,6 +20,7 @@ export function DurationInputs({
   secondsLabel,
   onChange,
 }: DurationInputsProps) {
+  const { t } = useI18n();
   const { minutes, seconds } = splitSeconds(value);
 
   return (
@@ -35,7 +37,9 @@ export function DurationInputs({
           onChange(joinDurationSeconds(Number(event.target.value), seconds))
         }
       />
-      <span className="text-muted-foreground text-sm">min</span>
+      <span className="text-muted-foreground text-sm">
+        {t("common.minutesShort")}
+      </span>
       <Input
         type="text"
         className="w-14 px-2 text-center tabular-nums"
@@ -54,7 +58,9 @@ export function DurationInputs({
           )
         }
       />
-      <span className="text-muted-foreground text-sm">sec</span>
+      <span className="text-muted-foreground text-sm">
+        {t("common.secondsShort")}
+      </span>
     </div>
   );
 }

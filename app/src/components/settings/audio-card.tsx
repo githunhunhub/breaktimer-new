@@ -5,15 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import { useI18n } from "@/lib/i18n";
 import type { Settings, SoundType } from "@/types/settings";
 
-const SOUND_OPTIONS: ReadonlyArray<{ value: SoundType; label: string }> = [
-  { value: "NONE", label: "None" },
-  { value: "GONG", label: "Gong" },
-  { value: "BLIP", label: "Blip" },
-  { value: "BLOOP", label: "Bloop" },
-  { value: "PING", label: "Ping" },
-  { value: "SCIFI", label: "Sci-fi" },
+const SOUND_OPTIONS: ReadonlyArray<{ value: SoundType; labelKey: string }> = [
+  { value: "NONE", labelKey: "settings.audio.sounds.none" },
+  { value: "GONG", labelKey: "settings.audio.sounds.gong" },
+  { value: "BLIP", labelKey: "settings.audio.sounds.blip" },
+  { value: "BLOOP", labelKey: "settings.audio.sounds.bloop" },
+  { value: "PING", labelKey: "settings.audio.sounds.ping" },
+  { value: "SCIFI", labelKey: "settings.audio.sounds.scifi" },
 ];
 
 interface AudioCardProps {
@@ -24,16 +25,17 @@ interface AudioCardProps {
 }
 
 export function AudioCard({ settings, onPatch, onPreview }: AudioCardProps) {
+  const { t } = useI18n();
   const volumePercent = Math.round(settings.breakSoundVolume * 100);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Audio</CardTitle>
+        <CardTitle className="text-base">{t("settings.audio.title")}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="sound-type">Break sound</Label>
+          <Label htmlFor="sound-type">{t("settings.audio.breakSound")}</Label>
           <div className="flex items-center gap-2">
             <Select
               id="sound-type"
@@ -44,7 +46,7 @@ export function AudioCard({ settings, onPatch, onPreview }: AudioCardProps) {
             >
               {SOUND_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
-                  {option.label}
+                  {t(option.labelKey)}
                 </option>
               ))}
             </Select>
@@ -53,8 +55,8 @@ export function AudioCard({ settings, onPatch, onPreview }: AudioCardProps) {
                 type="button"
                 size="icon"
                 variant="ghost"
-                aria-label="Preview break sound"
-                title="Preview break sound"
+                aria-label={t("settings.audio.preview")}
+                title={t("settings.audio.preview")}
                 onClick={() => onPreview(settings.soundType)}
               >
                 <Play />
@@ -64,7 +66,9 @@ export function AudioCard({ settings, onPatch, onPreview }: AudioCardProps) {
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="break-sound-volume">Break sound volume</Label>
+          <Label htmlFor="break-sound-volume">
+            {t("settings.audio.volume")}
+          </Label>
           <Slider
             id="break-sound-volume"
             min={0}

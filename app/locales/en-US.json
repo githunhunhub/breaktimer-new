@@ -1,0 +1,186 @@
+{
+  "locale": "en-US",
+  "name": "English",
+  "aliases": ["en"],
+  "messages": {
+    "common": {
+      "minutes": "minutes",
+      "seconds": "seconds",
+      "minutesShort": "min",
+      "secondsShort": "sec",
+      "noLimit": "No limit",
+      "reset": "Reset",
+      "apply": "Apply",
+      "to": "to",
+      "followSystem": "Follow system",
+      "duration": {
+        "lessThanMinute": "<1m",
+        "minutes": {
+          "one": "1m",
+          "other": "{count}m"
+        },
+        "hours": {
+          "one": "1h",
+          "other": "{count}h"
+        },
+        "hoursMinutesCompact": "{hours}h{minutes}m",
+        "hoursMinutesSpaced": "{hours}h {minutes}m"
+      }
+    },
+    "settings": {
+      "title": "Settings",
+      "save": "Save",
+      "loading": "Loading settings",
+      "sectionsLabel": "Settings sections",
+      "tabs": {
+        "general": "General",
+        "workingHours": "Working Hours",
+        "customization": "Customization",
+        "system": "System"
+      },
+      "breaks": {
+        "title": "Breaks",
+        "toggle": "Breaks enabled",
+        "type": "Break type",
+        "typePopup": "Popup break",
+        "typeNotification": "Notification",
+        "frequency": "Frequency",
+        "frequencyMinutesLabel": "Break frequency in minutes",
+        "frequencySecondsLabel": "Break frequency in seconds",
+        "length": "Length",
+        "lengthMinutesLabel": "Break length in minutes",
+        "lengthSecondsLabel": "Break length in seconds",
+        "titleLabel": "Title",
+        "messageLabel": "Message",
+        "messagePlaceholder": "Enter your break message..."
+      },
+      "smartBreaks": {
+        "title": "Smart Breaks",
+        "idleReset": "Reset the break timer when idle",
+        "minimumIdleTime": "Minimum idle time",
+        "minutesLabel": "Idle time in minutes",
+        "secondsLabel": "Idle time in seconds",
+        "notification": "Show notification when break automatically detected"
+      },
+      "snooze": {
+        "title": "Snooze",
+        "helper": "Snoozing allows you to postpone breaks when busy.",
+        "toggle": "Snooze enabled",
+        "length": "Length",
+        "minutesLabel": "Snooze length in minutes",
+        "secondsLabel": "Snooze length in seconds",
+        "limit": "Limit",
+        "limitLabel": "Snooze limit"
+      },
+      "skip": {
+        "title": "Skip",
+        "helper": "Allow skipping breaks entirely without rescheduling them.",
+        "toggle": "Allow skipping breaks"
+      },
+      "advanced": {
+        "title": "Advanced",
+        "immediatelyStart": "Immediately start breaks",
+        "endEarly": "Allow ending break early"
+      },
+      "workingHours": {
+        "title": "Working Hours",
+        "toggle": "Restrict breaks to working hours",
+        "days": {
+          "monday": "Monday",
+          "tuesday": "Tuesday",
+          "wednesday": "Wednesday",
+          "thursday": "Thursday",
+          "friday": "Friday",
+          "saturday": "Saturday",
+          "sunday": "Sunday"
+        },
+        "startAria": "{day} start {range}",
+        "endAria": "{day} end {range}",
+        "addRange": "Add {day} range",
+        "copyRanges": "Copy {day} ranges",
+        "copyRangesTo": "Copy ranges to:",
+        "removeRange": "Remove {day} range {range}"
+      },
+      "theme": {
+        "title": "Theme",
+        "primaryColor": "Primary color",
+        "textColor": "Text color"
+      },
+      "audio": {
+        "title": "Audio",
+        "breakSound": "Break sound",
+        "sounds": {
+          "none": "None",
+          "gong": "Gong",
+          "blip": "Blip",
+          "bloop": "Bloop",
+          "ping": "Ping",
+          "scifi": "Sci-fi"
+        },
+        "preview": "Preview break sound",
+        "volume": "Break sound volume"
+      },
+      "backdrop": {
+        "title": "Backdrop",
+        "helper": "Show a colored overlay behind break windows to limit distractions.",
+        "toggle": "Show backdrop",
+        "opacity": "Backdrop opacity"
+      },
+      "language": {
+        "title": "Language",
+        "helper": "Choose the language used by BreakTimer-new.",
+        "label": "Display language"
+      },
+      "startup": {
+        "title": "Start at login",
+        "helper": "Automatically start BreakTimer-new when you log in.",
+        "toggle": "Launch at login"
+      }
+    },
+    "break": {
+      "loading": "Loading break",
+      "startingIn": "Break starting in {seconds}s...",
+      "start": "Start",
+      "snooze": "Snooze",
+      "skip": "Skip",
+      "cancel": "Cancel Break",
+      "defaultTitle": "Time for a break.",
+      "defaultMessage": "Rest your eyes.\nStretch your legs.\nBreathe. Relax.",
+      "timeSince": "{duration} since last break"
+    },
+    "notification": {
+      "idleTitle": "Break automatically detected",
+      "idleBody": "Away for {duration}"
+    },
+    "tray": {
+      "enable": "Enable",
+      "disable": "Disable...",
+      "indefinitely": "Indefinitely",
+      "minutes30": "30 minutes",
+      "hour1": "1 hour",
+      "hours2": "2 hours",
+      "hours4": "4 hours",
+      "restOfDay": "Rest of day",
+      "startBreakNow": "Start break now",
+      "settings": "Settings...",
+      "about": "About...",
+      "quit": "Quit",
+      "nextBreakLessThanMinute": "Next break in less than a minute",
+      "nextBreakMinutes": {
+        "one": "Next break in 1 minute",
+        "other": "Next break in {count} minutes"
+      },
+      "breaksDisabled": "Breaks disabled",
+      "outsideWorkingHours": "Outside of working hours",
+      "idle": "Idle",
+      "disabledFor": "Disabled for {duration}"
+    },
+    "about": {
+      "title": "About",
+      "build": "Build",
+      "projectSource": "Project Source",
+      "upstream": "Upstream BreakTimer",
+      "license": "Distributed under GPL-3.0-or-later license."
+    }
+  }
+}

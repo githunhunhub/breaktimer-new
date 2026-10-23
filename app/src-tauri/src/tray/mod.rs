@@ -16,6 +16,7 @@ use tauri::{AppHandle, Manager, Runtime};
 use crate::breaks::{BreakPhase, BreakScheduler, SystemActivity};
 use crate::error::AppResult;
 use crate::flow;
+use crate::i18n::translate;
 use crate::state::{AppState, Settings, SettingsEffects, TrayTextMode};
 use crate::{PRODUCT_NAME, windows};
 
@@ -51,6 +52,7 @@ pub enum TrayState {
 /// label rules can be tested directly.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TraySnapshot {
+    pub locale: String,
     pub state: TrayState,
     /// Countdown line shown while working.
     pub status_label: Option<String>,
@@ -131,7 +133,16 @@ struct TrayMenuHandles<R: Runtime> {
     disabled: MenuItem<R>,
     enable: MenuItem<R>,
     disable: Submenu<R>,
+    disable_indefinitely: MenuItem<R>,
+    disable_30_minutes: MenuItem<R>,
+    disable_1_hour: MenuItem<R>,
+    disable_2_hours: MenuItem<R>,
+    disable_4_hours: MenuItem<R>,
+    disable_rest_of_day: MenuItem<R>,
     start_break: MenuItem<R>,
+    settings: MenuItem<R>,
+    about: MenuItem<R>,
+    quit: MenuItem<R>,
     top_separator: PredefinedMenuItem<R>,
     bottom_separator: PredefinedMenuItem<R>,
 }
@@ -144,7 +155,16 @@ impl<R: Runtime> Clone for TrayMenuHandles<R> {
             disabled: self.disabled.clone(),
             enable: self.enable.clone(),
             disable: self.disable.clone(),
+            disable_indefinitely: self.disable_indefinitely.clone(),
+            disable_30_minutes: self.disable_30_minutes.clone(),
+            disable_1_hour: self.disable_1_hour.clone(),
+            disable_2_hours: self.disable_2_hours.clone(),
+            disable_4_hours: self.disable_4_hours.clone(),
+            disable_rest_of_day: self.disable_rest_of_day.clone(),
             start_break: self.start_break.clone(),
+            settings: self.settings.clone(),
+            about: self.about.clone(),
+            quit: self.quit.clone(),
             top_separator: self.top_separator.clone(),
             bottom_separator: self.bottom_separator.clone(),
         }
@@ -152,54 +172,63 @@ impl<R: Runtime> Clone for TrayMenuHandles<R> {
 }
 
 impl<R: Runtime> TrayMenuHandles<R> {
-    fn new(app: &AppHandle<R>) -> AppResult<Self> {
+    fn new(app: &AppHandle<R>, locale: &str) -> AppResult<Self> {
         let menu = Menu::new(app)?;
-        let status = MenuItem::with_id(
+        let status = MenuItem::with_id(app, STATUS_MENU_ID, "", false, None::<&str>)?;
+        let disabled = MenuItem::with_id(app, DISABLED_MENU_ID, "", false, None::<&str>)?;
+        let enable = MenuItem::with_id(
             app,
-            STATUS_MENU_ID,
-            "Next break in less than a minute",
-            false,
+            ENABLE_MENU_ID,
+            translate(locale, "tray.enable", &[]),
+            true,
             None::<&str>,
         )?;
-        let disabled = MenuItem::with_id(
-            app,
-            DISABLED_MENU_ID,
-            "Disabled for <1m",
-            false,
-            None::<&str>,
-        )?;
-        let enable = MenuItem::with_id(app, ENABLE_MENU_ID, "Enable", true, None::<&str>)?;
         let disable_indefinitely = MenuItem::with_id(
             app,
             DISABLE_INDEFINITELY_MENU_ID,
-            "Indefinitely",
+            translate(locale, "tray.indefinitely", &[]),
             true,
             None::<&str>,
         )?;
         let disable_30_minutes = MenuItem::with_id(
             app,
             DISABLE_30_MINUTES_MENU_ID,
-            "30 minutes",
+            translate(locale, "tray.minutes30", &[]),
             true,
             None::<&str>,
         )?;
-        let disable_1_hour =
-            MenuItem::with_id(app, DISABLE_1_HOUR_MENU_ID, "1 hour", true, None::<&str>)?;
-        let disable_2_hours =
-            MenuItem::with_id(app, DISABLE_2_HOURS_MENU_ID, "2 hours", true, None::<&str>)?;
-        let disable_4_hours =
-            MenuItem::with_id(app, DISABLE_4_HOURS_MENU_ID, "4 hours", true, None::<&str>)?;
+        let disable_1_hour = MenuItem::with_id(
+            app,
+            DISABLE_1_HOUR_MENU_ID,
+            translate(locale, "tray.hour1", &[]),
+            true,
+            None::<&str>,
+        )?;
+        let disable_2_hours = MenuItem::with_id(
+            app,
+            DISABLE_2_HOURS_MENU_ID,
+            translate(locale, "tray.hours2", &[]),
+            true,
+            None::<&str>,
+        )?;
+        let disable_4_hours = MenuItem::with_id(
+            app,
+            DISABLE_4_HOURS_MENU_ID,
+            translate(locale, "tray.hours4", &[]),
+            true,
+            None::<&str>,
+        )?;
         let disable_rest_of_day = MenuItem::with_id(
             app,
             DISABLE_REST_OF_DAY_MENU_ID,
-            "Rest of day",
+            translate(locale, "tray.restOfDay", &[]),
             true,
             None::<&str>,
         )?;
         let disable = Submenu::with_id_and_items(
             app,
             DISABLE_MENU_ID,
-            "Disable...",
+            translate(locale, "tray.disable", &[]),
             true,
             &[
                 &disable_indefinitely,
@@ -213,13 +242,31 @@ impl<R: Runtime> TrayMenuHandles<R> {
         let start_break = MenuItem::with_id(
             app,
             START_BREAK_MENU_ID,
-            "Start break now",
+            translate(locale, "tray.startBreakNow", &[]),
             true,
             None::<&str>,
         )?;
-        let settings = MenuItem::with_id(app, SETTINGS_MENU_ID, "Settings...", true, None::<&str>)?;
-        let about = MenuItem::with_id(app, ABOUT_MENU_ID, "About...", true, None::<&str>)?;
-        let quit = MenuItem::with_id(app, QUIT_MENU_ID, "Quit", true, None::<&str>)?;
+        let settings = MenuItem::with_id(
+            app,
+            SETTINGS_MENU_ID,
+            translate(locale, "tray.settings", &[]),
+            true,
+            None::<&str>,
+        )?;
+        let about = MenuItem::with_id(
+            app,
+            ABOUT_MENU_ID,
+            translate(locale, "tray.about", &[]),
+            true,
+            None::<&str>,
+        )?;
+        let quit = MenuItem::with_id(
+            app,
+            QUIT_MENU_ID,
+            translate(locale, "tray.quit", &[]),
+            true,
+            None::<&str>,
+        )?;
         let top_separator = PredefinedMenuItem::separator(app)?;
         let bottom_separator = PredefinedMenuItem::separator(app)?;
 
@@ -234,7 +281,16 @@ impl<R: Runtime> TrayMenuHandles<R> {
             disabled,
             enable,
             disable,
+            disable_indefinitely,
+            disable_30_minutes,
+            disable_1_hour,
+            disable_2_hours,
+            disable_4_hours,
+            disable_rest_of_day,
             start_break,
+            settings,
+            about,
+            quit,
             top_separator,
             bottom_separator,
         })
@@ -245,7 +301,33 @@ impl<R: Runtime> TrayMenuHandles<R> {
         snapshot: &TraySnapshot,
         previous_layout: TrayMenuLayout,
         next_layout: TrayMenuLayout,
+        locale_changed: bool,
     ) -> tauri::Result<()> {
+        if locale_changed {
+            let locale = &snapshot.locale;
+            self.enable
+                .set_text(translate(locale, "tray.enable", &[]))?;
+            self.disable
+                .set_text(translate(locale, "tray.disable", &[]))?;
+            self.disable_indefinitely
+                .set_text(translate(locale, "tray.indefinitely", &[]))?;
+            self.disable_30_minutes
+                .set_text(translate(locale, "tray.minutes30", &[]))?;
+            self.disable_1_hour
+                .set_text(translate(locale, "tray.hour1", &[]))?;
+            self.disable_2_hours
+                .set_text(translate(locale, "tray.hours2", &[]))?;
+            self.disable_4_hours
+                .set_text(translate(locale, "tray.hours4", &[]))?;
+            self.disable_rest_of_day
+                .set_text(translate(locale, "tray.restOfDay", &[]))?;
+            self.start_break
+                .set_text(translate(locale, "tray.startBreakNow", &[]))?;
+            self.settings
+                .set_text(translate(locale, "tray.settings", &[]))?;
+            self.about.set_text(translate(locale, "tray.about", &[]))?;
+            self.quit.set_text(translate(locale, "tray.quit", &[]))?;
+        }
         if let Some(label) = snapshot.status_label.as_deref() {
             self.status.set_text(label)?;
         }
@@ -300,9 +382,9 @@ struct TrayStateStore<R: Runtime> {
 /// Creates the tray icon with its initial menu (SPEC-0006).
 pub fn init<R: Runtime>(app: &AppHandle<R>) -> AppResult<()> {
     let snapshot = app.state::<AppState>().tray_snapshot(Utc::now());
-    let handles = TrayMenuHandles::new(app)?;
+    let handles = TrayMenuHandles::new(app, &snapshot.locale)?;
     let layout = TrayMenuLayout::from_snapshot(&snapshot);
-    handles.apply_snapshot(&snapshot, TrayMenuLayout::default(), layout)?;
+    handles.apply_snapshot(&snapshot, TrayMenuLayout::default(), layout, false)?;
 
     let icon = Image::from_bytes(include_bytes!("../../icons/32x32.png"))?;
     TrayIconBuilder::with_id(TRAY_ID)
@@ -329,7 +411,7 @@ pub fn init<R: Runtime>(app: &AppHandle<R>) -> AppResult<()> {
 pub fn refresh<R: Runtime>(app: &AppHandle<R>) {
     let snapshot = app.state::<AppState>().tray_snapshot(Utc::now());
 
-    let (previous_layout, handles) = {
+    let (previous_layout, previous_locale, handles) = {
         let tray_state = app.state::<Mutex<TrayStateStore<R>>>();
         let tray = tray_state
             .lock()
@@ -339,7 +421,14 @@ pub fn refresh<R: Runtime>(app: &AppHandle<R>) {
             return;
         }
 
-        (tray.layout, tray.handles.clone())
+        (
+            tray.layout,
+            tray.last_snapshot
+                .as_ref()
+                .map(|snapshot| snapshot.locale.clone())
+                .unwrap_or_default(),
+            tray.handles.clone(),
+        )
     };
 
     let Some(icon) = app.tray_by_id(TRAY_ID) else {
@@ -348,7 +437,12 @@ pub fn refresh<R: Runtime>(app: &AppHandle<R>) {
     };
 
     let next_layout = TrayMenuLayout::from_snapshot(&snapshot);
-    if let Err(error) = handles.apply_snapshot(&snapshot, previous_layout, next_layout) {
+    if let Err(error) = handles.apply_snapshot(
+        &snapshot,
+        previous_layout,
+        next_layout,
+        previous_locale != snapshot.locale,
+    ) {
         eprintln!("failed to update tray menu: {error}");
         return;
     }
@@ -445,13 +539,17 @@ fn seconds_until_end_of_day() -> i64 {
 
 /// About dialog (SPEC-0006), parented to the settings window when it exists.
 ///
-fn about_content(version: &str) -> String {
+fn about_content(version: &str, locale: &str) -> String {
     format!(
-        "{PRODUCT_NAME}\n\nBuild: {version}\n\nProject Source:\n\
+        "{PRODUCT_NAME}\n\n{}: {version}\n\n{}:\n\
          https://gitee.com/githunee/breaktimer-new\n\n\
-         Upstream BreakTimer:\n\
+         {}:\n\
          https://github.com/tom-james-watson/breaktimer-app\n\n\
-         Distributed under GPL-3.0-or-later license."
+         {}",
+        translate(locale, "about.build", &[]),
+        translate(locale, "about.projectSource", &[]),
+        translate(locale, "about.upstream", &[]),
+        translate(locale, "about.license", &[]),
     )
 }
 
@@ -459,12 +557,13 @@ fn about_content(version: &str) -> String {
 fn show_about_window<R: Runtime>(app: &AppHandle<R>) {
     use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 
+    let locale = app.state::<AppState>().effective_locale();
     let version = app.package_info().version.to_string();
-    let content = about_content(&version);
+    let content = about_content(&version, &locale);
     let mut builder = app
         .dialog()
         .message(content)
-        .title("About")
+        .title(translate(&locale, "about.title", &[]))
         .kind(MessageDialogKind::Info);
 
     let parent = app.get_webview_window("main");
@@ -482,6 +581,7 @@ pub fn build_tray_snapshot(
     in_working_hours: bool,
     activity: SystemActivity,
     disable_end_time: Option<i64>,
+    locale: &str,
 ) -> TraySnapshot {
     let phase = scheduler.phase();
     let next_break_at = scheduler.next_break_at();
@@ -516,7 +616,7 @@ pub fn build_tray_snapshot(
                 .signed_duration_since(now)
                 .num_seconds()
                 .max(0);
-            format_next_break_label(remaining)
+            format_next_break_label(remaining, locale)
         })
     } else {
         None
@@ -524,10 +624,9 @@ pub fn build_tray_snapshot(
 
     let disabled_label = if state == TrayState::Disabled {
         disable_end_time.map(|end_time| {
-            format!(
-                "Disabled for {}",
-                format_compact_duration(end_time.saturating_sub(now.timestamp()))
-            )
+            let duration =
+                format_compact_duration(end_time.saturating_sub(now.timestamp()), locale);
+            translate(locale, "tray.disabledFor", &[("duration", &duration)])
         })
     } else {
         None
@@ -535,9 +634,11 @@ pub fn build_tray_snapshot(
 
     let status_label = match (state, &disabled_label) {
         (TrayState::Disabled, Some(_)) => None,
-        (TrayState::Disabled, None) => Some("Breaks disabled".to_string()),
-        (TrayState::OutsideWorkingHours, _) => Some("Outside of working hours".to_string()),
-        (TrayState::Idle, _) => Some("Idle".to_string()),
+        (TrayState::Disabled, None) => Some(translate(locale, "tray.breaksDisabled", &[])),
+        (TrayState::OutsideWorkingHours, _) => {
+            Some(translate(locale, "tray.outsideWorkingHours", &[]))
+        }
+        (TrayState::Idle, _) => Some(translate(locale, "tray.idle", &[])),
         _ => next_break_label.clone(),
     };
 
@@ -548,11 +649,11 @@ pub fn build_tray_snapshot(
                     .signed_duration_since(now)
                     .num_seconds()
                     .max(0);
-                format!(" {}", format_compact_duration(remaining))
+                format!(" {}", format_compact_duration(remaining, locale))
             }),
             TrayTextMode::TimeSinceLastBreak => Some(format!(
                 " {}",
-                format_compact_duration(time_since_last_break)
+                format_compact_duration(time_since_last_break, locale)
             )),
         }
     } else {
@@ -560,6 +661,7 @@ pub fn build_tray_snapshot(
     };
 
     TraySnapshot {
+        locale: locale.to_string(),
         state,
         status_label,
         disabled_label,
@@ -570,23 +672,23 @@ pub fn build_tray_snapshot(
     }
 }
 
-fn format_next_break_label(seconds_remaining: i64) -> String {
+fn format_next_break_label(seconds_remaining: i64, locale: &str) -> String {
     if seconds_remaining > 60 {
         let minutes = seconds_remaining / 60;
-        if minutes == 1 {
-            "Next break in 1 minute".to_string()
-        } else {
-            format!("Next break in {minutes} minutes")
-        }
+        translate(
+            locale,
+            "tray.nextBreakMinutes",
+            &[("count", &minutes.to_string())],
+        )
     } else {
-        "Next break in less than a minute".to_string()
+        translate(locale, "tray.nextBreakLessThanMinute", &[])
     }
 }
 
 /// Legacy compact duration: `<1m`, `28m`, `1h`, `1h30m` (SPEC-0006).
-fn format_compact_duration(seconds: i64) -> String {
+fn format_compact_duration(seconds: i64, locale: &str) -> String {
     if seconds < 60 {
-        return "<1m".to_string();
+        return translate(locale, "common.duration.lessThanMinute", &[]);
     }
 
     let total_minutes = seconds / 60;
@@ -594,9 +696,24 @@ fn format_compact_duration(seconds: i64) -> String {
     let minutes = total_minutes % 60;
 
     match (hours, minutes) {
-        (0, minutes) => format!("{minutes}m"),
-        (hours, 0) => format!("{hours}h"),
-        (hours, minutes) => format!("{hours}h{minutes}m"),
+        (0, minutes) => translate(
+            locale,
+            "common.duration.minutes",
+            &[("count", &minutes.to_string())],
+        ),
+        (hours, 0) => translate(
+            locale,
+            "common.duration.hours",
+            &[("count", &hours.to_string())],
+        ),
+        (hours, minutes) => translate(
+            locale,
+            "common.duration.hoursMinutesCompact",
+            &[
+                ("hours", &hours.to_string()),
+                ("minutes", &minutes.to_string()),
+            ],
+        ),
     }
 }
 
@@ -628,6 +745,26 @@ mod tests {
         activity: SystemActivity,
         disable_end_time: Option<i64>,
     ) -> TraySnapshot {
+        snapshot_for_locale(
+            scheduler,
+            settings,
+            now,
+            in_working_hours,
+            activity,
+            disable_end_time,
+            "en-US",
+        )
+    }
+
+    fn snapshot_for_locale(
+        scheduler: &BreakScheduler,
+        settings: &Settings,
+        now: DateTime<Utc>,
+        in_working_hours: bool,
+        activity: SystemActivity,
+        disable_end_time: Option<i64>,
+        locale: &str,
+    ) -> TraySnapshot {
         build_tray_snapshot(
             scheduler,
             settings,
@@ -635,32 +772,86 @@ mod tests {
             in_working_hours,
             activity,
             disable_end_time,
+            locale,
         )
     }
 
     #[test]
+    fn formats_tray_labels_in_simplified_chinese() {
+        assert_eq!(format_compact_duration(90 * 60, "zh-CN"), "1小时30分钟");
+        assert_eq!(
+            format_next_break_label(61, "zh-CN"),
+            "距离下次休息还有 1 分钟"
+        );
+        assert_eq!(
+            format_next_break_label(28 * 60, "zh-CN"),
+            "距离下次休息还有 28 分钟"
+        );
+    }
+
+    #[test]
+    fn locale_change_invalidates_snapshot_without_changing_layout() {
+        let (scheduler, settings) = running_scheduler();
+        let english = snapshot_for_locale(
+            &scheduler,
+            &settings,
+            at(30),
+            true,
+            SystemActivity::Active,
+            None,
+            "en-US",
+        );
+        let chinese = snapshot_for_locale(
+            &scheduler,
+            &settings,
+            at(30),
+            true,
+            SystemActivity::Active,
+            None,
+            "zh-CN",
+        );
+
+        assert_ne!(english, chinese);
+        assert_eq!(english.locale, "en-US");
+        assert_eq!(chinese.locale, "zh-CN");
+        assert_eq!(
+            TrayMenuLayout::from_snapshot(&english),
+            TrayMenuLayout::from_snapshot(&chinese)
+        );
+    }
+
+    #[test]
     fn compact_durations_follow_the_legacy_format() {
-        assert_eq!(format_compact_duration(0), "<1m");
-        assert_eq!(format_compact_duration(59), "<1m");
-        assert_eq!(format_compact_duration(60), "1m");
-        assert_eq!(format_compact_duration(28 * 60), "28m");
-        assert_eq!(format_compact_duration(60 * 60), "1h");
-        assert_eq!(format_compact_duration(90 * 60), "1h30m");
-        assert_eq!(format_compact_duration(2 * 60 * 60 + 5 * 60), "2h5m");
+        assert_eq!(format_compact_duration(0, "en-US"), "<1m");
+        assert_eq!(format_compact_duration(59, "en-US"), "<1m");
+        assert_eq!(format_compact_duration(60, "en-US"), "1m");
+        assert_eq!(format_compact_duration(28 * 60, "en-US"), "28m");
+        assert_eq!(format_compact_duration(60 * 60, "en-US"), "1h");
+        assert_eq!(format_compact_duration(90 * 60, "en-US"), "1h30m");
+        assert_eq!(
+            format_compact_duration(2 * 60 * 60 + 5 * 60, "en-US"),
+            "2h5m"
+        );
     }
 
     #[test]
     fn next_break_labels_use_minutes() {
         assert_eq!(
-            format_next_break_label(0),
+            format_next_break_label(0, "en-US"),
             "Next break in less than a minute"
         );
         assert_eq!(
-            format_next_break_label(60),
+            format_next_break_label(60, "en-US"),
             "Next break in less than a minute"
         );
-        assert_eq!(format_next_break_label(61), "Next break in 1 minute");
-        assert_eq!(format_next_break_label(28 * 60), "Next break in 28 minutes");
+        assert_eq!(
+            format_next_break_label(61, "en-US"),
+            "Next break in 1 minute"
+        );
+        assert_eq!(
+            format_next_break_label(28 * 60, "en-US"),
+            "Next break in 28 minutes"
+        );
     }
 
     #[test]
@@ -881,7 +1072,7 @@ mod tests {
 
     #[test]
     fn about_content_identifies_the_new_project_and_its_upstream() {
-        let content = about_content("0.1.0");
+        let content = about_content("0.1.0", "en-US");
 
         assert!(content.starts_with(
             "BreakTimer-new\n\nBuild: 0.1.0\n\nProject Source:\nhttps://gitee.com/githunee/breaktimer-new"
@@ -893,6 +1084,17 @@ mod tests {
         );
         assert!(content.contains("Distributed under GPL-3.0-or-later license."));
         assert!(!content.contains("https://breaktimer.app"));
+    }
+
+    #[test]
+    fn about_content_localizes_labels_but_keeps_identity_and_links() {
+        let content = about_content("0.1.0", "zh-CN");
+
+        assert!(content.starts_with(
+            "BreakTimer-new\n\n构建版本: 0.1.0\n\n项目源码:\nhttps://gitee.com/githunee/breaktimer-new"
+        ));
+        assert!(content.contains("上游 BreakTimer:"));
+        assert!(content.contains("依据 GPL-3.0-or-later 许可证分发。"));
     }
 
     #[test]

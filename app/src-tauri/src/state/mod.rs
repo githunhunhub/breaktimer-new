@@ -8,6 +8,7 @@ use crate::breaks::{
     BreakActionError, BreakEndOutcome, BreakPhase, BreakScheduler, BreakStart, BreakStatus,
     BreakTick, SchedulerContext, is_in_working_hours_at,
 };
+use crate::i18n::{self, I18nState};
 use crate::system_state::{NativeSystemStateProvider, SystemStateProvider};
 use crate::tray::{TraySnapshot, build_tray_snapshot};
 
@@ -23,23 +24,43 @@ pub use store::SettingsStore;
 /// Shared, managed state available to every Tauri command.
 pub struct AppState {
     pub store: SettingsStore,
+    system_locale: String,
     scheduler: Mutex<BreakScheduler>,
     system_state: Box<dyn SystemStateProvider>,
 }
 
 impl AppState {
     pub fn new(store: SettingsStore) -> Self {
-        Self::new_with_system_state_provider(store, Box::new(NativeSystemStateProvider::new()))
+        Self::new_with_system_state_provider(
+            store,
+            i18n::system_locale(),
+            Box::new(NativeSystemStateProvider::new()),
+        )
     }
 
     pub fn new_with_system_state_provider(
         store: SettingsStore,
+        system_locale: String,
         system_state: Box<dyn SystemStateProvider>,
     ) -> Self {
         Self {
             store,
+            system_locale,
             scheduler: Mutex::new(BreakScheduler::new()),
             system_state,
+        }
+    }
+
+    pub fn effective_locale(&self) -> String {
+        let language = self.store.settings().language;
+        i18n::resolve_locale(language.as_deref(), &self.system_locale)
+    }
+
+    pub fn i18n_state(&self) -> I18nState {
+        let language = self.store.settings().language;
+        I18nState {
+            effective_locale: i18n::resolve_locale(language.as_deref(), &self.system_locale),
+            language,
         }
     }
 
@@ -73,6 +94,7 @@ impl AppState {
         );
         let activity = self.system_state.activity();
         let disable_end_time = self.store.disable_end_time();
+        let locale = self.effective_locale();
         let scheduler = self
             .scheduler
             .lock()
@@ -85,6 +107,7 @@ impl AppState {
             in_working_hours,
             activity,
             disable_end_time,
+            &locale,
         )
     }
 
@@ -250,14 +273,53 @@ mod tests {
     fn temp_store(name: &str) -> SettingsStore {
         let dir = std::env::temp_dir().join("breaktimer-new-state-tests");
         fs::create_dir_all(&dir).unwrap();
-        SettingsStore::load(PathBuf::from(dir).join(name)).unwrap()
+        let path = PathBuf::from(dir).join(name);
+        let _ = fs::remove_file(&path);
+        SettingsStore::load(path).unwrap()
     }
 
     fn active_app_state(store: SettingsStore) -> AppState {
         AppState::new_with_system_state_provider(
             store,
+            "en-US".to_string(),
             Box::new(FakeSystemStateProvider::new(vec![SystemActivity::Active])),
         )
+    }
+
+    #[test]
+    fn effective_locale_uses_preference_then_system_locale() {
+        let store = temp_store("locale-state.json");
+        let state = AppState::new_with_system_state_provider(
+            store,
+            "zh-CN".to_string(),
+            Box::new(FakeSystemStateProvider::new(vec![SystemActivity::Active])),
+        );
+        assert_eq!(state.i18n_state().effective_locale, "zh-CN");
+
+        let settings = Settings {
+            language: Some("en-US".to_string()),
+            ..Settings::default()
+        };
+        state.store.set_settings(settings).unwrap();
+        assert_eq!(state.i18n_state().effective_locale, "en-US");
+
+        let settings = Settings {
+            language: Some("fr-FR".to_string()),
+            ..Settings::default()
+        };
+        state.store.set_settings(settings).unwrap();
+        assert_eq!(state.i18n_state().effective_locale, "en-US");
+    }
+
+    #[test]
+    fn i18n_state_serializes_for_the_renderer() {
+        let value = serde_json::to_value(crate::i18n::I18nState {
+            language: None,
+            effective_locale: "zh-CN".to_string(),
+        })
+        .unwrap();
+        assert_eq!(value["language"], serde_json::Value::Null);
+        assert_eq!(value["effectiveLocale"], "zh-CN");
     }
 
     #[test]
@@ -424,6 +486,7 @@ mod tests {
             .unwrap();
         let state = AppState::new_with_system_state_provider(
             store,
+            "en-US".to_string(),
             Box::new(FakeSystemStateProvider::new(vec![
                 SystemActivity::Active,
                 SystemActivity::Idle { idle_seconds: 30 },

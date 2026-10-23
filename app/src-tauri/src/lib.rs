@@ -4,6 +4,7 @@ mod breaks;
 mod commands;
 mod error;
 mod flow;
+mod i18n;
 mod notifications;
 mod sounds;
 mod state;
@@ -101,6 +102,7 @@ pub fn run() {
             commands::greet,
             commands::get_settings,
             commands::set_settings,
+            commands::get_i18n_state,
             commands::get_app_info,
             commands::get_break_status,
             commands::begin_break,

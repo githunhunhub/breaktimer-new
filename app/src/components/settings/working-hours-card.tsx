@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { useI18n } from "@/lib/i18n";
 import type {
   Settings,
   WorkingHours,
@@ -28,6 +29,8 @@ interface WorkingHoursCardProps {
 }
 
 export function WorkingHoursCard({ settings, onPatch }: WorkingHoursCardProps) {
+  const { t } = useI18n();
+
   function updateDay(key: WorkingHoursDayKey, value: WorkingHours) {
     onPatch({ [key]: value } as Partial<Settings>);
   }
@@ -51,9 +54,9 @@ export function WorkingHoursCard({ settings, onPatch }: WorkingHoursCardProps) {
 
   return (
     <SettingsCard
-      title="Working Hours"
+      title={t("settings.workingHours.title")}
       toggle={{
-        label: "Restrict breaks to working hours",
+        label: t("settings.workingHours.toggle"),
         checked: settings.workingHoursEnabled,
         onCheckedChange: (checked) => onPatch({ workingHoursEnabled: checked }),
       }}
@@ -89,9 +92,11 @@ function DayRow({
   onChange,
   onCopy,
 }: DayRowProps) {
+  const { t } = useI18n();
   const controlsDisabled = disabled || !workingHours.enabled;
   const [copyOpen, setCopyOpen] = useState(false);
   const [selectedDays, setSelectedDays] = useState<WorkingHoursDayKey[]>([]);
+  const dayLabel = t(day.labelKey);
 
   function replaceRange(index: number, range: WorkingHoursRange) {
     onChange({
@@ -125,14 +130,14 @@ function DayRow({
             {index === 0 ? (
               <>
                 <Switch
-                  aria-label={day.label}
+                  aria-label={dayLabel}
                   checked={workingHours.enabled}
                   disabled={disabled}
                   onCheckedChange={(checked) =>
                     onChange({ ...workingHours, enabled: checked })
                   }
                 />
-                <span className="text-sm font-medium">{day.label}</span>
+                <span className="text-sm font-medium">{dayLabel}</span>
               </>
             ) : null}
           </div>
@@ -140,7 +145,10 @@ function DayRow({
           {workingHours.enabled ? (
             <>
               <CompactTimeInput
-                aria-label={`${day.label} start ${index + 1}`}
+                aria-label={t("settings.workingHours.startAria", {
+                  day: dayLabel,
+                  range: index + 1,
+                })}
                 value={minutesToTimeValue(range.fromMinutes)}
                 disabled={controlsDisabled}
                 onCommit={(minutes) =>
@@ -148,10 +156,13 @@ function DayRow({
                 }
               />
               <span aria-hidden className="text-muted-foreground text-sm">
-                to
+                {t("common.to")}
               </span>
               <CompactTimeInput
-                aria-label={`${day.label} end ${index + 1}`}
+                aria-label={t("settings.workingHours.endAria", {
+                  day: dayLabel,
+                  range: index + 1,
+                })}
                 value={minutesToTimeValue(range.toMinutes)}
                 disabled={controlsDisabled}
                 onCommit={(minutes) =>
@@ -165,7 +176,9 @@ function DayRow({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    aria-label={`Add ${day.label} range`}
+                    aria-label={t("settings.workingHours.addRange", {
+                      day: dayLabel,
+                    })}
                     disabled={controlsDisabled}
                     onClick={() =>
                       onChange({
@@ -183,7 +196,9 @@ function DayRow({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    aria-label={`Copy ${day.label} ranges`}
+                    aria-label={t("settings.workingHours.copyRanges", {
+                      day: dayLabel,
+                    })}
                     aria-expanded={copyOpen}
                     disabled={controlsDisabled}
                     onClick={() => setCopyOpen((open) => !open)}
@@ -194,14 +209,16 @@ function DayRow({
                   {copyOpen && (
                     <div
                       role="dialog"
-                      aria-label={`Copy ${day.label} ranges`}
+                      aria-label={t("settings.workingHours.copyRanges", {
+                        day: dayLabel,
+                      })}
                       className="bg-popover absolute top-10 right-0 z-20 w-52 rounded-md border p-3 shadow-md"
                       onKeyDown={(event) => {
                         if (event.key === "Escape") setCopyOpen(false);
                       }}
                     >
                       <p className="mb-3 text-sm font-semibold">
-                        Copy ranges to:
+                        {t("settings.workingHours.copyRangesTo")}
                       </p>
                       <div className="mb-4 flex flex-col gap-2">
                         {WORKING_HOURS_DAYS.map((otherDay) => {
@@ -214,7 +231,7 @@ function DayRow({
                             >
                               <input
                                 type="checkbox"
-                                aria-label={otherDay.label}
+                                aria-label={t(otherDay.labelKey)}
                                 checked={
                                   isSource ||
                                   selectedDays.includes(otherDay.key)
@@ -223,7 +240,7 @@ function DayRow({
                                 onChange={() => toggleTargetDay(otherDay.key)}
                                 className="accent-primary size-4"
                               />
-                              <span>{otherDay.label}</span>
+                              <span>{t(otherDay.labelKey)}</span>
                             </label>
                           );
                         })}
@@ -235,7 +252,7 @@ function DayRow({
                         disabled={selectedDays.length === 0}
                         onClick={applyCopy}
                       >
-                        Apply
+                        {t("common.apply")}
                       </Button>
                     </div>
                   )}
@@ -245,7 +262,10 @@ function DayRow({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  aria-label={`Remove ${day.label} range ${index + 1}`}
+                  aria-label={t("settings.workingHours.removeRange", {
+                    day: dayLabel,
+                    range: index + 1,
+                  })}
                   disabled={controlsDisabled}
                   onClick={() =>
                     onChange({

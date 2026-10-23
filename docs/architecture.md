@@ -28,6 +28,19 @@
    - **系统集成**：空闲检测、系统通知、自启动、声音播放。
 3. **系统层**：系统 WebView（WebView2 / WKWebView / WebKitGTK）+ OS API（显示器枚举、全屏、置顶、托盘、通知、自启动）。
 
+### 多语言资源流（SPEC-0014，待实现）
+
+- `app/locales/<locale>.json` 同时供 React 与 Rust 使用；每种语言一个自描述 JSON 文件，
+  不维护前后端两套翻译。
+- React 通过 `import.meta.glob` 自动发现资源，由轻量 `I18nProvider` / `useI18n()` 提供
+  `t()`、语言列表和切换后的重新渲染。
+- Rust 通过 `include_dir` 嵌入同一目录，负责系统语言解析、有效 locale 计算、托盘 /
+  About / 系统通知文案，并向设置页提供当前有效 locale。
+- 设置中的 `language=null` 表示跟随系统；保存后广播 `locale-changed`，WebView 更新界面，
+  托盘刷新最终文案，系统通知从下一次触发开始使用新语言。
+- 资源使用 `{name}` 占位符和 `one` / `other` 简单复数，缺失 key 回退 `en-US`；完整 ICU
+  不在当前架构内（ADR-0012）。
+
 ## 当前落地状态（M0-M5 已完成，Windows）
 
 - `app/` 已是可运行的 Tauri v2 工程：Vite + React + TypeScript 前端，Rust 2024 后端。
@@ -56,12 +69,12 @@
 
 ## 与旧架构的关键差异
 
-| 维度 | 旧版（Electron） | 新版（Tauri v2） |
-| --- | --- | --- |
-| 后端语言 | Node.js/TypeScript（主进程） | Rust |
-| 运行时 | 捆绑 Chromium + Node | 系统 WebView + 轻量 Rust 运行时 |
-| IPC | `ipcMain` / `ipcRenderer` | `#[tauri::command]` + `invoke` |
-| 多显示器遮挡 | 手工 `setSize(display.bounds)` 软遮挡 | 手工铺满显示器 bounds 的应用层输入阻断覆盖层（ADR-0004、ADR-0007） |
-| 焦点策略 | 休息窗始终 `focusable:false` + `showInactive()` | 提示条不可聚焦；激活 Popup 休息可聚焦并主动获得焦点 |
-| 构建 | Vite（渲染）+ Webpack（主进程） | Vite（前端）+ `cargo build`（Rust） |
-| 打包体积/内存 | 较大 | 明显更小 |
+| 维度          | 旧版（Electron）                                | 新版（Tauri v2）                                                   |
+| ------------- | ----------------------------------------------- | ------------------------------------------------------------------ |
+| 后端语言      | Node.js/TypeScript（主进程）                    | Rust                                                               |
+| 运行时        | 捆绑 Chromium + Node                            | 系统 WebView + 轻量 Rust 运行时                                    |
+| IPC           | `ipcMain` / `ipcRenderer`                       | `#[tauri::command]` + `invoke`                                     |
+| 多显示器遮挡  | 手工 `setSize(display.bounds)` 软遮挡           | 手工铺满显示器 bounds 的应用层输入阻断覆盖层（ADR-0004、ADR-0007） |
+| 焦点策略      | 休息窗始终 `focusable:false` + `showInactive()` | 提示条不可聚焦；激活 Popup 休息可聚焦并主动获得焦点                |
+| 构建          | Vite（渲染）+ Webpack（主进程）                 | Vite（前端）+ `cargo build`（Rust）                                |
+| 打包体积/内存 | 较大                                            | 明显更小                                                           |

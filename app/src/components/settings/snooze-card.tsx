@@ -1,5 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { useI18n } from "@/lib/i18n";
 import type { Settings } from "@/types/settings";
 
 import { DurationInputs } from "./duration-inputs";
@@ -11,15 +12,16 @@ interface SnoozeCardProps {
 }
 
 export function SnoozeCard({ settings, onPatch }: SnoozeCardProps) {
+  const { t } = useI18n();
   const disabled =
     !settings.postponeBreakEnabled || settings.immediatelyStartBreaks;
 
   return (
     <SettingsCard
-      title="Snooze"
-      helperText="Snoozing allows you to postpone breaks when busy."
+      title={t("settings.snooze.title")}
+      helperText={t("settings.snooze.helper")}
       toggle={{
-        label: "Snooze enabled",
+        label: t("settings.snooze.toggle"),
         checked:
           settings.postponeBreakEnabled && !settings.immediatelyStartBreaks,
         disabled: settings.immediatelyStartBreaks,
@@ -29,20 +31,23 @@ export function SnoozeCard({ settings, onPatch }: SnoozeCardProps) {
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">Length</span>
+          <Label htmlFor="snooze-length-minutes">
+            {t("settings.snooze.length")}
+          </Label>
           <DurationInputs
+            minutesId="snooze-length-minutes"
             value={settings.postponeLengthSeconds}
             disabled={disabled}
-            minutesLabel="Snooze length in minutes"
-            secondsLabel="Snooze length in seconds"
+            minutesLabel={t("settings.snooze.minutesLabel")}
+            secondsLabel={t("settings.snooze.secondsLabel")}
             onChange={(seconds) => onPatch({ postponeLengthSeconds: seconds })}
           />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="snooze-limit">Limit</Label>
+          <Label htmlFor="snooze-limit">{t("settings.snooze.limit")}</Label>
           <Select
             id="snooze-limit"
-            aria-label="Snooze limit"
+            aria-label={t("settings.snooze.limitLabel")}
             value={String(settings.postponeLimit)}
             disabled={disabled}
             onChange={(event) =>
@@ -54,7 +59,7 @@ export function SnoozeCard({ settings, onPatch }: SnoozeCardProps) {
             <option value="3">3</option>
             <option value="4">4</option>
             <option value="5">5</option>
-            <option value="0">No limit</option>
+            <option value="0">{t("common.noLimit")}</option>
           </Select>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { useI18n } from "@/lib/i18n";
 import type { Settings } from "@/types/settings";
 
 import { SettingsCard } from "./settings-card";
@@ -10,22 +11,25 @@ interface BackdropCardProps {
 }
 
 export function BackdropCard({ settings, onPatch }: BackdropCardProps) {
+  const { t } = useI18n();
   const popupMode = settings.notificationType === "POPUP";
   const opacityPercent = Math.round(settings.backdropOpacity * 100);
 
   return (
     <SettingsCard
-      title="Backdrop"
-      helperText="Show a colored overlay behind break windows to limit distractions."
+      title={t("settings.backdrop.title")}
+      helperText={t("settings.backdrop.helper")}
       toggle={{
-        label: "Show backdrop",
+        label: t("settings.backdrop.toggle"),
         checked: settings.showBackdrop,
         disabled: !popupMode,
         onCheckedChange: (checked) => onPatch({ showBackdrop: checked }),
       }}
     >
       <div className="flex flex-col gap-2">
-        <Label htmlFor="backdrop-opacity">Backdrop opacity</Label>
+        <Label htmlFor="backdrop-opacity">
+          {t("settings.backdrop.opacity")}
+        </Label>
         <Slider
           id="backdrop-opacity"
           min={0.2}

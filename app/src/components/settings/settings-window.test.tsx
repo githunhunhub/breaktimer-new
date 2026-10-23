@@ -10,6 +10,8 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { I18nProvider } from "@/lib/i18n";
+import type { I18nClient } from "@/types/i18n";
 import type { Settings } from "@/types/settings";
 
 import { SettingsWindow, type SettingsClient } from "./settings-window";
@@ -22,6 +24,7 @@ function workingHours(enabled: boolean) {
 
 function makeSettings(overrides: Partial<Settings> = {}): Settings {
   return {
+    language: null,
     autoLaunch: false,
     breaksEnabled: true,
     trayTextEnabled: false,
@@ -66,11 +69,65 @@ function makeClient(settings: Settings): SettingsClient {
   };
 }
 
+function makeLocaleClient(effectiveLocale: string): I18nClient {
+  return {
+    getI18nState: vi.fn().mockResolvedValue({
+      language: effectiveLocale,
+      effectiveLocale,
+    }),
+    onLocaleChanged: vi.fn().mockResolvedValue(() => {}),
+  };
+}
+
 async function openSettingsTab(name: string) {
   fireEvent.click(await screen.findByRole("tab", { name }));
 }
 
 describe("SettingsWindow", () => {
+  it("shows Language above Start at login and saves the drafted locale", async () => {
+    const client = makeClient(makeSettings({ language: null }));
+    const setSettings = vi.mocked(client.setSettings);
+
+    render(<SettingsWindow client={client} />);
+    await openSettingsTab("System");
+
+    const cardTitles = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-slot="card-title"]'),
+    ).map((element) => element.textContent);
+    expect(cardTitles).toEqual(["Language", "Start at login"]);
+    expect(screen.getByRole("option", { name: "English" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "简体中文" })).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText("Display language"), {
+      target: { value: "zh-CN" },
+    });
+    expect(screen.getByText("Settings")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(setSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ language: "zh-CN" }),
+      );
+    });
+  });
+
+  it("renders the settings surface in Simplified Chinese", async () => {
+    const client = makeClient(makeSettings({ language: "zh-CN" }));
+    const localeClient = makeLocaleClient("zh-CN");
+
+    render(
+      <I18nProvider initialLocale="zh-CN" client={localeClient}>
+        <SettingsWindow client={client} />
+      </I18nProvider>,
+    );
+
+    expect(await screen.findByRole("tab", { name: "常规" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "设置" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "保存" })).toBeTruthy();
+    expect(screen.getByRole("switch", { name: "启用休息" })).toBeTruthy();
+  });
+
   it("shows the four settings tabs and opens General by default", async () => {
     const client = makeClient(makeSettings());
 
@@ -199,6 +256,25 @@ describe("SettingsWindow", () => {
     expect(immediatelyStart.getAttribute("aria-checked")).toBe("true");
     expect(immediatelyStart.hasAttribute("disabled")).toBe(false);
     expect(endBreak.getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("aligns the Snooze length and limit fields with matching label rows", async () => {
+    const client = makeClient(makeSettings());
+    render(<SettingsWindow client={client} />);
+
+    const snoozeGroup = (
+      await screen.findByRole("switch", { name: "Snooze enabled" })
+    ).closest('[data-settings-group="Snooze"]');
+    expect(snoozeGroup).not.toBeNull();
+
+    const group = within(snoozeGroup as HTMLElement);
+    const lengthLabel = group.getByText("Length").closest("[data-slot=label]");
+    const limitLabel = group.getByText("Limit").closest("[data-slot=label]");
+
+    expect(lengthLabel).not.toBeNull();
+    expect(limitLabel).not.toBeNull();
+    expect(lengthLabel?.className).toContain("leading-none");
+    expect(limitLabel?.className).toContain("leading-none");
   });
 
   it("saves Snooze, Skip and Advanced edits in the General draft", async () => {

@@ -9,6 +9,7 @@ use chrono::Utc;
 use tauri::{AppHandle, Emitter, Runtime};
 
 use crate::breaks::{BreakActionError, BreakEndOutcome, BreakStart, BreakTick};
+use crate::i18n::translate;
 use crate::notifications;
 use crate::sounds;
 use crate::state::AppState;
@@ -19,11 +20,8 @@ use crate::windows;
 /// Renderer event carrying the latest [`crate::breaks::BreakStatus`] snapshot.
 pub const BREAK_STATUS_EVENT: &str = "break-status";
 
-/// Title of the optional idle-reset notification (SPEC-0005).
-pub const IDLE_RESET_NOTIFICATION_TITLE: &str = "Break automatically detected";
-
-/// Title of the break reminder shown in Notification mode (SPEC-0008).
-pub const BREAK_NOTIFICATION_TITLE: &str = "Time for a break!";
+/// Broadcast emitted when saving settings changes the effective UI locale.
+pub const LOCALE_CHANGED_EVENT: &str = "locale-changed";
 
 /// Advances the scheduler by one tick and applies the resulting side effects.
 pub fn tick<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
@@ -40,7 +38,7 @@ pub fn tick<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
         BreakTick::None => tray::refresh(app),
         BreakTick::IdleReset(reset) => {
             if reset.notify {
-                notify_idle_reset(app, reset.idle_seconds);
+                notify_idle_reset(app, state, reset.idle_seconds);
             }
             emit_status(app, state);
         }
@@ -146,9 +144,11 @@ fn break_ended<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
     emit_status(app, state);
 }
 
-fn notify_idle_reset<R: Runtime>(app: &AppHandle<R>, idle_seconds: u64) {
-    let body = idle_reset_body(idle_seconds);
-    if let Err(error) = notifications::notify(app, IDLE_RESET_NOTIFICATION_TITLE, &body) {
+fn notify_idle_reset<R: Runtime>(app: &AppHandle<R>, state: &AppState, idle_seconds: u64) {
+    let locale = state.effective_locale();
+    let title = translate(&locale, "notification.idleTitle", &[]);
+    let body = idle_reset_body(idle_seconds, &locale);
+    if let Err(error) = notifications::notify(app, &title, &body) {
         eprintln!("failed to show idle reset notification: {error}");
     }
 }
@@ -163,9 +163,11 @@ fn is_notification_mode(state: &AppState) -> bool {
 /// Deliberately never touches [`windows`]: this mode must not open an overlay.
 fn notify_break<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
     let settings = state.store.settings();
-    let body = notification_body(&settings.break_message);
+    let locale = state.effective_locale();
+    let title = notification_title(&settings.break_title, &locale);
+    let body = notification_body(&settings.break_message, &locale);
 
-    if let Err(error) = notifications::notify(app, BREAK_NOTIFICATION_TITLE, &body) {
+    if let Err(error) = notifications::notify(app, &title, &body) {
         eprintln!("failed to show break notification: {error}");
     }
     sounds::play(&settings, true);
@@ -174,17 +176,33 @@ fn notify_break<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
     emit_status(app, state);
 }
 
+/// Notification title from the user's break title (SPEC-0008).
+fn notification_title(break_title: &str, locale: &str) -> String {
+    let default_title = translate("en-US", "break.defaultTitle", &[]);
+    if break_title == default_title {
+        translate(locale, "break.defaultTitle", &[])
+    } else {
+        notifications::strip_html(break_title)
+    }
+}
+
 /// Plain-text notification body for Notification mode (SPEC-0008).
-fn notification_body(break_message: &str) -> String {
-    notifications::strip_html(break_message)
+fn notification_body(break_message: &str, locale: &str) -> String {
+    let default_message = translate("en-US", "break.defaultMessage", &[]);
+    if break_message == default_message {
+        translate(locale, "break.defaultMessage", &[])
+    } else {
+        notifications::strip_html(break_message)
+    }
 }
 
 /// Formats the idle duration as the legacy `Away for HH:MM:SS` body (SPEC-0005).
-fn idle_reset_body(idle_seconds: u64) -> String {
+fn idle_reset_body(idle_seconds: u64, locale: &str) -> String {
     let hours = idle_seconds / 3600;
     let minutes = (idle_seconds % 3600) / 60;
     let seconds = idle_seconds % 60;
-    format!("Away for {hours:02}:{minutes:02}:{seconds:02}")
+    let duration = format!("{hours:02}:{minutes:02}:{seconds:02}");
+    translate(locale, "notification.idleBody", &[("duration", &duration)])
 }
 
 /// Broadcasts the current scheduler snapshot to every window.
@@ -203,18 +221,44 @@ mod tests {
 
     #[test]
     fn idle_reset_body_formats_the_away_duration() {
-        assert_eq!(idle_reset_body(0), "Away for 00:00:00");
-        assert_eq!(idle_reset_body(59), "Away for 00:00:59");
-        assert_eq!(idle_reset_body(60), "Away for 00:01:00");
-        assert_eq!(idle_reset_body(3_661), "Away for 01:01:01");
-        assert_eq!(idle_reset_body(360_000), "Away for 100:00:00");
+        assert_eq!(idle_reset_body(0, "en-US"), "Away for 00:00:00");
+        assert_eq!(idle_reset_body(59, "en-US"), "Away for 00:00:59");
+        assert_eq!(idle_reset_body(60, "en-US"), "Away for 00:01:00");
+        assert_eq!(idle_reset_body(3_661, "en-US"), "Away for 01:01:01");
+        assert_eq!(idle_reset_body(360_000, "en-US"), "Away for 100:00:00");
+        assert_eq!(idle_reset_body(3_661, "zh-CN"), "已离开 01:01:01");
     }
 
     #[test]
     fn notification_body_is_plain_text() {
         assert_eq!(
-            notification_body("Rest <b>your</b> eyes.<br>Stretch."),
+            notification_body("Rest <b>your</b> eyes.<br>Stretch.", "en-US"),
             "Rest your eyes. Stretch."
+        );
+    }
+
+    #[test]
+    fn default_break_message_follows_locale_but_custom_text_is_unchanged() {
+        let default_message = crate::state::Settings::default().break_message;
+        assert_eq!(
+            notification_body(&default_message, "zh-CN"),
+            "放松眼睛。\n伸展双腿。\n深呼吸，放松。"
+        );
+        assert_eq!(
+            notification_body("Look <b>away</b>.<br>Stretch.", "zh-CN"),
+            "Look away. Stretch."
+        );
+    }
+
+    #[test]
+    fn notification_title_uses_the_configured_break_title() {
+        let default_title = crate::state::Settings::default().break_title;
+
+        assert_eq!(notification_title(&default_title, "zh-CN"), "该休息了。");
+        assert_eq!(notification_title("Stand up.", "zh-CN"), "Stand up.");
+        assert_eq!(
+            notification_title("Look <b>away</b>.", "zh-CN"),
+            "Look away."
         );
     }
 }
