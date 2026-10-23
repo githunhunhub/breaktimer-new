@@ -2,7 +2,7 @@
 
 - 状态：in-progress
 - 日期：2026-10-23
-- 关联：ADR-0013 · PLAN-0004 · SPEC-0011 · SPEC-0012
+- 关联：ADR-0013 · ADR-0014 · PLAN-0004 · SPEC-0011 · SPEC-0012
 
 ## 背景 / 问题
 
@@ -17,7 +17,9 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
 2. Tag 指向的提交必须已包含在 GitHub `master` 分支历史中；`vX.Y.Z` 的 `X.Y.Z` 必须与
    `app/package.json`、`app/src-tauri/tauri.conf.json`、`app/src-tauri/Cargo.toml` 和
    `app/src-tauri/Cargo.lock` 中 `breaktimer-new` 包的版本完全一致。
-3. 提供共享版本检查脚本和本地发布脚本：
+3. 提供共享版本检查脚本、本地发布脚本和单命令入口：
+   - `pnpm release <version>` 在全部检查通过后更新版本、按需提交、推送双远程
+     `master`、创建 Tag，并只把 Tag 推送到 GitHub；
    - `pnpm release:version <version>` 只更新四处版本，不创建提交或 Tag；
    - `pnpm release:check v<version>` 校验 Tag 与四处版本一致；
    - `pnpm release:tag <version>` 仅在 `master`、工作区干净、与上游同步、版本一致且 Tag
@@ -31,8 +33,8 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
 7. 只有校验、Windows 构建和变更日志全部成功后才创建 GitHub Release。Release 应上传 NSIS、
    便携 ZIP、`CHANGES.md` 和 `SHA256SUMS.txt`，正文使用生成的变更日志。
 8. Workflow 默认只读仓库内容，仅创建 Release 的 Job 获得 `contents: write`。
-9. 当前流水线只支持 Windows x64、未签名 NSIS 与便携 ZIP；不包含代码签名、自动更新、
-   macOS/Linux 构建或 Gitee 自动镜像。
+9. GitHub 是唯一发布平台，Gitee 只备份 `master`；当前流水线只支持 Windows x64、未签名
+   NSIS 与便携 ZIP，不包含代码签名、自动更新或 macOS/Linux 构建。
 
 ## 验收标准（可测）
 
@@ -49,13 +51,15 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
       当前版本日志。
 - [x] **R9** Release Job 依赖校验、构建和变更日志 Job；任一前置失败时不创建 Release。
 - [x] **R10** Workflow 通过 `actionlint` 静态校验，YAML 可被仓库格式化检查接受。
-- [ ] **R11** 推送首个正式 `v0.1.0` Tag 后，GitHub Actions 按 Tag 自动完成构建并创建公开
-      Release，上传四类资产；该端到端验证留待用户明确发布时执行。
+- [x] **R11** 推送首个正式 `v0.1.0` Tag 后，GitHub Actions 按 Tag 自动完成构建并创建公开
+      Release，上传 NSIS、便携 ZIP、`CHANGES.md` 与 `SHA256SUMS.txt`。
+- [ ] **R12** `pnpm release <version>` 在单一确认后完成预检、测试、版本同步、按需提交、
+      双远程 `master` 推送和 GitHub Tag 推送，不向 Gitee 推送发布 Tag。
 
 ## 非目标 / 边界
 
-- 不自动修改版本文件或自动创建版本提交。
-- 不自动推送 Tag；本地脚本只创建 Tag。
+- GitHub Actions 不修改版本文件；版本更新与按需提交只由本地单命令发布入口执行。
+- 单命令入口不自动创建 Gitee Tag 或 Gitee Release。
 - 不自动发布到 Gitee，也不维护 Gitee 与 GitHub 双流水线。
 - 不生成 macOS/Linux 产物。
 - 不添加代码签名、公证、SBOM、自动更新或 Release 草稿审批。
@@ -78,6 +82,7 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
 - [x] 创建 SPEC、ADR 与实施计划。
 - [x] 实现四处版本更新/校验脚本及单元测试。
 - [x] 实现本地发布 Tag 脚本与 package scripts。
+- [x] 实现 `pnpm release` 单命令入口并明确 GitHub 主仓库、Gitee 备份边界。
 - [x] 配置 `git-cliff` 和 GitHub Release Workflow。
 - [x] 执行静态检查、自动化测试与文档收口。
 - [ ] 首个正式 Tag 的 GitHub Actions 端到端验收。
@@ -88,3 +93,5 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-10-23 | 创建并确认；采用严格版本一致性和单一 Tag 发布流水线                                                                                                                    |
 | 2026-10-23 | 本地脚本、Workflow 与静态验证完成：版本脚本 16 tests、前端 70 tests、Rust 107 tests、`actionlint` 与 `git-cliff --latest` 模拟均通过；未创建 Tag，等待正式发布验收 R11 |
+| 2026-10-23 | 新增 `pnpm release` 单命令入口；发布 Tag 只推送 GitHub，Gitee 改为纯 `master` 代码备份（ADR-0014）                                                                     |
+| 2026-10-23 | GitHub Actions 运行 `39916285967` 成功；公开 `v0.1.0` Release 已包含四类资产，R11 通过                                                                                 |

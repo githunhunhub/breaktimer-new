@@ -76,7 +76,8 @@
 - Windows Job 运行前后端自动化门禁，生成便携 ZIP，并从同一 release executable 生成
   NSIS；`git-cliff` 从上一发布 Tag 到当前 Tag 的 Conventional Commits 生成 Release Notes。
 - 全部前置 Job 成功后才创建公开 GitHub Release，上传 NSIS、便携 ZIP、`CHANGES.md` 和
-  `SHA256SUMS.txt`。Gitee 发布仍保持独立流程。
+  `SHA256SUMS.txt`。GitHub 是唯一发布平台；Gitee 只备份 `master`，不接收发布 Tag 或
+  Release（ADR-0014）。
 
 ## 与旧架构的关键差异
 

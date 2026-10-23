@@ -25,7 +25,7 @@ Tauri v2、Rust 2024、Windows NSIS。
 ## Global Constraints
 
 - 仅 `vMAJOR.MINOR.PATCH` Tag Push 触发；普通 push 不构建、不发布。
-- Tag 提交必须已包含在 `origin/master`；CI 不自动改写版本文件。
+- Tag 提交必须已包含在 GitHub `master`；CI 不自动改写版本文件。
 - `package.json`、`tauri.conf.json`、`Cargo.toml`、`Cargo.lock` 四处版本必须一致。
 - Workflow 默认 `contents: read`，仅 release Job 使用 `contents: write`。
 - Release 只在 meta、Windows build、changelog 全部成功后创建。
@@ -36,20 +36,23 @@ Tauri v2、Rust 2024、Windows NSIS。
 
 ## 文件边界
 
-| 文件                                                 | 责任                                                         |
-| ---------------------------------------------------- | ------------------------------------------------------------ |
-| `app/scripts/release-version.mjs`                    | SemVer 规范化、四处版本读取/比较/更新                        |
-| `app/scripts/release-version.test.mjs`               | 版本脚本纯函数与临时文件集成测试                             |
-| `app/scripts/release-tag.ps1`                        | 本地分支、干净状态、上游同步、Tag 唯一性检查与 annotated Tag |
-| `app/package.json`                                   | 暴露 `release:version`、`release:check`、`release:tag`       |
-| `.github/cliff.toml`                                 | Conventional Commits 分组、版本范围与 Markdown 格式          |
-| `.github/workflows/release.yml`                      | 唯一 Tag 发布入口和四个 Job                                  |
-| `docs/specs/0015-github-tag-release.md`              | 需求与验收状态                                               |
-| `docs/decisions/0013-github-tag-release-pipeline.md` | 版本与发布架构决策                                           |
-| `docs/specs/README.md`                               | Spec 索引                                                    |
-| `docs/roadmap.md`                                    | 后续需求状态                                                 |
-| `docs/architecture.md`                               | 当前发布流水线说明                                           |
-| `README.md`                                          | 用户下载与 SmartScreen 验证入口切换为 GitHub Releases        |
+| 文件                                                 | 责任                                                              |
+| ---------------------------------------------------- | ----------------------------------------------------------------- |
+| `app/scripts/release-version.mjs`                    | SemVer 规范化、四处版本读取/比较/更新                             |
+| `app/scripts/release-version.test.mjs`               | 版本脚本纯函数与临时文件集成测试                                  |
+| `app/scripts/release-tag.ps1`                        | 本地分支、干净状态、上游同步、Tag 唯一性检查与 annotated Tag      |
+| `app/scripts/release.ps1`                            | 单命令预检、测试、版本提交、双远程分支推送与 GitHub Tag 发布      |
+| `app/package.json`                                   | 暴露 `release`、`release:version`、`release:check`、`release:tag` |
+| `.github/cliff.toml`                                 | Conventional Commits 分组、版本范围与 Markdown 格式               |
+| `.github/workflows/release.yml`                      | 唯一 Tag 发布入口和四个 Job                                       |
+| `docs/specs/0015-github-tag-release.md`              | 需求与验收状态                                                    |
+| `docs/decisions/0013-github-tag-release-pipeline.md` | 版本与发布架构决策                                                |
+| `docs/decisions/0014-github-primary-gitee-backup.md` | GitHub 主仓库与 Gitee 纯备份边界                                  |
+| `docs/specs/README.md`                               | Spec 索引                                                         |
+| `docs/roadmap.md`                                    | 后续需求状态                                                      |
+| `docs/architecture.md`                               | 当前发布流水线说明                                                |
+| `README.md`                                          | 用户下载与 SmartScreen 验证入口切换为 GitHub Releases             |
+| `DEVELOPMENT.md`                                     | 开发者单命令发布和本地打包说明                                    |
 
 ## Task 1：共享版本脚本
 
@@ -154,6 +157,33 @@ git rev-parse --verify "refs/tags/$tag"
 ```
 
 Expected: Tag 创建在 `master` HEAD，脚本只打印推送命令，不执行推送。
+
+## Task 2A：单命令发布入口
+
+**Files:**
+
+- Create: `app/scripts/release.ps1`
+- Modify: `app/package.json`
+- Modify: `DEVELOPMENT.md`
+
+**Interfaces:**
+
+- Produces CLI: `pnpm release <version>`
+- Consumes: `release:version`、`release:check` 与 `release-tag`
+- Produces: 单个确认后的版本提交、双远程 `master` 推送和 GitHub Tag 推送
+
+- [x] **Step 1: 实现预检与恢复**
+
+- 要求 `master` 跟踪 `github/master`、工作区干净，且本地不落后于两个远程。
+- GitHub 已存在同名 Tag 时拒绝执行。
+- 版本文件在确认提交前发生变化但流程取消或失败时恢复原内容。
+
+- [x] **Step 2: 实现测试与发布**
+
+- 在版本更新前运行完整前端和 Rust 门禁。
+- 版本变化时提交 `chore(release): 发布 <version>`。
+- 先推送 `master` 到 GitHub 和 Gitee，再只创建并推送 GitHub Tag。
+- 不执行 `git push --tags`，也不创建 Gitee Tag 或 Release。
 
 ## Task 3：变更日志配置
 
@@ -309,10 +339,14 @@ Expected: PASS，输出四处版本均为 `0.1.0`。
   以 `v0.0.1 -> v0.1.0` 验证 `--latest` 只输出当前版本范围。
 - 2026-10-23：前端 format/lint/typecheck/test（70）/build 通过；Rust fmt/check/test（107）
   通过；`git diff --check` 通过。
-- 2026-10-23：未执行本地 Tauri 打包，未创建或推送正式 Tag；R11 等待用户明确发布后验证。
+- 2026-10-23：GitHub Actions 运行 `39916285967` 在 `v0.1.0` 上成功，公开 Release 已生成
+  NSIS、便携 ZIP、`CHANGES.md` 与 `SHA256SUMS.txt`，R11 通过。
+- 2026-10-23：新增 `pnpm release <version>` 单命令入口；PowerShell 语法检查通过，脏工作区
+  会在版本修改前拒绝，`package.json` 哈希保持不变。
 
 ## 变更记录
 
-| 日期       | 变更                                                      |
-| ---------- | --------------------------------------------------------- |
-| 2026-10-23 | 创建并进入实现；采用严格版本一致性和单一 Release Workflow |
+| 日期       | 变更                                                       |
+| ---------- | ---------------------------------------------------------- |
+| 2026-10-23 | 创建并进入实现；采用严格版本一致性和单一 Release Workflow  |
+| 2026-10-23 | 增加单命令发布入口；GitHub 为主仓库，Gitee 仅备份 `master` |
