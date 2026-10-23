@@ -46,6 +46,7 @@
 - Windows System 页签（2026-10-22）：仅展示实际生效的 `Start at login`，不再显示 macOS-only 的 `Menu Bar Text`；`trayTextEnabled`、`trayTextMode` 与 macOS 标题逻辑继续保留，避免破坏设置兼容性
 - 历史路径清理（2026-10-22）：`master` 的全部 32 个提交已重写，真实 Windows 用户目录替换为 `%USERPROFILE%`，真实仓库绝对路径替换为 `<repo-root>`；独立核验确认父关系、提交说明、作者、时间和 merge 结构保留，文件差异仅为占位符替换。高置信度密钥扫描为 0 命中，含旧路径的临时 bundle 与对比仓库已删除；其他已合并功能分支已删除，仅保留 `master`
 - 多语言支持验收（2026-10-23，SPEC-0014 / ADR-0012 / PLAN-0003）：首版 `en-US` / `zh-CN`，React 与 Rust 共用 `app/locales/*.json`；`language=null` 跟随启动时系统语言，保存后广播 `locale-changed`；L1-L15 与验收反馈修复全部通过。Notification 标题读取 `breakTitle`，Snooze 时长/次数上限基线对齐，中文短单位为“分”；SPEC-0008、SPEC-0014 与 PLAN-0003 均已收口为 `done`
+- 用户版 README（2026-10-23）：根 `README.md` 改为面向 Windows 用户的安装、便携版、快速开始和 FAQ；原开发/AI 入口迁移到 `DEVELOPMENT.md`，SPEC-0001 的克隆步骤引用同步更新
 
 ## 关键约定
 
@@ -58,7 +59,7 @@
 
 ## 后续入口
 
-- 多语言功能已完成验收与文档收口；等待用户明确的提交指令，未收到前不得提交或推送。
+- 多语言功能与 README 文档调整已完成；等待用户明确的提交指令，未收到前不得提交或推送。
 - 当前无重构阶段或发布阻塞；SPEC-0002/0005/0006/0010/0012/0013 均已同步为 `done`。
 - 后续新功能或问题按正常开发流程处理：先确认需求，再新建或更新 `docs/specs/`，按风险补测试，
   自动验证与必要人工验收通过后再提交；不再使用 M0-M5 重构阶段作为任务组织方式。

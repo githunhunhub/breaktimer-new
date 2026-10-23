@@ -2,7 +2,8 @@
 
 - 状态：done
 - 日期：2026-10-13
-- 关联：ADR-0001 · 根目录 `.gitattributes` / `.editorconfig` / `.gitignore` / `README.md`
+- 关联：ADR-0001 · 根目录 `.gitattributes` / `.editorconfig` / `.gitignore` /
+  `README.md` / `DEVELOPMENT.md`
 
 ## 背景 / 问题
 
@@ -25,7 +26,7 @@
 - [x] `.gitattributes` 统一文本换行并识别常见二进制资源。
 - [x] `.editorconfig` 统一编码、缩进、行尾与文件末尾换行。
 - [x] `.gitignore` 只排除应由源码、锁文件或本地环境重建的内容；VS Code 共享配置按白名单跟踪。
-- [x] `README.md` 给出干净克隆与 submodule 初始化命令。
+- [x] `DEVELOPMENT.md` 给出干净克隆与 submodule 初始化命令。
 - [x] `git status --short --ignored` 不隐藏应跟踪的项目内容。
 - [x] 后续 `app/` 初始化时，源码、配置与依赖锁文件一并提交。
 
@@ -46,12 +47,13 @@
 
 - [x] 新增 `.gitattributes` 与 `.editorconfig`。
 - [x] 调整 `.gitignore`，保留共享编辑器配置的入库入口。
-- [x] 更新 `README.md` 与 `AGENTS.md`。
+- [x] 更新开发文档与 `AGENTS.md`。
 - [x] 验证工作区、索引与忽略状态。
 
 ## 变更记录
 
-| 日期 | 变更 |
-| --- | --- |
-| 2026-10-13 | 创建、确认并完成仓库基线配置 |
-| 2026-10-22 | 删除独立 AI 学习笔记目录，验收清单同步收敛到现有 Git 跟踪内容 |
+| 日期       | 变更                                                                              |
+| ---------- | --------------------------------------------------------------------------------- |
+| 2026-10-13 | 创建、确认并完成仓库基线配置                                                      |
+| 2026-10-22 | 删除独立 AI 学习笔记目录，验收清单同步收敛到现有 Git 跟踪内容                     |
+| 2026-10-23 | 根 README 改为用户安装与使用说明；开发入口和跨设备克隆步骤迁移到 `DEVELOPMENT.md` |
