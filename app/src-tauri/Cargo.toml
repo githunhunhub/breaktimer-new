@@ -1,6 +1,6 @@
 [package]
 name = "breaktimer-new"
-version = "0.1.0"
+version = "0.1.1"
 description = "Manage periodic breaks"
 authors = ["BreakTimer-new contributors"]
 edition = "2024"

@@ -348,7 +348,7 @@ dependencies = [
 
 [[package]]
 name = "breaktimer-new"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "include_dir",
