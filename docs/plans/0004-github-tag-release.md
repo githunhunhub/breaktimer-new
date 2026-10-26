@@ -365,6 +365,8 @@ Expected: PASS，输出四处版本均为 `0.1.0`。
   `BreakTimer-new_vX.Y.Z_x64-*`，实际 GitHub Release 待下一次正式 Tag 验证。
 - 2026-10-26：`pnpm release 0.1.1` 首次执行发现 Windows PowerShell 5 合并可变参数，
   导致 `git fetch` 参数错误；改为显式参数数组并补回归测试，修复后重新发布。
+- 2026-10-26：GitHub Actions `40260715832` 成功；公开 `v0.1.1` Release 已完成端到端验证，
+  资产名包含 `BreakTimer-new_v0.1.1_x64-*`，发布脚本成功路径与资产命名均通过验收。
 
 ## 变更记录
 

@@ -47,3 +47,10 @@
   在修复前复现失败，修复后 19 项版本脚本测试通过。
 - 测试探针最初调用真实 `git fetch github`，在无该远程的 GitHub Actions runner 上触发了
   网络/远程依赖；改为只读的 `git --version`，仍验证参数未合并，且测试不依赖远程配置。
+
+## 发布完成
+
+- 2026-10-26：`v0.1.1` 通过 GitHub Actions `40260715832` 发布成功。
+- GitHub Release 资产为 `BreakTimer-new_v0.1.1_x64-setup.exe`、
+  `BreakTimer-new_v0.1.1_x64-portable.zip`、`CHANGES.md` 和 `SHA256SUMS.txt`。
+- `master` 与 `develop` 已推送到 GitHub/Gitee；`develop` 已同步包含 `v0.1.1` 发版提交。

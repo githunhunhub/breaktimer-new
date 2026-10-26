@@ -106,3 +106,4 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
 | 2026-10-23 | GitHub Actions 运行 `39916285967` 成功；公开 `v0.1.0` Release 已包含四类资产，R11 通过                                                                                 |
 | 2026-10-23 | 首个版本发布后切换为 `develop` 日常开发、`master` 发版；发布资产文件名统一使用 `BreakTimer-new_vX.Y.Z_x64-*`                                                       |
 | 2026-10-26 | 修复 Windows PowerShell 5 下发布脚本原生命令参数被合并的问题，并补充参数转发回归测试                                                                                 |
+| 2026-10-26 | GitHub Actions `40260715832` 成功发布 `v0.1.1`，资产名与 README 预期一致                                                                                              |

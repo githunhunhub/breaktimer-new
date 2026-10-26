@@ -67,6 +67,10 @@
 - GitHub Tag 发布流水线已实现并完成本地/静态验证；实现提交 `f93e159` 已推送到 GitHub `github/master` 与 Gitee `origin/master`。
 - 后续正式发布使用 `pnpm release <version>`；单命令成功路径尚未用 0.2.0 实际演练，SPEC-0015 R12 保持未完成。
 - 当前开发分支为 `develop`；`6999c91` 已提交单命令发布入口，发布后修复已通过人工验收并随本轮提交推送 `develop`。
+- `v0.1.1` 已发布（2026-10-26）：GitHub Release 工作流 `40260715832` 成功；资产使用带 `v` 的
+  `BreakTimer-new_v0.1.1_x64-setup.exe` 与 `BreakTimer-new_v0.1.1_x64-portable.zip`；
+  `master`、`develop` 在 GitHub/Gitee 同步，`develop` 已同步包含发版提交。
+- 发布脚本的 PowerShell 5 参数转发已验证并修复；完整发布成功路径已通过 `v0.1.1` 演练。
 - 发布资产带 `v` 的命名已通过自动化测试；下一次正式 Tag 时仍需端到端确认 GitHub Release 文件名。
 - 当前无重构阶段或发布阻塞；SPEC-0002/0005/0006/0010/0012/0013 均已同步为 `done`。
 - 后续新功能或问题按正常开发流程处理：先确认需求，再新建或更新 `docs/specs/`，按风险补测试，
