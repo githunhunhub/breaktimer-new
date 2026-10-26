@@ -45,3 +45,5 @@
   `ValueFromRemainingArguments` 后的参数合并为一个字符串，`git fetch` 因此被误解析。
 - `Invoke-Native` 改为显式 `[string[]]$Arguments`；新增 PowerShell 5 参数转发回归测试，
   在修复前复现失败，修复后 19 项版本脚本测试通过。
+- 测试探针最初调用真实 `git fetch github`，在无该远程的 GitHub Actions runner 上触发了
+  网络/远程依赖；改为只读的 `git --version`，仍验证参数未合并，且测试不依赖远程配置。
