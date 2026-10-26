@@ -48,7 +48,10 @@
 - 多语言支持验收（2026-10-23，SPEC-0014 / ADR-0012 / PLAN-0003）：首版 `en-US` / `zh-CN`，React 与 Rust 共用 `app/locales/*.json`；`language=null` 跟随启动时系统语言，保存后广播 `locale-changed`；L1-L15 与验收反馈修复全部通过。Notification 标题读取 `breakTitle`，Snooze 时长/次数上限基线对齐，中文短单位为“分”；SPEC-0008、SPEC-0014 与 PLAN-0003 均已收口为 `done`
 - 用户版 README（2026-10-23）：根 `README.md` 改为面向 Windows 用户的安装、便携版、快速开始和 FAQ；原开发/AI 入口迁移到 `DEVELOPMENT.md`，SPEC-0001 的克隆步骤引用同步更新
 - GitHub 发布流水线（2026-10-23，SPEC-0015 / ADR-0013 / PLAN-0004）：`master` 上的 `vX.Y.Z` Tag 触发单一 Release Workflow；本地脚本更新/校验 `package.json`、`tauri.conf.json`、`Cargo.toml`、`Cargo.lock` 四处版本并创建 annotated Tag，CI 独立校验 Tag 属于 `master` 且版本一致；Windows Job 生成便携 ZIP 与同源 NSIS，`git-cliff` 生成当前 Tag 范围日志，全部成功后才发布 GitHub Release
-- GitHub 发布流水线验证（2026-10-23）：版本脚本 16 tests、前端 70 tests、Rust 107 tests、lint/typecheck/format/build、`actionlint` 与 `git-cliff --latest` 临时范围模拟均通过；未执行本地打包，未创建/推送 `v0.1.0`，SPEC-0015 R11 等待首个正式 Tag 端到端验收
+- GitHub 发布流水线验证（2026-10-23）：版本脚本 16 tests、前端 70 tests、Rust 107 tests、lint/typecheck/format/build、`actionlint` 与 `git-cliff --latest` 临时范围模拟均通过；GitHub Actions 运行 `39916285967` 成功，公开 `v0.1.0` Release 已上传 NSIS、便携 ZIP、`CHANGES.md` 与 `SHA256SUMS.txt`，R11 通过
+- 单命令发布（2026-10-23，SPEC-0015 / ADR-0014）：`pnpm release <version>` 自动完成预检、完整前后端门禁、版本同步、按需提交、双远程 `master` 推送和 GitHub Tag 推送；Gitee 仅为代码备份，不接收发布 Tag/Release；脚本在脏工作区会于改版本前拒绝，取消或失败时恢复四处版本文件
+- 分支策略（2026-10-23，ADR-0015）：`v0.1.0` 发布后从该 Tag 创建 `develop`；后续日常开发、提交与开发分支推送都在 `develop`，`master` 只接收发版合入和发布脚本生成的版本提交
+- 发布后修复（2026-10-23，SPEC-0010 / SPEC-0015）：Release 资产统一命名为 `BreakTimer-new_vX.Y.Z_x64-setup.exe` 与 `BreakTimer-new_vX.Y.Z_x64-portable.zip`；设置保存仅在休息频率或启停状态变化时重启调度，其他字段保留当前倒计时
 
 ## 关键约定
 
@@ -62,7 +65,9 @@
 ## 后续入口
 
 - GitHub Tag 发布流水线已实现并完成本地/静态验证；实现提交 `f93e159` 已推送到 GitHub `github/master` 与 Gitee `origin/master`。
-- 首次 GitHub 发布需先确保 `master` 与 `github/master` 同步，再执行 `pnpm release:tag 0.1.0` 并推送 `v0.1.0`；只有实际 Release 成功后 SPEC-0015 才能改为 `done`。
+- 后续正式发布使用 `pnpm release <version>`；单命令成功路径尚未用 0.2.0 实际演练，SPEC-0015 R12 保持未完成。
+- 当前开发分支为 `develop`；`6999c91` 已提交单命令发布入口，发布后修复已通过人工验收并随本轮提交推送 `develop`。
+- 发布资产带 `v` 的命名已通过自动化测试；下一次正式 Tag 时仍需端到端确认 GitHub Release 文件名。
 - 当前无重构阶段或发布阻塞；SPEC-0002/0005/0006/0010/0012/0013 均已同步为 `done`。
 - 后续新功能或问题按正常开发流程处理：先确认需求，再新建或更新 `docs/specs/`，按风险补测试，
   自动验证与必要人工验收通过后再提交；不再使用 M0-M5 重构阶段作为任务组织方式。

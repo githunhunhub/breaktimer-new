@@ -1,3 +1,7 @@
+import { execFile } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -8,6 +12,30 @@ import {
   replaceTomlPackageVersion,
   verifyVersions,
 } from "./release-version.mjs";
+
+const execFileAsync = promisify(execFile);
+const scriptPath = fileURLToPath(
+  new URL("./release-version.mjs", import.meta.url),
+);
+
+describe("release asset names", () => {
+  it.each([
+    ["nsis", "BreakTimer-new_v0.1.0_x64-setup.exe"],
+    ["portable", "BreakTimer-new_v0.1.0_x64-portable.zip"],
+  ])(
+    "emits the %s asset name with a v-prefixed version",
+    async (kind, name) => {
+      const { stdout } = await execFileAsync(process.execPath, [
+        scriptPath,
+        "asset-name",
+        kind,
+        "v0.1.0",
+      ]);
+
+      expect(stdout.trim()).toBe(name);
+    },
+  );
+});
 
 describe("parseVersion", () => {
   it.each(["0.1.0", "v1.2.3"])("accepts %s", (value) => {

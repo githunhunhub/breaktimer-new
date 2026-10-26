@@ -24,6 +24,19 @@ export function parseVersion(value) {
   return match.slice(1).join(".");
 }
 
+export function releaseAssetName(kind, rawVersion) {
+  const version = parseVersion(rawVersion);
+  if (kind === "nsis") {
+    return `BreakTimer-new_v${version}_x64-setup.exe`;
+  }
+  if (kind === "portable") {
+    return `BreakTimer-new_v${version}_x64-portable.zip`;
+  }
+  throw new Error(
+    `Unknown release asset kind: ${kind}. Expected nsis or portable.`,
+  );
+}
+
 export function replaceTomlPackageVersion(source, version) {
   const newline = source.includes("\r\n") ? "\r\n" : "\n";
   const lines = source.split(/\r?\n/);
@@ -191,19 +204,30 @@ async function setVersion(rawVersion) {
 }
 
 async function main() {
-  const [command, rawVersion] = process.argv.slice(2);
-  if (!rawVersion) {
+  const [command, first, second] = process.argv.slice(2);
+  if (command === "asset-name") {
+    if (!first || !second) {
+      throw new Error(
+        "Usage: release-version.mjs asset-name <nsis|portable> <version>",
+      );
+    }
+    console.log(releaseAssetName(first, second));
+    return;
+  }
+  if (!first) {
     throw new Error("Usage: release-version.mjs <check|set> <version>");
   }
   if (command === "check") {
-    await checkVersion(rawVersion);
+    await checkVersion(first);
     return;
   }
   if (command === "set") {
-    await setVersion(rawVersion);
+    await setVersion(first);
     return;
   }
-  throw new Error(`Unknown command: ${command}. Expected check or set.`);
+  throw new Error(
+    `Unknown command: ${command}. Expected check, set, or asset-name.`,
+  );
 }
 
 const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : "";

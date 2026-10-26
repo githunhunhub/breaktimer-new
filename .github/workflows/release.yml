@@ -123,19 +123,35 @@ jobs:
         run: |
           $releaseDir = Join-Path (Get-Location) "release-assets"
           New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
+          $version = "${{ needs.meta.outputs.version }}"
 
-          $files = @(
-            Get-ChildItem "src-tauri/target/release/bundle/nsis/*-setup.exe"
-            Get-ChildItem "src-tauri/target/release/bundle/portable/*-portable.zip"
-          )
-          if ($files.Count -ne 2) {
-            throw "Expected exactly one NSIS installer and one portable ZIP, found $($files.Count)."
+          $installers = @(Get-ChildItem "src-tauri/target/release/bundle/nsis/*-setup.exe")
+          if ($installers.Count -ne 1) {
+            throw "Expected exactly one NSIS installer, found $($installers.Count)."
+          }
+          $portables = @(Get-ChildItem "src-tauri/target/release/bundle/portable/*-portable.zip")
+          if ($portables.Count -ne 1) {
+            throw "Expected exactly one portable ZIP, found $($portables.Count)."
           }
 
-          $checksums = foreach ($file in $files) {
-            Copy-Item -LiteralPath $file.FullName -Destination $releaseDir
-            $hash = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-            "$hash  $($file.Name)"
+          $installerName = (node ./scripts/release-version.mjs asset-name nsis $version).Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($installerName)) {
+            throw "Failed to resolve the NSIS installer file name."
+          }
+          $portableName = (node ./scripts/release-version.mjs asset-name portable $version).Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($portableName)) {
+            throw "Failed to resolve the portable ZIP file name."
+          }
+
+          $assets = @(
+            @{ Source = $installers[0].FullName; Name = $installerName }
+            @{ Source = $portables[0].FullName; Name = $portableName }
+          )
+          $checksums = foreach ($asset in $assets) {
+            $destination = Join-Path $releaseDir $asset.Name
+            Copy-Item -LiteralPath $asset.Source -Destination $destination
+            $hash = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($asset.Name)"
           }
           $checksums | Set-Content -Encoding ascii (Join-Path $releaseDir "SHA256SUMS.txt")
 

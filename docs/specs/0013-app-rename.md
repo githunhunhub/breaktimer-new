@@ -23,7 +23,7 @@
 4. 新 identifier 形成独立的安装、配置、缓存、WebView2 数据、通知、单实例、
    自启动和卸载身份；不迁移、不清理旧 `com.breaktimer.app` 身份的数据或注册项。
 5. 便携 ZIP 的顶层目录改为 `BreakTimer-new\`，ZIP 名改为
-   `BreakTimer-new_<version>_x64-portable.zip`，内部可执行文件为
+   `BreakTimer-new_v<version>_x64-portable.zip`，内部可执行文件为
    `breaktimer-new.exe`。
 6. About 明确区分当前项目源码和上游 BreakTimer，不再把当前项目指向旧产品官网。
 7. `breaktimer-app/` 子模块路径、上游 URL、固定提交和历史文档中的既有记录保持不变。

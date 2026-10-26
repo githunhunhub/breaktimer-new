@@ -387,6 +387,41 @@ mod tests {
     }
 
     #[test]
+    fn saving_an_unrelated_setting_keeps_the_scheduled_break() {
+        let store = temp_store("settings-effects-preserve-schedule.json");
+        let state = AppState::new(store);
+        let started_at = DateTime::from_timestamp(1_700_000_000, 0).unwrap();
+        let now = started_at + Duration::seconds(30);
+        let current = Settings {
+            break_frequency_seconds: 120,
+            ..Settings::default()
+        };
+        let next = Settings {
+            break_length_seconds: 90,
+            ..current.clone()
+        };
+
+        {
+            let mut scheduler = state
+                .scheduler
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            scheduler.restart(&current, started_at);
+        }
+
+        state.apply_settings_effects(&next, SettingsEffects::between(&current, &next), now);
+
+        let scheduler = state
+            .scheduler
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        assert_eq!(
+            scheduler.next_break_at(),
+            Some(started_at + Duration::seconds(120))
+        );
+    }
+
+    #[test]
     fn drives_the_scheduler_from_stored_settings() {
         let store = temp_store("appstate-drive.json");
         let settings = Settings {
