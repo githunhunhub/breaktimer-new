@@ -363,6 +363,8 @@ Expected: PASS，输出四处版本均为 `0.1.0`。
 - 2026-10-23：`asset-name` 单元测试 2 项、前端全套 72 项、Rust 全套 108 项、前端
   format/lint/typecheck/build 与 Rust fmt/check 均通过；本地及 CI 命名统一为
   `BreakTimer-new_vX.Y.Z_x64-*`，实际 GitHub Release 待下一次正式 Tag 验证。
+- 2026-10-26：`pnpm release 0.1.1` 首次执行发现 Windows PowerShell 5 合并可变参数，
+  导致 `git fetch` 参数错误；改为显式参数数组并补回归测试，修复后重新发布。
 
 ## 变更记录
 

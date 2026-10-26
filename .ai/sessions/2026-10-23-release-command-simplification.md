@@ -38,3 +38,10 @@
 - 未运行 `pnpm release 0.2.0` 的完整交互式成功路径，因为它会提交、推送并创建正式 Tag。
 - 未向 Gitee 推送任何 Tag。
 - 本轮文件尚未提交或推送。
+
+## 后续修复
+
+- 2026-10-26 首次执行 `pnpm release 0.1.1` 时，Windows PowerShell 5 将
+  `ValueFromRemainingArguments` 后的参数合并为一个字符串，`git fetch` 因此被误解析。
+- `Invoke-Native` 改为显式 `[string[]]$Arguments`；新增 PowerShell 5 参数转发回归测试，
+  在修复前复现失败，修复后 19 项版本脚本测试通过。
