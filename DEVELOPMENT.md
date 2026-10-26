@@ -68,6 +68,10 @@ git push origin develop
 
 正式发布以 GitHub Actions 为准：
 
+- 打 Tag 前必须完成自动化检查，并由用户明确确认人工验收通过；任一检查或验收未通过时
+  不得执行 `pnpm release` 或 `release:tag`。
+- 已推送到 GitHub 的 Tag 不可删除、移动或覆盖。发布流水线失败时，修复后使用下一个
+  patch 版本重新发布。
 - GitHub 推送 `vMAJOR.MINOR.PATCH` Tag 后，自动完成版本校验、前端/Rust 门禁、Windows
   打包、变更日志和 GitHub Release。
 - `master` 是发版专用分支；普通 `develop` 提交不会触发打包或发布。
@@ -98,8 +102,9 @@ pnpm release 0.2.0
 6. 创建 annotated Tag，并**只推送 GitHub**。
 7. 由 GitHub Actions 自动完成 Windows 打包、变更日志和 GitHub Release。
 
-发布前必须提交所有普通代码和文档修改，否则脚本会拒绝执行。`v0.1.0` 已存在于 GitHub，
-不能再次通过该命令发布；需要重跑时直接处理现有 Actions 运行。
+发布前必须提交所有普通代码和文档修改，否则脚本会拒绝执行。示例中的 `v0.2.0` 一旦已推送，
+就不能再通过该命令重新发布；若 Actions 或 Release 发布失败，不要移动该 Tag，应修复后使用
+下一个 patch 版本。
 
 查看 Workflow：
 
@@ -116,8 +121,9 @@ Release 应包含：
 
 - `BreakTimer-new_v<version>_x64-setup.exe`
 - `BreakTimer-new_v<version>_x64-portable.zip`
-- `CHANGES.md`
 - `SHA256SUMS.txt`
+
+变更日志只作为 Release 正文，标题为 `## BreakTimer-new v<version>`，不会上传为 Assets。
 
 下载安装包后可核对哈希：
 

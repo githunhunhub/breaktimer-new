@@ -191,14 +191,6 @@ jobs:
           test -s CHANGES.md
           grep -q '^- ' CHANGES.md
 
-      - name: Upload changelog
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-changelog
-          path: CHANGES.md
-          if-no-files-found: error
-          retention-days: 7
-
   release:
     name: Publish GitHub Release
     needs: [meta, build, changelog]
@@ -212,19 +204,12 @@ jobs:
           name: release-assets
           path: release-assets
 
-      - name: Download changelog
-        uses: actions/download-artifact@v4
-        with:
-          name: release-changelog
-          path: release-changelog
-
       - name: Validate release inputs
         shell: bash
         env:
           RELEASE_BODY: ${{ needs.changelog.outputs.release_body }}
         run: |
           set -euo pipefail
-          test -s release-changelog/CHANGES.md
           test -n "$RELEASE_BODY"
           test "$(find release-assets -maxdepth 1 -type f | wc -l)" -eq 3
 
@@ -232,13 +217,12 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: BreakTimer-new ${{ needs.meta.outputs.version }}
+          name: BreakTimer-new ${{ github.ref_name }}
           body: ${{ needs.changelog.outputs.release_body }}
           files: |
             release-assets/*.exe
             release-assets/*.zip
             release-assets/SHA256SUMS.txt
-            release-changelog/CHANGES.md
           fail_on_unmatched_files: true
           draft: false
           prerelease: false

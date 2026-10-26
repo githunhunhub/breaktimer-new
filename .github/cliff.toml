@@ -2,7 +2,7 @@
 header = ""
 body = """
 {% if version %}\
-## BreakTimer-new {{ version | trim_start_matches(pat="v") }}
+## BreakTimer-new {{ version }}
 {% else %}\
 ## BreakTimer-new 未发布变更
 {% endif %}\

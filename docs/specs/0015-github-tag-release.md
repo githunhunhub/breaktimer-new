@@ -29,14 +29,16 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
 5. Windows 构建 Job 必须完成前端格式、Lint、类型检查、测试、生产构建，以及 Rust 格式、
    Check 和测试；之后从同一份 release executable 生成便携 ZIP和 NSIS 安装包。
 6. 使用 `git-cliff` 从 Conventional Commits 生成当前 Tag 相对上一发布 Tag 的变更日志；
-   日志为空时发布失败。
+   日志为空时发布失败，标题使用带 `v` 的 Tag 版本号。
 7. 只有校验、Windows 构建和变更日志全部成功后才创建 GitHub Release。Release 应上传
    `BreakTimer-new_vX.Y.Z_x64-setup.exe`、
-   `BreakTimer-new_vX.Y.Z_x64-portable.zip`、`CHANGES.md` 和 `SHA256SUMS.txt`，正文使用
-   生成的变更日志。
+   `BreakTimer-new_vX.Y.Z_x64-portable.zip` 和 `SHA256SUMS.txt`；生成的变更日志只作为
+   Release 正文，不上传为 Assets 中的 `CHANGES.md`。
 8. Workflow 默认只读仓库内容，仅创建 Release 的 Job 获得 `contents: write`。
 9. GitHub 是唯一发布平台，Gitee 只备份 `develop` 与 `master`；当前流水线只支持 Windows x64、未签名
    NSIS 与便携 ZIP，不包含代码签名、自动更新或 macOS/Linux 构建。
+10. Tag 只能在完整自动化检查和人工验收均通过后创建。已推送到 GitHub 的 Tag 视为不可变；
+    发布流水线失败时不得移动或覆盖该 Tag，修复并使用下一个 patch 版本重新发布。
 
 ## 验收标准（可测）
 
@@ -50,17 +52,19 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
       版本一致。
 - [x] **R7** Windows 构建 Job 运行完整自动化门禁，并生成 NSIS、便携 ZIP 和 SHA-256 校验文件。
 - [x] **R8** 变更日志 Job 使用 `.github/cliff.toml`、完整 Git 历史和 `--latest` 生成非空
-      当前版本日志。
+      当前版本日志，标题为 `## BreakTimer-new vX.Y.Z`。
 - [x] **R9** Release Job 依赖校验、构建和变更日志 Job；任一前置失败时不创建 Release。
 - [x] **R10** Workflow 通过 `actionlint` 静态校验，YAML 可被仓库格式化检查接受。
 - [x] **R11** 推送首个正式 `v0.1.0` Tag 后，GitHub Actions 按 Tag 自动完成构建并创建公开
-      Release，上传 NSIS、便携 ZIP、`CHANGES.md` 与 `SHA256SUMS.txt`。
-- [ ] **R12** `pnpm release <version>` 在单一确认后完成预检、测试、版本同步、按需提交、
+      Release；首轮验收时还上传了 `CHANGES.md`，后续由 R14 取消。
+- [x] **R12** `pnpm release <version>` 在单一确认后完成预检、测试、版本同步、按需提交、
       双远程 `master` 推送和 GitHub Tag 推送，不向 Gitee 推送发布 Tag。
-- [ ] **R13** GitHub Release 的安装包与便携 ZIP 使用带 `v` 的版本号，文件名分别为
-      `BreakTimer-new_vX.Y.Z_x64-setup.exe` 和
-      `BreakTimer-new_vX.Y.Z_x64-portable.zip`。
-      命名逻辑已由单元测试覆盖，待下一次正式 GitHub Release 端到端确认。
+- [x] **R13** GitHub Release 的安装包与便携 ZIP 使用带 `v` 的版本号，文件名分别为
+      `BreakTimer-new_vX.Y.Z_x64-setup.exe` 和 `BreakTimer-new_vX.Y.Z_x64-portable.zip`。
+- [ ] **R14** 后续 Release 正文标题为 `## BreakTimer-new vX.Y.Z`，Assets 仅包含 NSIS、
+      便携 ZIP 和 `SHA256SUMS.txt`，不包含 `CHANGES.md`。
+- [ ] **R15** 后续发布在自动化检查和人工验收全部通过后才创建 Tag；已推送的 Tag 不移动或
+      覆盖，发布失败时改用下一个 patch 版本。
 
 ## 非目标 / 边界
 
@@ -75,10 +79,12 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
 ## 设计要点
 
 - Tag 是发布的身份来源，但 Tag 必须由已提交的四处版本文件支撑；CI 不静默改写版本。
+- Tag 是发布后的不可变身份；失败恢复通过新版本完成，不改写既有发布历史。
 - 本地脚本负责减少人工操作错误，CI 负责独立守门，不能只依赖本地脚本。
 - 单一 `.github/workflows/release.yml` 串联 `meta -> build/changelog -> release`，减少跨
   Workflow 状态传递。
 - `git-cliff` 只从 Conventional Commits 提取日志；非 Conventional 的合并提交不进入正文。
+- `CHANGES.md` 仅作为 CI 内部生成与校验的临时文件，正文直接传给 Release，不进入 Assets。
 - NSIS 在便携 ZIP 生成后通过 `tauri bundle --no-binary-patching` 复用同一 release
   executable，避免两套安装包来自不同构建。
 
@@ -92,9 +98,11 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
 - [x] 实现 `pnpm release` 单命令入口并明确 GitHub 主仓库、Gitee 备份边界。
 - [x] 确定 `develop` 日常开发、`master` 发版的分支模型（ADR-0015）。
 - [x] 实现带 `v` 的发布资产命名，并让本地便携打包与 CI 共用同一规则。
+- [x] 调整 Release 正文版本标题，并取消 `CHANGES.md` 资产上传。
+- [x] 记录 Tag 创建前的自动化与人工验收门禁，以及已推送 Tag 不可移动的规则。
 - [x] 配置 `git-cliff` 和 GitHub Release Workflow。
 - [x] 执行静态检查、自动化测试与文档收口。
-- [ ] 首个正式 Tag 的 GitHub Actions 端到端验收。
+- [x] 首个正式 Tag 的 GitHub Actions 端到端验收。
 
 ## 变更记录
 
@@ -104,6 +112,8 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
 | 2026-10-23 | 本地脚本、Workflow 与静态验证完成：版本脚本 16 tests、前端 70 tests、Rust 107 tests、`actionlint` 与 `git-cliff --latest` 模拟均通过；未创建 Tag，等待正式发布验收 R11 |
 | 2026-10-23 | 新增 `pnpm release` 单命令入口；发布 Tag 只推送 GitHub，Gitee 改为纯 `master` 代码备份（ADR-0014）                                                                     |
 | 2026-10-23 | GitHub Actions 运行 `39916285967` 成功；公开 `v0.1.0` Release 已包含四类资产，R11 通过                                                                                 |
-| 2026-10-23 | 首个版本发布后切换为 `develop` 日常开发、`master` 发版；发布资产文件名统一使用 `BreakTimer-new_vX.Y.Z_x64-*`                                                       |
-| 2026-10-26 | 修复 Windows PowerShell 5 下发布脚本原生命令参数被合并的问题，并补充参数转发回归测试                                                                                 |
-| 2026-10-26 | GitHub Actions `40260715832` 成功发布 `v0.1.1`，资产名与 README 预期一致                                                                                              |
+| 2026-10-23 | 首个版本发布后切换为 `develop` 日常开发、`master` 发版；发布资产文件名统一使用 `BreakTimer-new_vX.Y.Z_x64-*`                                                           |
+| 2026-10-26 | 修复 Windows PowerShell 5 下发布脚本原生命令参数被合并的问题，并补充参数转发回归测试                                                                                   |
+| 2026-10-26 | GitHub Actions `40260715832` 成功发布 `v0.1.1`，资产名与 README 预期一致                                                                                               |
+| 2026-10-26 | 变更日志标题改为带 `v` 的版本号；`CHANGES.md` 只作为 Release 正文，不再上传为 Assets 资产                                                                              |
+| 2026-10-26 | 确认 Tag 必须等待自动化与人工验收通过后再创建；已推送 Tag 不可移动，发布失败改用下一个 patch 版本                                                                      |

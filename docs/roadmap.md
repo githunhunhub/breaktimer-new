@@ -25,5 +25,6 @@ M0-M5 已全部完成，重构阶段结束。当前 Windows 发布产物、便�
       共享翻译资源；L1-L15 与验收反馈修复均已通过 Windows 人工验收
       （ADR-0012）
 - [ ] **SPEC-0015｜GitHub Tag 发布流水线** —— 严格校验 `master` Tag 与四处版本，自动完成
-      Windows 构建、`git-cliff` 变更日志和 GitHub Release；`v0.1.0` 已发布，单命令入口与
-      带 `v` 的资产命名待下一次正式 Tag 端到端验收（ADR-0013 · ADR-0014 · ADR-0015）
+      Windows 构建、`git-cliff` 变更日志和 GitHub Release；`v0.1.1` 已验证单命令入口与
+      带 `v` 的资产命名，Release Notes 标题与不再上传 `CHANGES.md` 待下一次正式 Tag
+      端到端验收（ADR-0013 · ADR-0014 · ADR-0015）

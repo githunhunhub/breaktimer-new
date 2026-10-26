@@ -216,6 +216,7 @@ Expected: Tag 创建在 `master` HEAD，脚本只打印推送命令，不执行�
 - `tag_pattern = "v[0-9]+\\.[0-9]+\\.[0-9]+"`。
 - 合并提交和不合规提交不进入正文。
 - 当前版本使用 `--latest` 比较上一 Tag。
+- 正文标题使用带 `v` 的 Tag 版本号，如 `## BreakTimer-new v0.2.0`。
 - 提交标题保留原始语言，短 SHA 使用反引号呈现。
 
 - [x] **Step 2: 本地验证配置**
@@ -237,7 +238,6 @@ Expected: 输出非空 Markdown，不包含模板错误。
 - Produces Job: `changelog`
 - Produces Job: `release`
 - Produces Artifact: `release-assets`
-- Produces Artifact: `release-changelog`
 
 - [x] **Step 1: 配置唯一触发与最小权限**
 
@@ -272,16 +272,16 @@ permissions:
 - `needs: meta`，Checkout `fetch-depth: 0`。
 - `orhun/git-cliff-action@v4` 使用 `.github/cliff.toml` 和
   `-vv --latest --strip header`。
-- `OUTPUT=CHANGES.md`；上传 `release-changelog` artifact。
+- `OUTPUT=CHANGES.md` 仅供 Workflow 校验，不上传 artifact，也不进入 Release Assets。
 - 日志为空时 Job 失败。
 
 - [x] **Step 5: 最后创建 Release**
 
 - `needs: [meta, build, changelog]`。
 - 仅此 Job 设置 `permissions.contents: write`。
-- 下载两个 artifact，验证资产数量与日志非空。
-- 使用 `softprops/action-gh-release@v2` 创建公开 Release，上传 NSIS、ZIP、
-  `CHANGES.md`、`SHA256SUMS.txt`。
+- 下载 `release-assets` artifact，验证资产数量与正文非空。
+- 使用 `softprops/action-gh-release@v2` 创建公开 Release，正文使用生成的变更日志，
+  只上传 NSIS、ZIP 和 `SHA256SUMS.txt`。
 
 - [x] **Step 6: 静态校验**
 
@@ -337,6 +337,8 @@ Expected: PASS，输出四处版本均为 `0.1.0`。
 ## 风险与边界
 
 - 本地脚本可以被绕过，因此 CI 的独立 meta 校验不可删除。
+- 自动化检查通过和人工验收完成前不得创建 Tag；已推送 Tag 不可移动，失败恢复使用新的
+  patch 版本。
 - `git-cliff` 不收录非 Conventional Commits；合并提交本身被跳过。
 - 首次 Tag 才会验证 Windows runner、NSIS、上传和 Release 权限的完整链路。
 - 当前未签名安装包仍可能触发 SmartScreen。
@@ -367,11 +369,17 @@ Expected: PASS，输出四处版本均为 `0.1.0`。
   导致 `git fetch` 参数错误；改为显式参数数组并补回归测试，修复后重新发布。
 - 2026-10-26：GitHub Actions `40260715832` 成功；公开 `v0.1.1` Release 已完成端到端验证，
   资产名包含 `BreakTimer-new_v0.1.1_x64-*`，发布脚本成功路径与资产命名均通过验收。
+- 2026-10-26：确认后续 Release Notes 标题使用带 `v` 的 Tag，并取消 `CHANGES.md` 资产上传。
+  根因是 `.github/cliff.toml` 主动去除 `v` 前缀，且 Release 名称使用了 `meta` Job 去掉
+  `v` 后的版本输出；现分别改用原始 Tag 版本和 `github.ref_name`，待下一次正式 Tag 验证 R14。
+- 2026-10-26：确认 Tag 必须等待自动化检查和人工验收全部通过后再创建；已推送 Tag 不可移动，
+  发布失败时修复并使用下一个 patch 版本，待下一次正式 Tag 验证 R15。
 
 ## 变更记录
 
-| 日期       | 变更                                                       |
-| ---------- | ---------------------------------------------------------- |
-| 2026-10-23 | 创建并进入实现；采用严格版本一致性和单一 Release Workflow  |
-| 2026-10-23 | 增加单命令发布入口；GitHub 为主仓库，Gitee 仅备份 `master` |
+| 日期       | 变更                                                                     |
+| ---------- | ------------------------------------------------------------------------ |
+| 2026-10-23 | 创建并进入实现；采用严格版本一致性和单一 Release Workflow                |
+| 2026-10-23 | 增加单命令发布入口；GitHub 为主仓库，Gitee 仅备份 `master`               |
 | 2026-10-23 | 增加 `develop` 日常开发、`master` 发版边界，并修复发布资产版本号缺少 `v` |
+| 2026-10-26 | 增加 Tag 前置验收门禁和已推送 Tag 不可移动规则                           |

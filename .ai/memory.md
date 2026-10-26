@@ -70,8 +70,13 @@
 - `v0.1.1` 已发布（2026-10-26）：GitHub Release 工作流 `40260715832` 成功；资产使用带 `v` 的
   `BreakTimer-new_v0.1.1_x64-setup.exe` 与 `BreakTimer-new_v0.1.1_x64-portable.zip`；
   `master`、`develop` 在 GitHub/Gitee 同步，`develop` 已同步包含发版提交。
+- 后续 Release 的变更日志标题使用带 `v` 的版本号；`CHANGES.md` 只作为正文生成介质，
+  不上传为 GitHub Release Assets。旧标题缺 `v` 源于模板主动去前缀和 Release 名称使用
+  `meta` 的无前缀版本输出（2026-10-26 确认）。
 - 发布脚本的 PowerShell 5 参数转发已验证并修复；完整发布成功路径已通过 `v0.1.1` 演练。
 - 发布资产带 `v` 的命名已通过自动化测试；下一次正式 Tag 时仍需端到端确认 GitHub Release 文件名。
+- 后续 Tag 必须等自动化检查和人工验收全部通过后再创建；已推送 Tag 不移动、不覆盖，
+  Actions 或 Release 失败时修复后使用下一个 patch 版本（2026-10-26 确认）。
 - 当前无重构阶段或发布阻塞；SPEC-0002/0005/0006/0010/0012/0013 均已同步为 `done`。
 - 后续新功能或问题按正常开发流程处理：先确认需求，再新建或更新 `docs/specs/`，按风险补测试，
   自动验证与必要人工验收通过后再提交；不再使用 M0-M5 重构阶段作为任务组织方式。
