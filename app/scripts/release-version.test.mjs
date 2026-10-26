@@ -1,4 +1,5 @@
-import { execFile } from "node:child_process";
+import { execFile, spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
@@ -17,6 +18,47 @@ const execFileAsync = promisify(execFile);
 const scriptPath = fileURLToPath(
   new URL("./release-version.mjs", import.meta.url),
 );
+
+describe("release script argument forwarding", () => {
+  it("keeps native arguments separate under Windows PowerShell 5", () => {
+    const source = readFileSync(
+      new URL("./release.ps1", import.meta.url),
+      "utf8",
+    );
+    const match = /function Invoke-Native \{[\s\S]*?\n\}/.exec(source);
+    if (!match) {
+      throw new Error("Could not find Invoke-Native in release.ps1.");
+    }
+
+    const probe = [
+      match[0].replace(
+        "& $Command @Arguments",
+        ["$script:forwarded = @($Arguments)", "& $Command @Arguments"].join(
+          "\n    ",
+        ),
+      ),
+      'Invoke-Native git @("fetch", "github", "master", "--tags")',
+      "$script:forwarded | ForEach-Object -Begin { $index = 0 } -Process {",
+      '  Write-Output "$($index)|<$_>"',
+      "  $index++",
+      "}",
+    ].join("\n");
+    const encoded = Buffer.from(probe, "utf16le").toString("base64");
+    const result = spawnSync(
+      "powershell.exe",
+      ["-NoProfile", "-EncodedCommand", encoded],
+      { encoding: "utf8" },
+    );
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout.trim().split(/\r?\n/)).toEqual([
+      "0|<fetch>",
+      "1|<github>",
+      "2|<master>",
+      "3|<--tags>",
+    ]);
+  });
+});
 
 describe("release asset names", () => {
   it.each([

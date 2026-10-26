@@ -26,7 +26,7 @@ function Invoke-Native {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Command,
-        [Parameter(ValueFromRemainingArguments = $true)]
+        [Parameter(Mandatory = $true)]
         [string[]]$Arguments
     )
 
