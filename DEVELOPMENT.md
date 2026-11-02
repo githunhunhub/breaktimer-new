@@ -88,7 +88,7 @@ git push origin develop
 git switch master
 git pull --ff-only github master
 git merge --no-ff develop
-cd D:\code\breaktimer-new\app
+cd app
 pnpm release 0.2.0
 ```
 
@@ -140,7 +140,7 @@ Get-FileHash .\BreakTimer-new_v0.2.0_x64-setup.exe -Algorithm SHA256
 确认需求和版本号。
 
 ```powershell
-cd D:\code\breaktimer-new\app
+cd app
 pnpm install --frozen-lockfile
 pnpm format:check
 pnpm lint

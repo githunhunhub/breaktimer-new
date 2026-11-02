@@ -1,83 +1,49 @@
 # AI 跨会话记忆
 
-> 供后续 AI 会话快速接续上下文。保持精简，只写「稳定且重要」的事实与结论。
+> 这是跨会话接续用的**索引**：只写当前状态、不变量、未决事项。过程细节在
+> `.ai/sessions/`，规范在 `AGENTS.md`。不要在这里追加流水账（ADR-0016）。
 
-## 当前状态
+## 当前状态（更新于 2026-11-02）
 
-- 项目：BreakTimer-new（两重目的：学习 AI 编程 + 替换 Electron）
-- 阶段：M0-M5 全部完成，重构阶段结束；应用已建立独立的 `BreakTimer-new` 产品名与 `com.githunhunhub.breaktimernew` identity；后续进入正常的新需求/问题处理流程，当前仍只面向 Windows
-- 新代码目录：`app/`（pnpm + Vite + React/TS 前端，`src-tauri/` Rust 后端）
-- 旧源码：`breaktimer-app/` 以 git submodule 引用上游，钉在 commit `2d67243`（≈ v2.1.0-54）
-- 技术选型：**Tauri v2（Rust）+ 前端保留 React + TypeScript**（ADR-0002）
-- 遮挡方案：每显示器一个无边框/透明/置顶/跨工作区窗口；提示条不可聚焦，激活 Popup 休息后切换为可聚焦输入阻断层并用显示器 bounds 铺满，不调用原生全屏（ADR-0004、ADR-0007）；`showBackdrop` 只控制视觉遮罩，`false` 时仍是完整透明覆盖层，应用内只通过 `Cancel Break` 退出
-- 声音方案：Rust `rodio` 播放嵌入 WAV，后端在休息开始/结束转换时触发（ADR-0003）
-- 系统状态方案：`BreakScheduler` 接收 `SchedulerContext`；`system_state` 提供空闲/锁屏状态，Windows 探测输入桌面；macOS/Linux 分支保留兼容语义但不在当前验收范围（ADR-0005）
-- `docs/overview.md`、`docs/architecture.md`、`docs/glossary.md` 已补全范围/目标架构/术语
-- 跨设备基线：SPEC-0001 已落地 `.gitattributes`、`.editorconfig`、`.gitignore` 与克隆说明
-- M3 验证：前端 lint/typecheck/format/test/build 通过；Rust fmt/check/11 tests 通过；真实窗口验证 IPC、设置落盘与重启保留、single-instance 生效。M3 基线已提交为 `c61f425` 并推送 `origin/master`
-- M4 阶段 1：设置窗口改为 draft + 点击 Save；后端按纯函数副作用处理自启动、启用休息时重置计时和调度重启；开发构建跳过真实自启动注册
-- M4 阶段 1 验证：Rust 24 tests、`cargo check --locked --all-targets`、前端 lint/typecheck/format/test/build 全部通过；CDP 端到端验证 Save 落盘、重启保留和 single-instance；2026-10-14 用户人工验收通过；测试后已恢复用户原设置
-- M4 阶段 2 验证：Rust fmt/check 通过，`cargo test --all-targets` 50 tests 通过；前端 lint/typecheck/format/test/build 通过，Vitest 8 tests；核心状态机、窗口几何、提示条宽度、声音资源映射和休息窗交互已有测试
-- M4 阶段 2 Windows 人工验收（2026-10-14）：多显示器窗口、焦点保持、跨工作区可见性、开始/结束声音、结束流程均通过；测试后已恢复用户原设置
-- M4 阶段 2 提交：`codex/m4-phase-2` 提交 `17c42d7`，以 `--no-ff` 合入 `master`（merge `e9b4fb3`）并推送 `origin/master`
-- M4 阶段 3：工作时段逐日/多时间段判定、进入工作时段重置、空闲阈值重置与可选通知、长 tick/锁屏恢复全部接入；设置窗口新增 Working Hours 与 Smart Breaks 分组
-- M4 阶段 3 验证：Rust all-target tests、locked all-target check 通过；前端 test/lint/typecheck/format/build 通过；测试覆盖工作时段边界、空闲重置与通知开关、禁用空闲、长休眠/锁屏恢复
-- M4 阶段 3 提交：`codex/m4-phase-3` 提交 `82f2db3`，以 `--no-ff` 合入 `master`（merge `541158c`）并推送 `origin/master`
-- M4 阶段 4：托盘最初按 `TraySnapshot` 快照整体重建菜单（1 秒 tick + 状态变更刷新）；2026-10-22 因 Windows 菜单自动关闭/白点已改为稳定根菜单原地更新（ADR-0010）。临时禁用写入并持久化 `disableEndTime` 且到期由 tick 自动恢复、`flow` 按 `notificationType` 分流 Notification 模式（发通知 + 立即续排，不建窗口）、接入官方 autostart 插件（开发构建跳过注册）、设置窗口补 Start at login/Breaks/Menu Bar Text/Audio 分组与提示音试听；原取舍见 ADR-0006。Menu Bar Text 分组后来已从 Windows UI 移除
-- M4 阶段 4 验证：Rust fmt/check locked all-targets 与 `cargo test --all-targets` 83 tests 通过；前端 lint/typecheck/format/test（24 tests）/build 通过；`pnpm tauri:dev` 运行时冒烟通过（托盘初始化与每秒刷新无错误输出）
-- 托盘重要实现细节：菜单与标题调用会 marshal 到主线程并阻塞等待，菜单事件也在主线程刷新托盘；刷新实现先克隆稳定菜单句柄，锁只包住快照比较与记录，原生菜单调用在锁外执行（避免重入等待）
-- M4 阶段 4 A8/A9 修复：设置字段改为 `Break type`（`Popup break` / `Notification`）；Popup 激活休息覆盖每个显示器完整 bounds、可聚焦并阻断任务栏/托盘，`Cancel Break` 统一退出；混合 DPI 下先移动再缩放，窗口创建移到工作线程并用全局锁串行化（ADR-0007）
-- M4 阶段 4 A8/A9 运行期证据（2026-10-19）：Windows 双屏为副屏 `(-1600,0) 1600×900`、主屏物理 `1920×1200`/DPR 1.25；两个休息页均只有 `Cancel Break`，主/副任务栏与托盘区域命中休息窗；退出后 CDP target 从 3 降至 1，任务栏命中恢复 explorer；Notification 路径未创建休息窗
-- M4 阶段 4 设置页签（2026-10-19）：按原版恢复 `General`、`Working Hours`、`Customization`、`System` 四页签；默认 General，共用 draft 与顶部 Save，切页不丢修改
-- M4 阶段 4 C3/C4 修正与验收（2026-10-21）：General 顺序改为 `Breaks → Smart Breaks → Snooze → Skip → Advanced`，`Breaks enabled` 放入 Breaks 标题行；`Break type`、`Frequency`、`Length` 标题与控件基线统一，秒字段可完整显示两位数字；Working Hours 使用紧凑的原生 `time` 控件（保留时钟图标），单一时间段不显示删除，`+` 新增行，复制面板可复制到多个星期；复制到已启用星期时时间框会同步刷新；专项人工复验全部通过
-- M4 阶段 4 Windows 验收收口（2026-10-21）：C0-C2、C5-C7 人工通过；连同此前结果，A1-A11、A14、B1-B7、C0-C7 均已通过。当时 A12/A13 与 D1-D4 暂缓到 M5 发布产物验证；这些项目后来均已在 M5 通过
-- M4 阶段 4 提交：`codex/m4-phase-4` 提交 `75f86c3`，以 `--no-ff` 合入 `master`（merge `b3827fb`）并推送 `origin/master`
-- M4 阶段 5 收尾（2026-10-22）：设置窗口 `X` 改为隐藏到托盘，托盘 `Settings...` 与单实例共用 `unminimize -> show -> focus` 恢复流程并在 100ms 后二次聚焦；Theme/Backdrop 已纳入 `Customization`；托盘 `Quit` 通过显式退出标记放行关闭
-- 便携 ZIP（SPEC-0012）：仅可执行文件同目录的普通文件 `portable.flag` 启用便携模式；设置写入 `data\settings.json`，主窗口与休息窗口共用 `data\webview2\`，目录不可写时原生报错退出且不回退 AppData；更名后 `pnpm portable:build` 将生成顶层 `BreakTimer-new\` 与 `breaktimer-new.exe` 的无安装 ZIP（尚未获授权重新打包）
-- 阶段 5 最终验证（2026-10-22）：前端 format/lint/typecheck/test（39）/build 通过；Rust fmt/check/test（92）通过；最终 NSIS、发布版 exe 与便携 ZIP 均由同一代代码生成
-- 阶段 5 最终产物（2026-10-22）：exe 10,970,112 bytes `F1BF9F969EF4E65E4750B4E9DD1C10E1B2A12862E61DC10E6CC1F34447C39D90`；NSIS 4,375,677 bytes `B126B8419C69E8BEE48E6FC3F24E326B0D6AFB06163CC72D9852B6C276EAEF9D`（NotSigned）；便携 ZIP 5,870,023 bytes `716F56399423276E56851A858A8C8B702ACCBDA32555054A21888D2FEFE1112B`
-- 便携反馈修复（2026-10-22）：`idleResetEnabled=false` 时完全忽略 `Idle`，5 分钟调度回归在第 300 秒仍触发；托盘根菜单只绑定一次，倒计时用 `set_text` 原地更新，仅操作布局变化时调整动态项；Theme 整卡随 draft 背景色/文字色预览
-- 最终便携 ZIP 冒烟（2026-10-22）：独立解压可直接运行，`get_app_info.settingsPath` 指向解压目录；保存后生成同目录 `data\settings.json` 与 `data\webview2\EBWebView`；`WM_CLOSE` 只隐藏不退出；第二实例恢复隐藏/最小化窗口并获得前台焦点；重启后设置保留；AppData 无文件修改；临时目录和进程已清理
-- 阶段 5 人工验收（2026-10-22）：用户最终确认三项便携反馈修复、完整便携流程、同名目录标记、不可写目录失败、安装版互斥、便携自启动、NSIS 隔离、菜单保持与无残影、A12/A13 全部通过；SPEC-0002/0005/0006/0010/0012 均为 `done`，PLAN-0002 阶段 5、PLAN-0002 与 M5 均完成
-- 开发临时产物清理（2026-10-22）：已删除 `bundle/portable/` 下的验收临时目录、冒烟目录与截图，仅保留正式便携 ZIP；源码扫描无待提交的临时/调试文件
-- 应用更名（2026-10-22，SPEC-0013 / ADR-0011）：用户可见名为 `BreakTimer-new`，npm/Cargo/可执行文件为 `breaktimer-new`，Rust library 为 `breaktimer_new_lib`，identifier 为 `com.githunhunhub.breaktimernew`；旧 `com.breaktimer.app` 数据与注册项不迁移、不清理
-- 应用更名验证（2026-10-22）：前端 format/lint/typecheck/test（40）/build 与 Rust fmt/check/test（93）通过；运行进程为 `target\debug\breaktimer-new.exe`，窗口/About/tray 使用新名，新 Roaming/LocalAppData 目录生成，单实例与设置保存/重启恢复通过；旧 identity 数据前后哈希不变。用户人工验收通过，未执行打包
-- 休息前提示（2026-10-22）：移除 grace/countdown 双阶段与后端 120 秒总时长，进入提示后立即显示单段 60 秒 `Break starting in Ns...`；开始、推迟、跳过与自然开始休息行为保持不变
-- Windows System 页签（2026-10-22）：仅展示实际生效的 `Start at login`，不再显示 macOS-only 的 `Menu Bar Text`；`trayTextEnabled`、`trayTextMode` 与 macOS 标题逻辑继续保留，避免破坏设置兼容性
-- 历史路径清理（2026-10-22）：`master` 的全部 32 个提交已重写，真实 Windows 用户目录替换为 `%USERPROFILE%`，真实仓库绝对路径替换为 `<repo-root>`；独立核验确认父关系、提交说明、作者、时间和 merge 结构保留，文件差异仅为占位符替换。高置信度密钥扫描为 0 命中，含旧路径的临时 bundle 与对比仓库已删除；其他已合并功能分支已删除，仅保留 `master`
-- 多语言支持验收（2026-10-23，SPEC-0014 / ADR-0012 / PLAN-0003）：首版 `en-US` / `zh-CN`，React 与 Rust 共用 `app/locales/*.json`；`language=null` 跟随启动时系统语言，保存后广播 `locale-changed`；L1-L15 与验收反馈修复全部通过。Notification 标题读取 `breakTitle`，Snooze 时长/次数上限基线对齐，中文短单位为“分”；SPEC-0008、SPEC-0014 与 PLAN-0003 均已收口为 `done`
-- 用户版 README（2026-10-23）：根 `README.md` 改为面向 Windows 用户的安装、便携版、快速开始和 FAQ；原开发/AI 入口迁移到 `DEVELOPMENT.md`，SPEC-0001 的克隆步骤引用同步更新
-- GitHub 发布流水线（2026-10-23，SPEC-0015 / ADR-0013 / PLAN-0004）：`master` 上的 `vX.Y.Z` Tag 触发单一 Release Workflow；本地脚本更新/校验 `package.json`、`tauri.conf.json`、`Cargo.toml`、`Cargo.lock` 四处版本并创建 annotated Tag，CI 独立校验 Tag 属于 `master` 且版本一致；Windows Job 生成便携 ZIP 与同源 NSIS，`git-cliff` 生成当前 Tag 范围日志，全部成功后才发布 GitHub Release
-- GitHub 发布流水线验证（2026-10-23）：版本脚本 16 tests、前端 70 tests、Rust 107 tests、lint/typecheck/format/build、`actionlint` 与 `git-cliff --latest` 临时范围模拟均通过；GitHub Actions 运行 `39916285967` 成功，公开 `v0.1.0` Release 已上传 NSIS、便携 ZIP、`CHANGES.md` 与 `SHA256SUMS.txt`，R11 通过
-- 单命令发布（2026-10-23，SPEC-0015 / ADR-0014）：`pnpm release <version>` 自动完成预检、完整前后端门禁、版本同步、按需提交、双远程 `master` 推送和 GitHub Tag 推送；Gitee 仅为代码备份，不接收发布 Tag/Release；脚本在脏工作区会于改版本前拒绝，取消或失败时恢复四处版本文件
-- 分支策略（2026-10-23，ADR-0015）：`v0.1.0` 发布后从该 Tag 创建 `develop`；后续日常开发、提交与开发分支推送都在 `develop`，`master` 只接收发版合入和发布脚本生成的版本提交
-- 发布后修复（2026-10-23，SPEC-0010 / SPEC-0015）：Release 资产统一命名为 `BreakTimer-new_vX.Y.Z_x64-setup.exe` 与 `BreakTimer-new_vX.Y.Z_x64-portable.zip`；设置保存仅在休息频率或启停状态变化时重启调度，其他字段保留当前倒计时
+- 阶段：M0-M5 重构已结束，进入正常需求流程；SPEC-0001 ~ 0014 均 `done`，SPEC-0015
+  `in-progress`（R14 / R15 待下一次正式 Tag 验证）。
+- 平台：仅 Windows 10 / 11 x64 参与验收与发布；macOS / Linux 保留兼容分支，不在当前范围。
+- 技术栈：Tauri v2（Rust）+ React / TypeScript；新代码在 `app/`，旧 Electron 源码在
+  `breaktimer-app/`（submodule，只读）。
+- 产品身份：显示名 `BreakTimer-new`，npm / Cargo / 可执行文件 `breaktimer-new`，
+  identifier `com.githunhunhub.breaktimernew`；不迁移、不清理旧版数据。
+- 分支：`develop` 日常开发；`master` 只接收发版合入与发布脚本的版本提交；GitHub 为主仓库，
+  Gitee 仅备份 `develop` 与 `master`。
+- 发布：`app/` 下 `pnpm release <version>`；Tag `vX.Y.Z` 从 `master` 创建、只推 GitHub；
+  已推送的 Tag 不移动，失败改用下一个 patch。最新版本 `v0.1.1`（2026-10-26）。
 
-## 关键约定
+## 不变量与坑
 
-- 文档先行，代码是成果（见 `docs/decisions/0001-ai-first-repo-structure.md`）。
-- AI 文件不得写入 `app/`。
-- 文档工作流：一需求一 spec（`docs/specs/NNNN-*.md`），索引在 `docs/specs/README.md`；小需求计划写在 spec 内，大工程才用 `docs/plans/`；流程细则见 `AGENTS.md`。
-- 跨设备同步：能仅凭仓库复现的内容全部纳入 Git；只排除密钥、机器本地状态、依赖目录、构建产物与缓存。
-- 打包需显式授权：只有用户明确要求“打包”或生成安装包、发布包时才执行；例行验证中的前端 `pnpm build` 不算打包。
-- 会话、验收和 AI 文档不得记录真实用户名或本机绝对路径，统一使用 `%USERPROFILE%`、`%APPDATA%`、`<repo-root>` 等占位符。
+- Popup 休息：每显示器一个无边框 / 置顶 / 跨工作区窗口；提示条不可聚焦，激活休息后切换为
+  可聚焦并铺满显示器 bounds 阻断输入；`showBackdrop` 只控制视觉（ADR-0004、ADR-0007）。
+- 托盘：菜单与标题调用必须 marshal 到主线程；根菜单只绑定一次，倒计时用 `set_text` 原地更新，
+  否则 Windows 菜单会自动关闭或残留白点（ADR-0010）。
+- 便携模式：仅可执行文件同目录的普通文件 `portable.flag` 启用；数据写入 `data\`，目录不可写时
+  报错退出，不回退 AppData（SPEC-0012）。
+- 设置保存：只有休息频率或启停状态变化才重启调度，其他字段保留当前倒计时。
+- i18n：`app/locales/*.json` 由 React 与 Rust 共用；`language=null` 跟随系统，保存后广播
+  `locale-changed`（ADR-0012）。
+- 发布脚本的中文提交信息必须走 UTF-8 文件 + `git commit -F`；PowerShell 5.1 直接 `-m` 会写出
+  GBK 乱码（`4bc6180` 是历史案例）。
+- 已知历史遗留：`develop` 上有两对同 patch 的重复提交（`v0.1.1` 期间），历史不改写，
+  changelog 可能重复列条目。
+- 文档与实现冲突时以实现为准，并在同一次提交里先改文档。
 
-## 后续入口
+## 未决事项
 
-- GitHub Tag 发布流水线已实现并完成本地/静态验证；实现提交 `f93e159` 已推送到 GitHub `github/master` 与 Gitee `origin/master`。
-- 后续正式发布使用 `pnpm release <version>`；单命令成功路径尚未用 0.2.0 实际演练，SPEC-0015 R12 保持未完成。
-- 当前开发分支为 `develop`；`6999c91` 已提交单命令发布入口，发布后修复已通过人工验收并随本轮提交推送 `develop`。
-- `v0.1.1` 已发布（2026-10-26）：GitHub Release 工作流 `40260715832` 成功；资产使用带 `v` 的
-  `BreakTimer-new_v0.1.1_x64-setup.exe` 与 `BreakTimer-new_v0.1.1_x64-portable.zip`；
-  `master`、`develop` 在 GitHub/Gitee 同步，`develop` 已同步包含发版提交。
-- 后续 Release 的变更日志标题使用带 `v` 的版本号；`CHANGES.md` 只作为正文生成介质，
-  不上传为 GitHub Release Assets。旧标题缺 `v` 源于模板主动去前缀和 Release 名称使用
-  `meta` 的无前缀版本输出（2026-10-26 确认）。
-- 发布脚本的 PowerShell 5 参数转发已验证并修复；完整发布成功路径已通过 `v0.1.1` 演练。
-- 发布资产带 `v` 的命名已通过自动化测试；下一次正式 Tag 时仍需端到端确认 GitHub Release 文件名。
-- 后续 Tag 必须等自动化检查和人工验收全部通过后再创建；已推送 Tag 不移动、不覆盖，
-  Actions 或 Release 失败时修复后使用下一个 patch 版本（2026-10-26 确认）。
-- 当前无重构阶段或发布阻塞；SPEC-0002/0005/0006/0010/0012/0013 均已同步为 `done`。
-- 后续新功能或问题按正常开发流程处理：先确认需求，再新建或更新 `docs/specs/`，按风险补测试，
-  自动验证与必要人工验收通过后再提交；不再使用 M0-M5 重构阶段作为任务组织方式。
-- macOS/Linux 仍不在当前范围；需要支持时应作为独立需求和验收项立项。
+- SPEC-0015 R14 / R15：下一次正式 Tag 端到端确认 Release 标题带 `v`、Assets 仅含安装包、
+  便携 ZIP 与 `SHA256SUMS.txt`，且 Tag 前置门禁生效。
+- macOS / Linux 若要支持，需单独立项并定义验收，不能沿用「保留兼容分支」的默认。
+- 打包始终需要用户显式授权。
+
+## 入口
+
+- 规范与目录地图：`AGENTS.md`；开发与发布命令：`DEVELOPMENT.md`
+- 需求索引：`docs/specs/README.md`；计划索引：`docs/plans/README.md`；决策：`docs/decisions/`
+- 最近会话：`2026-11-02-ai-doc-audit.md` · `2026-10-26-release-tag-gate.md` ·
+  `2026-10-26-release-changelog-assets.md`

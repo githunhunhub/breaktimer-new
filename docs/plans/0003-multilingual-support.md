@@ -4,10 +4,6 @@
 - 日期：2026-10-23
 - 关联：SPEC-0014 · ADR-0012
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development
-> (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use
-> checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** 让 React 与 Rust 共用 `app/locales/*.json`，首版支持 `en-US` / `zh-CN`，并在保存设置后即时切换所有已打开界面、托盘和后续系统通知。
 
 **Architecture:** `en-US` 是唯一基准与最终回退语言。React 通过 `import.meta.glob` 自动发现资源，提供无第三方框架的 `I18nProvider` / `useI18n()`；Rust 通过 `include_dir` 嵌入同一目录，并在启动时固定系统语言。设置只保存 `language: string | null`，有效 locale 由 Rust 计算；保存导致有效 locale 变化时广播 `locale-changed`。

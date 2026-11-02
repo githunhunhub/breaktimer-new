@@ -28,7 +28,7 @@
    - **系统集成**：空闲检测、系统通知、自启动、声音播放。
 3. **系统层**：系统 WebView（WebView2 / WKWebView / WebKitGTK）+ OS API（显示器枚举、全屏、置顶、托盘、通知、自启动）。
 
-### 多语言资源流（SPEC-0014，待实现）
+### 多语言资源流（SPEC-0014，已实现，ADR-0012）
 
 - `app/locales/<locale>.json` 同时供 React 与 Rust 使用；每种语言一个自描述 JSON 文件，
   不维护前后端两套翻译。

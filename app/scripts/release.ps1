@@ -42,6 +42,15 @@ function Write-Step {
     Write-Host "==> $Message" -ForegroundColor Cyan
 }
 
+function New-Utf8TempFile {
+    param([Parameter(Mandatory = $true)][string]$Content)
+
+    $path = Join-Path ([System.IO.Path]::GetTempPath()) ("breaktimer-" + [System.Guid]::NewGuid().ToString("N") + ".txt")
+    $encoding = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($path, $Content, $encoding)
+    return $path
+}
+
 $versionBackups = @{}
 foreach ($file in $versionFiles) {
     $fullPath = Join-Path $appRoot $file
@@ -52,6 +61,7 @@ $versionChanged = $false
 $versionStaged = $false
 $commitCreated = $false
 $completed = $false
+$tempFiles = @()
 
 Push-Location $appRoot
 try {
@@ -160,11 +170,9 @@ try {
         Invoke-Native git (@("add", "--") + $versionFiles)
         $versionStaged = $true
         Invoke-Native git @("diff", "--cached", "--check")
-        Invoke-Native git @(
-            "commit",
-            "-m",
-            "chore(release): 发布 $normalizedVersion"
-        )
+        $commitMessageFile = New-Utf8TempFile "chore(release): 发布 $normalizedVersion"
+        $tempFiles += $commitMessageFile
+        Invoke-Native git @("commit", "-F", $commitMessageFile)
         $commitCreated = $true
         $versionStaged = $false
         $versionChanged = $false
@@ -209,6 +217,11 @@ try {
     Write-Host "GitHub Actions: https://github.com/githunhunhub/breaktimer-new/actions/workflows/release.yml"
 }
 finally {
+    foreach ($tempFile in $tempFiles) {
+        if (Test-Path -LiteralPath $tempFile) {
+            Remove-Item -LiteralPath $tempFile -Force -ErrorAction SilentlyContinue
+        }
+    }
     if (-not $completed -and -not $commitCreated) {
         if ($versionStaged) {
             git restore --staged -- $versionFiles

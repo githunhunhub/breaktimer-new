@@ -4,11 +4,6 @@
 - 日期：2026-10-23
 - 关联：SPEC-0015 · ADR-0013 · SPEC-0011 · SPEC-0012
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use
-> superpowers:subagent-driven-development (recommended) or
-> superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox
-> (`- [ ]`) syntax for tracking.
-
 **Goal:** 在 `master` 推送 `vX.Y.Z` Tag 时，校验版本与 Tag 来源，构建 Windows 安装包和
 便携 ZIP，生成变更日志，并发布带校验文件的 GitHub Release。
 

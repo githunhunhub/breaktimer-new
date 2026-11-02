@@ -61,6 +61,24 @@ describe("release script argument forwarding", () => {
   });
 });
 
+describe("release commit message encoding", () => {
+  it("passes the commit message through a UTF-8 file instead of -m", () => {
+    const source = readFileSync(
+      new URL("./release.ps1", import.meta.url),
+      "utf8",
+    );
+
+    const commitCall = /Invoke-Native git @\(\s*"commit",[\s\S]*?\)/.exec(
+      source,
+    );
+    expect(commitCall, "Could not find git commit call").not.toBeNull();
+    expect(commitCall[0]).toContain('"-F"');
+    expect(commitCall[0]).not.toContain('"-m"');
+    expect(source).toContain("New-Utf8TempFile");
+    expect(source).toContain("UTF8Encoding");
+  });
+});
+
 describe("release asset names", () => {
   it.each([
     ["nsis", "BreakTimer-new_v0.1.0_x64-setup.exe"],

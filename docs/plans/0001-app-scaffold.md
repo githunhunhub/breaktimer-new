@@ -25,7 +25,7 @@
 | 托盘 | Tauri 核心 `TrayIconBuilder`（Rust） | SPEC-0006 |
 | 窗口控制 | Tauri 核心窗口 API | SPEC-0002 |
 
-> 声音播放通道（SPEC-0009）的实现方式（前端 audio 或 Rust 音频库）待实现时确认，若构成取舍再补 ADR。
+> 声音播放通道（SPEC-0009）最终选用 Rust `rodio` 播放嵌入 WAV，取舍见 ADR-0003。
 
 ## 环境准备（先验证，缺则装）
 
