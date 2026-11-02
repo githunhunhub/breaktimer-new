@@ -21,3 +21,10 @@
 | 翻译资源       | Locale resource        | `app/locales/<locale>.json` 中自描述 locale、原生名称、别名和消息的唯一翻译源                 |
 | 有效语言       | Effective locale       | 应用最终实际使用的 locale；由手动偏好或启动时系统语言解析，无法支持时回退 `en-US`             |
 | 回退语言       | Fallback locale        | 缺失 key 或语言不受支持时使用的基准语言；本项目固定为 `en-US`                                 |
+| 更新检查       | Update check           | 比较当前版本与 GitHub 最新稳定版并提示结果；不下载、不安装更新文件（SPEC-0017）                |
+| 发布下载元数据 | Release download metadata | Release 正文中的隐藏 JSON 标记，提供夸克 / 百度网盘下载入口                                   |
+| 便携版更新     | Portable update        | 退出应用后手动解压新 ZIP 并覆盖程序文件，保留 `data\` 目录；应用不自我替换                     |
+| 装机           | Installation           | 一份独立的运行数据目录（安装版 AppData 或便携版 `data\`）及其随机 `installId`；统计的最小单位（SPEC-0018） |
+| 装机统计       | Installation metrics   | 匿名的首次装机事件与每日心跳上报，用于累计/新增/活跃装机、留存与版本分布（SPEC-0018）         |
+| 分发量         | Distribution count     | 下载次数（GitHub `download_count` 与网盘后台），不等于装机量                                   |
+| 装机留存       | Installation retention | 同一 `installId` 在首次装机后第 N 天或第 N 周仍活跃的比例                                      |

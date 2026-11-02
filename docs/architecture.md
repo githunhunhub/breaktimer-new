@@ -84,6 +84,37 @@
   `SHA256SUMS.txt`；变更日志只作为 Release 正文，不上传为 Assets。GitHub 是唯一远程
   仓库和发布平台，`develop` 与 `master` 只推送到 GitHub，不再使用 Gitee（ADR-0017）。
 
+### 更新检查（SPEC-0017）
+
+- 后端 `updates` 模块通过 GitHub Releases API 的 `releases/latest` 检查稳定版更新；
+  版本比较只接受 `vMAJOR.MINOR.PATCH`，按数字逐段比较。
+- 设置页 `System` 页签的 `Updates` 卡片提供手动检查、当前版本、自动检查开关和下载入口；
+  自动检查默认启用，启动后约 30 秒触发，之后每 24 小时最多一次，开发构建跳过。
+- 发现新版本时只打开系统浏览器中的网盘下载页，不下载、不执行、不安装任何文件。下载入口为
+  百度网盘和夸克网盘，顺序为百度、夸克；未配置时显示下载链接未配置提示。GitHub 仅用于
+  版本检查，不作为下载入口。
+- 便携版采用「退出后手动覆盖程序文件」的更新方式，保留 `data\`；安装版由用户下载 NSIS
+  安装包覆盖安装。两者都不在应用内自我替换（ADR-0018）。
+- 自动检查时间与已通知版本写入现有 `settings.json` 的 StoreData；同一版本只通知一次，
+  休息进行中延迟到休息结束后通知。
+
+### 装机统计（SPEC-0018）
+
+- 口径是「装机」：一份独立数据目录（安装版 `%APPDATA%`、便携版 `data\`）加一个本地
+  生成的随机 `installId`；不是账号或真人用户。
+- 客户端 `app/src-tauri/src/telemetry/` 上报 `install`（首次装机）与 `heartbeat`
+  （每个自然日最多一次）两种事件；时间粒度到日，请求失败静默重试，不阻塞启动。
+- 字段白名单固定为 `installId`、`day`、`firstLaunchDay`、`version`、`os`、`arch`、
+  `locale`、`channel`、`event`、`schema`；不采集 IP、用户名、硬件标识、路径与内容。
+- 端点由构建期环境变量 `BREAKTIMER_METRICS_URL` 注入；未配置时该能力整体关闭，
+  fork 与本地构建不会上报。
+- 服务端在 `server/metrics/`：Cloudflare Worker 接收 `POST /v1/collect` 并校验白名单，
+  D1 保存 `installs` 与 `daily_active`，`queries.sql` 输出累计/新增/活跃/留存/
+  版本与安装形态报表；明细保留 180 天（ADR-0019）。
+- 默认开启；设置页「帮助改进 BreakTimer-new」卡片里的「允许发送匿名使用信息」开关关闭后
+  不再请求；启动时不弹窗、不发系统通知（ADR-0020）。
+- 更新检查保持独立，不携带任何标识（SPEC-0017）。
+
 ## 与旧架构的关键差异
 
 | 维度          | 旧版（Electron）                                | 新版（Tauri v2）                                                   |

@@ -63,6 +63,28 @@ git push github develop
 正式发版时先把已确认的 `develop` 合入 `master`，再从 `master` 执行发布命令。不要在
 `master` 上直接开发或提交普通修复。
 
+## 装机统计端点
+
+匿名装机统计的服务端在 `server/metrics/`（Cloudflare Worker + D1，SPEC-0018 /
+ADR-0019）。首次部署与查询步骤见 `server/metrics/README.md`，要点：
+
+```powershell
+cd server/metrics
+npx wrangler login
+npx wrangler d1 create breaktimer_metrics   # 把 database_id 填进 wrangler.toml
+npx wrangler d1 execute breaktimer_metrics --remote --file schema.sql
+npx wrangler deploy
+```
+
+发布构建必须带上端点环境变量，否则统计能力整体关闭：
+
+```powershell
+$env:BREAKTIMER_METRICS_URL = "https://<worker>.workers.dev/v1/collect"
+```
+
+本地校验逻辑：`node --test server/metrics/test/validate.test.mjs`。
+报表 SQL 在 `server/metrics/queries.sql`，口径见 `docs/specs/0018-installation-metrics.md`。
+
 ## 打包与发布
 
 正式发布以 GitHub Actions 为准：
@@ -122,6 +144,11 @@ Release 应包含：
 - `SHA256SUMS.txt`
 
 变更日志只作为 Release 正文，标题为 `## BreakTimer-new v<version>`，不会上传为 Assets。
+
+发布流水线还会读取仓库根目录的 [`.github/release-downloads.json`](.github/release-downloads.json)，
+在 Release 正文末尾追加「下载方式」段落和隐藏的 `breaktimer-downloads` 标记。发布前把夸克 /
+百度分享链接填入该文件；留空或 `null` 时对应按钮不会出现。应用显示顺序固定为
+「百度网盘、夸克网盘」；GitHub 仅用于检查版本，不作为下载入口（SPEC-0017）。
 
 下载安装包后可核对哈希：
 
