@@ -40,6 +40,8 @@
 
 - SPEC-0015 R14 / R15：下一次正式 Tag 端到端确认 Release 标题带 `v`、Assets 仅含安装包、
   便携 ZIP 与 `SHA256SUMS.txt`，且 Tag 前置门禁生效。
+- SPEC-0016 宣传页仍为 `draft`：Q1~Q6（站点目录 `site/`、托管平台、自定义域名、语言、
+  截图素材、`LICENSE` 与页脚署名）需用户确认后才能转 `confirmed` 并开工。
 - macOS / Linux 若要支持，需单独立项并定义验收，不能沿用「保留兼容分支」的默认。
 - 打包始终需要用户显式授权。
 
@@ -47,5 +49,5 @@
 
 - 规范与目录地图：`AGENTS.md`；开发与发布命令：`DEVELOPMENT.md`
 - 需求索引：`docs/specs/README.md`；计划索引：`docs/plans/README.md`；决策：`docs/decisions/`
-- 最近会话：`2026-11-02-gitee-decommission.md` · `2026-11-02-about-source-link.md` ·
-  `2026-11-02-ai-doc-audit.md`
+- 最近会话：`2026-11-02-landing-page-requirement.md` · `2026-11-02-gitee-decommission.md` ·
+  `2026-11-02-about-source-link.md` · `2026-11-02-ai-doc-audit.md`

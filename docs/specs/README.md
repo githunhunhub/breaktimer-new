@@ -22,5 +22,6 @@
 | [SPEC-0013](0013-app-rename.md)                      | 应用更名为 BreakTimer-new                    | done        | ADR-0011 · SPEC-0007 · SPEC-0010 · SPEC-0011 · SPEC-0012             | `app/src-tauri/tauri.conf.json`、`app/package.json`、Cargo/Rust 入口、托盘/窗口与服务设置文案、便携脚本（自动化、运行时与 Windows 人工验收均通过） |
 | [SPEC-0014](0014-multilingual-support.md)            | 多语言支持                                   | done        | ADR-0012 · PLAN-0003 · SPEC-0002 · SPEC-0006 · SPEC-0008 · SPEC-0010 | L1-L15、通知标题修复与 Windows 中英文运行时人工验收全部通过                                                                                        |
 | [SPEC-0015](0015-github-tag-release.md)              | GitHub Tag 发布流水线                        | in-progress | ADR-0013 · ADR-0014 · ADR-0015 · ADR-0017 · PLAN-0004 · SPEC-0011 · SPEC-0012 | `.github/workflows/release.yml`、单命令发布脚本（`develop` 开发、`master` 发版；GitHub 单一远程正式发布）                                         |
+| [SPEC-0016](0016-landing-page.md)                    | 宣传页（Landing Page）                       | draft       | SPEC-0011 · SPEC-0012 · ADR-0011                                      | 待建（站点目录与托管平台见 spec 开放问题 Q1 / Q2）                                                                                                 |
 
 <!-- 新增 spec 后在此表追加一行。状态：draft / confirmed / in-progress / done / superseded -->

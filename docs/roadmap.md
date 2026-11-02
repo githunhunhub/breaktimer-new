@@ -28,3 +28,6 @@ M0-M5 已全部完成，重构阶段结束。当前 Windows 发布产物、便�
       Windows 构建、`git-cliff` 变更日志和 GitHub Release；`v0.1.1` 已验证单命令入口与
       带 `v` 的资产命名，Release Notes 标题与不再上传 `CHANGES.md` 待下一次正式 Tag
       端到端验收（ADR-0013 · ADR-0014 · ADR-0015）
+- [ ] **SPEC-0016｜宣传页（Landing Page）** —— 单页静态站点，信息层级参考
+      <https://breaktimer.app/>，计划托管 GitHub Pages 或 Cloudflare Pages；站点目录、
+      托管平台、域名、语言、截图素材与许可署名六项待确认
