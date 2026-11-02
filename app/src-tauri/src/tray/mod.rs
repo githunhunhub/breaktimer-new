@@ -542,7 +542,7 @@ fn seconds_until_end_of_day() -> i64 {
 fn about_content(version: &str, locale: &str) -> String {
     format!(
         "{PRODUCT_NAME}\n\n{}: {version}\n\n{}:\n\
-         https://gitee.com/githunee/breaktimer-new\n\n\
+         https://github.com/githunhunhub/breaktimer-new\n\n\
          {}:\n\
          https://github.com/tom-james-watson/breaktimer-app\n\n\
          {}",
@@ -1075,7 +1075,7 @@ mod tests {
         let content = about_content("0.1.0", "en-US");
 
         assert!(content.starts_with(
-            "BreakTimer-new\n\nBuild: 0.1.0\n\nProject Source:\nhttps://gitee.com/githunee/breaktimer-new"
+            "BreakTimer-new\n\nBuild: 0.1.0\n\nProject Source:\nhttps://github.com/githunhunhub/breaktimer-new"
         ));
         assert!(
             content.contains(
@@ -1091,7 +1091,7 @@ mod tests {
         let content = about_content("0.1.0", "zh-CN");
 
         assert!(content.starts_with(
-            "BreakTimer-new\n\n构建版本: 0.1.0\n\n项目源码:\nhttps://gitee.com/githunee/breaktimer-new"
+            "BreakTimer-new\n\n构建版本: 0.1.0\n\n项目源码:\nhttps://github.com/githunhunhub/breaktimer-new"
         ));
         assert!(content.contains("上游 BreakTimer:"));
         assert!(content.contains("依据 GPL-3.0-or-later 许可证分发。"));

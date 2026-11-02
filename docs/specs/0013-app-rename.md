@@ -25,7 +25,8 @@
 5. 便携 ZIP 的顶层目录改为 `BreakTimer-new\`，ZIP 名改为
    `BreakTimer-new_v<version>_x64-portable.zip`，内部可执行文件为
    `breaktimer-new.exe`。
-6. About 明确区分当前项目源码和上游 BreakTimer，不再把当前项目指向旧产品官网。
+6. About 明确区分当前项目源码和上游 BreakTimer，当前项目源码指向 GitHub 主仓库
+   `https://github.com/githunhunhub/breaktimer-new`，不再把当前项目指向旧产品官网。
 7. `breaktimer-app/` 子模块路径、上游 URL、固定提交和历史文档中的既有记录保持不变。
 
 ## 验收标准（可测）
@@ -76,3 +77,4 @@
 | --- | --- |
 | 2026-10-22 | 用户确认更名方案并开始实现；确定产品名、技术标识和新 identifier |
 | 2026-10-22 | 完整自动化验证与 Windows 运行时冒烟通过；用户人工验收通过，状态改为 `done` |
+| 2026-11-02 | About 的「项目源码」链接由 Gitee 改为 GitHub 主仓库，Gitee 不再作为对外入口 |
