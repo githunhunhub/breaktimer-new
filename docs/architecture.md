@@ -81,9 +81,8 @@
   NSIS；`git-cliff` 从上一发布 Tag 到当前 Tag 的 Conventional Commits 生成 Release Notes。
 - 全部前置 Job 成功后才创建公开 GitHub Release，上传
   `BreakTimer-new_vX.Y.Z_x64-setup.exe`、`BreakTimer-new_vX.Y.Z_x64-portable.zip` 和
-  `SHA256SUMS.txt`；变更日志只作为 Release 正文，不上传为 Assets。GitHub 是唯一发布
-  平台；Gitee 只备份 `develop` 与 `master`，不接收发布 Tag 或 Release（ADR-0014 ·
-  ADR-0015）。
+  `SHA256SUMS.txt`；变更日志只作为 Release 正文，不上传为 Assets。GitHub 是唯一远程
+  仓库和发布平台，`develop` 与 `master` 只推送到 GitHub，不再使用 Gitee（ADR-0017）。
 
 ## 与旧架构的关键差异
 

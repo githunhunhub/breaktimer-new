@@ -13,8 +13,8 @@
   `breaktimer-app/`（submodule，只读）。
 - 产品身份：显示名 `BreakTimer-new`，npm / Cargo / 可执行文件 `breaktimer-new`，
   identifier `com.githunhunhub.breaktimernew`；不迁移、不清理旧版数据。
-- 分支：`develop` 日常开发；`master` 只接收发版合入与发布脚本的版本提交；GitHub 为主仓库，
-  Gitee 目前仍按 ADR-0014 / ADR-0015 备份 `develop` 与 `master`。
+- 分支与远程：`develop` 日常开发；`master` 只接收发版合入与发布脚本的版本提交；GitHub
+  是唯一远程仓库，`develop` / `master` 只推 GitHub，本地已移除 Gitee 的 `origin`（ADR-0017）。
 - 发布：`app/` 下 `pnpm release <version>`；Tag `vX.Y.Z` 从 `master` 创建、只推 GitHub；
   已推送的 Tag 不移动，失败改用下一个 patch。最新版本 `v0.1.1`（2026-10-26）。
 
@@ -31,6 +31,7 @@
   `locale-changed`（ADR-0012）。
 - 发布脚本的中文提交信息必须走 UTF-8 文件 + `git commit -F`；PowerShell 5.1 直接 `-m` 会写出
   GBK 乱码（`4bc6180` 是历史案例）。
+- 发布只认 `github/master`：`pnpm release` 不再 fetch/推送 Gitee，也不要重新添加 Gitee 远程。
 - 已知历史遗留：`develop` 上有两对同 patch 的重复提交（`v0.1.1` 期间），历史不改写，
   changelog 可能重复列条目。
 - 文档与实现冲突时以实现为准，并在同一次提交里先改文档。
@@ -40,13 +41,11 @@
 - SPEC-0015 R14 / R15：下一次正式 Tag 端到端确认 Release 标题带 `v`、Assets 仅含安装包、
   便携 ZIP 与 `SHA256SUMS.txt`，且 Tag 前置门禁生效。
 - macOS / Linux 若要支持，需单独立项并定义验收，不能沿用「保留兼容分支」的默认。
-- Gitee 是否彻底退役未决：About 已只指向 GitHub，但 `release.ps1` 仍双推 `master`，
-  `README.md` / `DEVELOPMENT.md` 仍描述 Gitee 备份；退役需新 ADR 并同步脚本、文档与远程配置。
 - 打包始终需要用户显式授权。
 
 ## 入口
 
 - 规范与目录地图：`AGENTS.md`；开发与发布命令：`DEVELOPMENT.md`
 - 需求索引：`docs/specs/README.md`；计划索引：`docs/plans/README.md`；决策：`docs/decisions/`
-- 最近会话：`2026-11-02-about-source-link.md` · `2026-11-02-ai-doc-audit.md` ·
-  `2026-10-26-release-tag-gate.md`
+- 最近会话：`2026-11-02-gitee-decommission.md` · `2026-11-02-about-source-link.md` ·
+  `2026-11-02-ai-doc-audit.md`

@@ -36,13 +36,13 @@ Tauri v2、Rust 2024、Windows NSIS。
 | `app/scripts/release-version.mjs`                    | SemVer 规范化、四处版本读取/比较/更新                             |
 | `app/scripts/release-version.test.mjs`               | 版本脚本纯函数与临时文件集成测试                                  |
 | `app/scripts/release-tag.ps1`                        | 本地分支、干净状态、上游同步、Tag 唯一性检查与 annotated Tag      |
-| `app/scripts/release.ps1`                            | 单命令预检、测试、版本提交、双远程分支推送与 GitHub Tag 发布      |
+| `app/scripts/release.ps1`                            | 单命令预检、测试、版本提交、`master` 推送与 GitHub Tag 发布       |
 | `app/package.json`                                   | 暴露 `release`、`release:version`、`release:check`、`release:tag` |
 | `.github/cliff.toml`                                 | Conventional Commits 分组、版本范围与 Markdown 格式               |
 | `.github/workflows/release.yml`                      | 唯一 Tag 发布入口和四个 Job                                       |
 | `docs/specs/0015-github-tag-release.md`              | 需求与验收状态                                                    |
 | `docs/decisions/0013-github-tag-release-pipeline.md` | 版本与发布架构决策                                                |
-| `docs/decisions/0014-github-primary-gitee-backup.md` | GitHub 主仓库与 Gitee 纯备份边界                                  |
+| `docs/decisions/0017-gitee-decommission.md`          | 停用 Gitee、GitHub 单一远程边界（取代 ADR-0014）                  |
 | `docs/specs/README.md`                               | Spec 索引                                                         |
 | `docs/roadmap.md`                                    | 后续需求状态                                                      |
 | `docs/architecture.md`                               | 当前发布流水线说明                                                |
@@ -165,11 +165,11 @@ Expected: Tag 创建在 `master` HEAD，脚本只打印推送命令，不执行�
 
 - Produces CLI: `pnpm release <version>`
 - Consumes: `release:version`、`release:check` 与 `release-tag`
-- Produces: 单个确认后的版本提交、双远程 `master` 推送和 GitHub Tag 推送
+- Produces: 单个确认后的版本提交、`master` 推送和 GitHub Tag 推送
 
 - [x] **Step 1: 实现预检与恢复**
 
-- 要求 `master` 跟踪 `github/master`、工作区干净，且本地不落后于两个远程。
+- 要求 `master` 跟踪 `github/master`、工作区干净，且本地不落后于 `github/master`。
 - GitHub 已存在同名 Tag 时拒绝执行。
 - 版本文件在确认提交前发生变化但流程取消或失败时恢复原内容。
 
@@ -177,8 +177,8 @@ Expected: Tag 创建在 `master` HEAD，脚本只打印推送命令，不执行�
 
 - 在版本更新前运行完整前端和 Rust 门禁。
 - 版本变化时提交 `chore(release): 发布 <version>`。
-- 先推送 `master` 到 GitHub 和 Gitee，再只创建并推送 GitHub Tag。
-- 不执行 `git push --tags`，也不创建 Gitee Tag 或 Release。
+- 先推送 `master` 到 GitHub，再创建并推送 GitHub Tag。
+- 不执行 `git push --tags`。
 
 ## Task 2B：发布资产版本前缀
 
@@ -378,3 +378,4 @@ Expected: PASS，输出四处版本均为 `0.1.0`。
 | 2026-10-23 | 增加单命令发布入口；GitHub 为主仓库，Gitee 仅备份 `master`               |
 | 2026-10-23 | 增加 `develop` 日常开发、`master` 发版边界，并修复发布资产版本号缺少 `v` |
 | 2026-10-26 | 增加 Tag 前置验收门禁和已推送 Tag 不可移动规则                           |
+| 2026-11-02 | 停用 Gitee 远程与双远程推送，发布入口只推 GitHub（ADR-0017）             |

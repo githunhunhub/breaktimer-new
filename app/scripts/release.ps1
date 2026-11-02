@@ -83,13 +83,10 @@ try {
     }
 
     Invoke-Native git @("fetch", "github", "master", "--tags")
-    Invoke-Native git @("fetch", "origin", "master", "--no-tags")
 
-    foreach ($remoteBranch in @("github/master", "origin/master")) {
-        git merge-base --is-ancestor $remoteBranch HEAD
-        if ($LASTEXITCODE -ne 0) {
-            throw "$remoteBranch contains commits that are missing locally."
-        }
+    git merge-base --is-ancestor github/master HEAD
+    if ($LASTEXITCODE -ne 0) {
+        throw "github/master contains commits that are missing locally."
     }
 
     $remoteTag = @(
@@ -154,7 +151,7 @@ try {
 
     Write-Host ""
     Write-Host "Release actions:" -ForegroundColor Yellow
-    Write-Host "  - push master to GitHub and Gitee"
+    Write-Host "  - push master to GitHub"
     if ($versionChanged) {
         Write-Host "  - commit version changes as chore(release): 发布 $normalizedVersion"
     }
@@ -178,9 +175,8 @@ try {
         $versionChanged = $false
     }
 
-    Write-Step "Push master to GitHub and Gitee"
+    Write-Step "Push master to GitHub"
     Invoke-Native git @("push", "github", "master")
-    Invoke-Native git @("push", "origin", "master")
 
     $remoteTag = @(
         git ls-remote --tags github "refs/tags/$tag" "refs/tags/$tag^{}"

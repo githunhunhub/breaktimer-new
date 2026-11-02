@@ -18,8 +18,8 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
    `app/package.json`、`app/src-tauri/tauri.conf.json`、`app/src-tauri/Cargo.toml` 和
    `app/src-tauri/Cargo.lock` 中 `breaktimer-new` 包的版本完全一致。
 3. 提供共享版本检查脚本、本地发布脚本和单命令入口：
-   - `pnpm release <version>` 在全部检查通过后更新版本、按需提交、推送双远程
-     `master`、创建 Tag，并只把 Tag 推送到 GitHub；
+   - `pnpm release <version>` 在全部检查通过后更新版本、按需提交、把 `master`
+     和 Tag 推送到 GitHub；
    - `pnpm release:version <version>` 只更新四处版本，不创建提交或 Tag；
    - `pnpm release:check v<version>` 校验 Tag 与四处版本一致；
    - `pnpm release:tag <version>` 仅在 `master`、工作区干净、与上游同步、版本一致且 Tag
@@ -35,8 +35,9 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
    `BreakTimer-new_vX.Y.Z_x64-portable.zip` 和 `SHA256SUMS.txt`；生成的变更日志只作为
    Release 正文，不上传为 Assets 中的 `CHANGES.md`。
 8. Workflow 默认只读仓库内容，仅创建 Release 的 Job 获得 `contents: write`。
-9. GitHub 是唯一发布平台，Gitee 只备份 `develop` 与 `master`；当前流水线只支持 Windows x64、未签名
-   NSIS 与便携 ZIP，不包含代码签名、自动更新或 macOS/Linux 构建。
+9. GitHub 是唯一远程仓库和发布平台，`develop` 与 `master` 只推送到 GitHub（ADR-0017）；
+   当前流水线只支持 Windows x64、未签名 NSIS 与便携 ZIP，不包含代码签名、自动更新或
+   macOS/Linux 构建。
 10. Tag 只能在完整自动化检查和人工验收均通过后创建。已推送到 GitHub 的 Tag 视为不可变；
     发布流水线失败时不得移动或覆盖该 Tag，修复并使用下一个 patch 版本重新发布。
 
@@ -58,7 +59,7 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
 - [x] **R11** 推送首个正式 `v0.1.0` Tag 后，GitHub Actions 按 Tag 自动完成构建并创建公开
       Release；首轮验收时还上传了 `CHANGES.md`，后续由 R14 取消。
 - [x] **R12** `pnpm release <version>` 在单一确认后完成预检、测试、版本同步、按需提交、
-      双远程 `master` 推送和 GitHub Tag 推送，不向 Gitee 推送发布 Tag。
+      `master` 推送和 GitHub Tag 推送。
 - [x] **R13** GitHub Release 的安装包与便携 ZIP 使用带 `v` 的版本号，文件名分别为
       `BreakTimer-new_vX.Y.Z_x64-setup.exe` 和 `BreakTimer-new_vX.Y.Z_x64-portable.zip`。
 - [ ] **R14** 后续 Release 正文标题为 `## BreakTimer-new vX.Y.Z`，Assets 仅包含 NSIS、
@@ -70,8 +71,7 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
 
 - GitHub Actions 不修改版本文件；版本更新与按需提交只由本地单命令发布入口执行。
 - 日常开发不直接提交到 `master`；发布时先合入 `develop`。
-- 单命令入口不自动创建 Gitee Tag 或 Gitee Release。
-- 不自动发布到 Gitee，也不维护 Gitee 与 GitHub 双流水线。
+- 不使用 Gitee，也不维护双平台流水线（ADR-0017）。
 - 不生成 macOS/Linux 产物。
 - 不添加代码签名、公证、SBOM、自动更新或 Release 草稿审批。
 - 不把安装包、便携 ZIP 或 `CHANGES.md` 提交进 Git。
@@ -117,3 +117,4 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
 | 2026-10-26 | GitHub Actions `40260715832` 成功发布 `v0.1.1`，资产名与 README 预期一致                                                                                               |
 | 2026-10-26 | 变更日志标题改为带 `v` 的版本号；`CHANGES.md` 只作为 Release 正文，不再上传为 Assets 资产                                                                              |
 | 2026-10-26 | 确认 Tag 必须等待自动化与人工验收通过后再创建；已推送 Tag 不可移动，发布失败改用下一个 patch 版本                                                                      |
+| 2026-11-02 | 停用 Gitee 远程与双远程推送；发布入口只推 GitHub（ADR-0017）                                                                                                           |

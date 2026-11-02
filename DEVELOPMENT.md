@@ -30,7 +30,7 @@ breaktimer-app/  旧版源码（参考，只读）
 新设备首次拉取：
 
 ```shell
-git clone --recurse-submodules https://gitee.com/githunee/breaktimer-new.git
+git clone --recurse-submodules https://github.com/githunhunhub/breaktimer-new.git
 ```
 
 已克隆但尚未初始化旧源码时：
@@ -45,7 +45,7 @@ git submodule update --init --recursive
 
 - `develop`：日常开发、提交和推送分支。
 - `master`：发版专用分支，只接收 `develop` 的发版合入和发布脚本生成的版本提交。
-- GitHub Tag 必须从 `master` 创建；Gitee 只备份 `develop` 与 `master`。
+- GitHub Tag 必须从 `master` 创建。
 
 开发前切换到 `develop` 并与 GitHub 同步：
 
@@ -54,11 +54,10 @@ git switch develop
 git pull --ff-only github develop
 ```
 
-日常提交后同时推送到两个远程：
+日常提交后推送到 GitHub：
 
 ```powershell
 git push github develop
-git push origin develop
 ```
 
 正式发版时先把已确认的 `develop` 合入 `master`，再从 `master` 执行发布命令。不要在
@@ -75,8 +74,7 @@ git push origin develop
 - GitHub 推送 `vMAJOR.MINOR.PATCH` Tag 后，自动完成版本校验、前端/Rust 门禁、Windows
   打包、变更日志和 GitHub Release。
 - `master` 是发版专用分支；普通 `develop` 提交不会触发打包或发布。
-- GitHub 是主要仓库；Gitee 只作为 `develop` 与 `master` 代码备份，不接收发布 Tag，也不自动生成
-  Gitee Release。
+- GitHub 是唯一远程仓库和发布平台，`develop` 与 `master` 只推送到 GitHub（ADR-0017）。
 - Workflow 定义见 [`.github/workflows/release.yml`](.github/workflows/release.yml)，
   需求与验收见 [`SPEC-0015`](docs/specs/0015-github-tag-release.md)。
 
@@ -94,11 +92,11 @@ pnpm release 0.2.0
 
 命令会先完成检查和版本更新，然后显示将要执行的操作。输入 `y` 后自动完成：
 
-1. 确认当前位于 `master`，工作区干净，且没有落后于 GitHub/Gitee。
+1. 确认当前位于 `master`，工作区干净，且没有落后于 GitHub。
 2. 运行前端和 Rust 的格式、Lint、类型检查、测试与构建。
 3. 将四处版本更新为目标版本并检查一致性。
 4. 如有版本变化，提交 `chore(release): 发布 <version>`。
-5. 推送 `master` 到 GitHub 和 Gitee。
+5. 推送 `master` 到 GitHub。
 6. 创建 annotated Tag，并**只推送 GitHub**。
 7. 由 GitHub Actions 自动完成 Windows 打包、变更日志和 GitHub Release。
 
@@ -132,7 +130,7 @@ Get-FileHash .\BreakTimer-new_v0.2.0_x64-setup.exe -Algorithm SHA256
 ```
 
 `release:version`、`release:check`、`release:tag` 仍保留用于排障或单独执行，但正常发布不再
-需要手工依次运行。不要执行 `git push --tags`，也不要把发布 Tag 推送到 Gitee。
+需要手工依次运行。不要执行 `git push --tags`。
 
 ### 本地手动打包
 
