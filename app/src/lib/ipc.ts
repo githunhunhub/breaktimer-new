@@ -4,10 +4,12 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { BreakStatus } from "@/types/breaks";
 import type { I18nState } from "@/types/i18n";
 import type { Settings, SoundType } from "@/types/settings";
+import type { UpdateCheckResult, UpdateLinkKind } from "@/types/updates";
 
 /** Event name the backend emits on every scheduler transition. */
 export const BREAK_STATUS_EVENT = "break-status";
 export const LOCALE_CHANGED_EVENT = "locale-changed";
+export const UPDATE_STATUS_EVENT = "update-status";
 
 /**
  * Thin, typed wrappers around Tauri commands defined in
@@ -21,6 +23,10 @@ export const ipc = {
     invoke<void>("set_settings", { settings }),
   getI18nState: () => invoke<I18nState>("get_i18n_state"),
   getAppInfo: () => invoke<AppInfo>("get_app_info"),
+  getUpdateStatus: () => invoke<UpdateCheckResult | null>("get_update_status"),
+  checkForUpdate: () => invoke<UpdateCheckResult>("check_for_update"),
+  openUpdateLink: (kind: UpdateLinkKind) =>
+    invoke<void>("open_update_link", { kind }),
   getBreakStatus: () => invoke<BreakStatus>("get_break_status"),
   beginBreak: () => invoke<BreakStatus>("begin_break"),
   endBreak: () => invoke<BreakStatus>("end_break"),
@@ -35,10 +41,17 @@ export const ipc = {
     listen<BreakStatus>(BREAK_STATUS_EVENT, (event) => handler(event.payload)),
   onLocaleChanged: (handler: (state: I18nState) => void): Promise<UnlistenFn> =>
     listen<I18nState>(LOCALE_CHANGED_EVENT, (event) => handler(event.payload)),
+  onUpdateStatus: (
+    handler: (result: UpdateCheckResult) => void,
+  ): Promise<UnlistenFn> =>
+    listen<UpdateCheckResult>(UPDATE_STATUS_EVENT, (event) =>
+      handler(event.payload),
+    ),
 };
 
 export interface AppInfo {
   name: string;
   version: string;
   settingsPath: string;
+  portable: boolean;
 }

@@ -1,0 +1,19 @@
+name = "breaktimer-metrics"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# Free plan Workers + D1 is enough for this workload (a few thousand requests
+# per month). Fill `database_id` with the value printed by
+# `npx wrangler d1 create breaktimer_metrics`.
+[[d1_databases]]
+binding = "DB"
+database_name = "breaktimer_metrics"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[vars]
+# Set to "1" to stop accepting events without shipping a new app build.
+DISABLED = "0"
+
+# Daily retention job: rows older than 180 days are deleted (see index.js).
+[triggers]
+crons = ["15 3 * * *"]

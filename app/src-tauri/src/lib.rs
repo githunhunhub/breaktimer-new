@@ -9,7 +9,9 @@ mod notifications;
 mod sounds;
 mod state;
 mod system_state;
+mod telemetry;
 mod tray;
+mod updates;
 mod windows;
 
 use std::fs;
@@ -63,6 +65,11 @@ pub fn run() {
             }
 
             let store = SettingsStore::load(paths.settings_path.clone())?;
+            // The anonymous installation identity is created on the first
+            // launch and kept with the settings file (SPEC-0018).
+            if let Err(error) = store.ensure_install_identity(&telemetry::current_day()) {
+                eprintln!("failed to prepare the installation identity: {error}");
+            }
             let state = AppState::new(store);
             let settings = state.store.settings();
 
@@ -95,6 +102,8 @@ pub fn run() {
             sounds::init(handle)?;
             tray::refresh(handle);
             spawn_scheduler_tick(app.handle().clone());
+            updates::spawn_auto_checker(app.handle().clone());
+            telemetry::spawn(app.handle().clone());
 
             Ok(())
         })
@@ -111,6 +120,9 @@ pub fn run() {
             commands::skip_break,
             commands::start_break_now,
             commands::play_sound_preview,
+            commands::get_update_status,
+            commands::check_for_update,
+            commands::open_update_link,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

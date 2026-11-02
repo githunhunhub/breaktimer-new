@@ -20,6 +20,8 @@ export interface WorkingHours {
 
 export interface Settings {
   language: string | null;
+  checkForUpdates: boolean;
+  analyticsEnabled: boolean;
   autoLaunch: boolean;
   breaksEnabled: boolean;
   trayTextEnabled: boolean;

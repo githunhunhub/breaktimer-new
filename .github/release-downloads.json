@@ -1,0 +1,6 @@
+{
+  "_comment": "Fill in the Baidu/Quark share URLs before release. Null or empty values hide the corresponding button.",
+  "quark": null,
+  "baidu": null,
+  "baiduCode": null
+}

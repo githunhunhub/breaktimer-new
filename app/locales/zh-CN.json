@@ -135,6 +135,47 @@
         "title": "登录时启动",
         "helper": "登录时自动启动 BreakTimer-new。",
         "toggle": "登录时启动"
+      },
+      "analytics": {
+        "title": "帮助改进 BreakTimer-new",
+        "helper": "为了把休息提醒做得更好，我们希望收集少量非敏感信息：随机装机 ID、应用版本、系统大类、界面语言、安装方式和日期。这些信息无法识别你，也不包含任何休息内容或设置内容。",
+        "toggle": "允许发送匿名使用信息",
+        "disabledHint": "已关闭：应用不会再发送任何使用信息。"
+      },
+      "updates": {
+        "title": "更新",
+        "autoCheck": "自动检查更新",
+        "autoCheckHint": "最多每 24 小时检查一次。",
+        "currentVersion": "当前版本：{version}",
+        "check": "检查更新",
+        "checking": "正在检查更新…",
+        "upToDate": "已是最新版本。",
+        "available": "发现新版本 {version}。",
+        "publishedAt": "发布于 {date}",
+        "noRelease": "暂时没有已发布的版本。",
+        "unavailable": "无法检查更新。",
+        "retry": "重试",
+        "downloadsTitle": "下载方式",
+        "quark": "夸克网盘",
+        "baidu": "百度网盘",
+        "baiduCode": "提取码：{code}",
+        "downloadsUnavailable": "下载链接尚未配置，请稍后再试。",
+        "portableTitle": "便携版更新步骤",
+        "portableStep1": "从上面任一方式下载新版本便携 ZIP。",
+        "portableStep2": "在托盘菜单选择「退出」，确保 BreakTimer-new 完全关闭。",
+        "portableStep3": "解压 ZIP，将 breaktimer-new.exe、README.txt、portable.flag 复制到当前程序目录，覆盖旧文件。",
+        "portableStep4": "不要删除或覆盖 data\\ 文件夹；设置和运行数据保存在那里。",
+        "portableStep5": "重新运行 breaktimer-new.exe。",
+        "installedTitle": "安装版更新步骤",
+        "installedHint": "下载 NSIS 安装包，退出 BreakTimer-new 后运行安装包覆盖安装；设置会保留。",
+        "errors": {
+          "network": "网络不可用。",
+          "timeout": "请求超时。",
+          "rateLimited": "GitHub 暂时限制了请求，请稍后重试。",
+          "invalidResponse": "更新响应格式异常。",
+          "http": "GitHub 返回了意外的响应。",
+          "busy": "已有更新检查正在进行。"
+        }
       }
     },
     "break": {
@@ -151,6 +192,10 @@
     "notification": {
       "idleTitle": "已自动检测到休息",
       "idleBody": "已离开 {duration}"
+    },
+    "updates": {
+      "notificationTitle": "BreakTimer-new {version} 可用",
+      "notificationBody": "当前版本 {current}。打开设置 → 系统查看更新。"
     },
     "tray": {
       "enable": "启用休息",

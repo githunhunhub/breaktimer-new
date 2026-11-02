@@ -57,6 +57,8 @@ pub struct WorkingHours {
 pub struct Settings {
     #[serde(default)]
     pub language: Option<String>,
+    pub check_for_updates: bool,
+    pub analytics_enabled: bool,
     pub auto_launch: bool,
     pub breaks_enabled: bool,
     pub tray_text_enabled: bool,
@@ -114,6 +116,8 @@ impl Default for Settings {
 
         Self {
             language: None,
+            check_for_updates: true,
+            analytics_enabled: true,
             auto_launch: true,
             breaks_enabled: true,
             tray_text_enabled: true,
@@ -162,6 +166,8 @@ mod tests {
         assert_eq!(settings.postpone_length_seconds, 3 * 60);
         assert_eq!(settings.sound_type, SoundType::Gong);
         assert_eq!(settings.notification_type, NotificationType::Popup);
+        assert!(settings.check_for_updates);
+        assert!(settings.analytics_enabled);
         assert!(settings.working_hours_monday.enabled);
         assert!(!settings.working_hours_saturday.enabled);
         assert_eq!(
@@ -176,6 +182,8 @@ mod tests {
         assert_eq!(settings.break_length_seconds, 90);
         assert_eq!(settings.break_frequency_seconds, 28 * 60);
         assert_eq!(settings.sound_type, SoundType::Gong);
+        assert!(settings.check_for_updates);
+        assert!(settings.analytics_enabled);
     }
 
     #[test]
@@ -194,6 +202,8 @@ mod tests {
         assert_eq!(json["notificationType"], "POPUP");
         assert_eq!(json["soundType"], "GONG");
         assert_eq!(json["trayTextMode"], "TIME_TO_NEXT_BREAK");
+        assert_eq!(json["checkForUpdates"], true);
+        assert_eq!(json["analyticsEnabled"], true);
         assert_eq!(json["workingHoursMonday"]["enabled"], true);
         assert_eq!(json["workingHoursMonday"]["ranges"][0]["fromMinutes"], 540);
     }

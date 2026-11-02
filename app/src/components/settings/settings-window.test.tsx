@@ -25,6 +25,8 @@ function workingHours(enabled: boolean) {
 function makeSettings(overrides: Partial<Settings> = {}): Settings {
   return {
     language: null,
+    checkForUpdates: true,
+    analyticsEnabled: true,
     autoLaunch: false,
     breaksEnabled: true,
     trayTextEnabled: false,
@@ -94,7 +96,12 @@ describe("SettingsWindow", () => {
     const cardTitles = Array.from(
       document.querySelectorAll<HTMLElement>('[data-slot="card-title"]'),
     ).map((element) => element.textContent);
-    expect(cardTitles).toEqual(["Language", "Start at login"]);
+    expect(cardTitles).toEqual([
+      "Language",
+      "Start at login",
+      "Help improve BreakTimer-new",
+      "Updates",
+    ]);
     expect(screen.getByRole("option", { name: "English" })).toBeTruthy();
     expect(screen.getByRole("option", { name: "简体中文" })).toBeTruthy();
 

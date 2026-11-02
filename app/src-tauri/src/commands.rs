@@ -2,8 +2,9 @@
 
 use chrono::Utc;
 use serde::Serialize;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
+use crate::app_paths::AppPaths;
 use crate::autostart;
 use crate::breaks::BreakStatus;
 use crate::error::AppResult;
@@ -11,6 +12,7 @@ use crate::flow;
 use crate::i18n::I18nState;
 use crate::sounds;
 use crate::state::{AppState, Settings, SettingsEffects, SoundType};
+use crate::updates::{self, UpdateCheckResult, UpdateLinkKind};
 
 /// Basic application metadata used by the M3 scaffold screen.
 #[derive(Debug, Clone, Serialize)]
@@ -19,6 +21,7 @@ pub struct AppInfo {
     pub name: String,
     pub version: String,
     pub settings_path: String,
+    pub portable: bool,
 }
 
 #[tauri::command]
@@ -69,7 +72,11 @@ fn locale_changed(previous: &I18nState, next: &I18nState) -> bool {
 }
 
 #[tauri::command]
-pub fn get_app_info(app: AppHandle, state: State<'_, AppState>) -> AppInfo {
+pub fn get_app_info(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    paths: State<'_, AppPaths>,
+) -> AppInfo {
     let name = app
         .config()
         .product_name
@@ -80,7 +87,32 @@ pub fn get_app_info(app: AppHandle, state: State<'_, AppState>) -> AppInfo {
         name,
         version: app.package_info().version.to_string(),
         settings_path: state.store.path().to_string_lossy().into_owned(),
+        portable: paths.portable,
     }
+}
+
+/// Last automatic or manual update check result (SPEC-0017).
+#[tauri::command]
+pub fn get_update_status(state: State<'_, AppState>) -> Option<UpdateCheckResult> {
+    state.updates.result()
+}
+
+/// Runs a manual update check without blocking the webview (SPEC-0017).
+#[tauri::command]
+pub async fn check_for_update(app: AppHandle) -> Result<UpdateCheckResult, String> {
+    let handle = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = handle.state::<AppState>();
+        updates::check_now(&handle, &state)
+    })
+    .await
+    .map_err(|error| error.to_string())
+}
+
+/// Opens one of the validated download links from the last check (SPEC-0017).
+#[tauri::command]
+pub fn open_update_link(state: State<'_, AppState>, kind: UpdateLinkKind) -> Result<(), String> {
+    updates::open_update_link(&state, kind)
 }
 
 /// Current scheduler snapshot, polled once when a break window mounts.
@@ -140,12 +172,14 @@ mod tests {
             name: "BreakTimer-new".to_string(),
             version: "0.1.0".to_string(),
             settings_path: "settings.json".to_string(),
+            portable: false,
         })
         .unwrap();
 
         assert_eq!(value["name"], "BreakTimer-new");
         assert_eq!(value["version"], "0.1.0");
         assert_eq!(value["settingsPath"], "settings.json");
+        assert_eq!(value["portable"], false);
     }
 
     #[test]

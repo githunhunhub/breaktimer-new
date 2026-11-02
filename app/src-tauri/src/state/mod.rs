@@ -11,6 +11,7 @@ use crate::breaks::{
 use crate::i18n::{self, I18nState};
 use crate::system_state::{NativeSystemStateProvider, SystemStateProvider};
 use crate::tray::{TraySnapshot, build_tray_snapshot};
+use crate::updates::UpdateState;
 
 pub mod migrations;
 pub mod settings;
@@ -24,6 +25,7 @@ pub use store::SettingsStore;
 /// Shared, managed state available to every Tauri command.
 pub struct AppState {
     pub store: SettingsStore,
+    pub updates: UpdateState,
     system_locale: String,
     scheduler: Mutex<BreakScheduler>,
     system_state: Box<dyn SystemStateProvider>,
@@ -45,6 +47,7 @@ impl AppState {
     ) -> Self {
         Self {
             store,
+            updates: UpdateState::default(),
             system_locale,
             scheduler: Mutex::new(BreakScheduler::new()),
             system_state,

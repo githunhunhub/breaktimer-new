@@ -55,6 +55,10 @@ jobs:
     name: Build Windows assets
     needs: meta
     runs-on: windows-latest
+    # Anonymous installation metrics (SPEC-0018). Leave the repository
+    # variable empty to publish builds with reporting disabled.
+    env:
+      BREAKTIMER_METRICS_URL: ${{ vars.BREAKTIMER_METRICS_URL }}
     defaults:
       run:
         working-directory: app
@@ -198,6 +202,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
       - name: Download release assets
         uses: actions/download-artifact@v4
         with:
@@ -213,12 +220,24 @@ jobs:
           test -n "$RELEASE_BODY"
           test "$(find release-assets -maxdepth 1 -type f | wc -l)" -eq 3
 
+      - name: Append download links
+        shell: bash
+        env:
+          RELEASE_BODY: ${{ needs.changelog.outputs.release_body }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$RELEASE_BODY" > release-body.md
+          node app/scripts/release-downloads.mjs \
+            release-body.md \
+            .github/release-downloads.json \
+            release-body.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           name: BreakTimer-new ${{ github.ref_name }}
-          body: ${{ needs.changelog.outputs.release_body }}
+          body_path: release-body.md
           files: |
             release-assets/*.exe
             release-assets/*.zip

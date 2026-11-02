@@ -135,6 +135,47 @@
         "title": "Start at login",
         "helper": "Automatically start BreakTimer-new when you log in.",
         "toggle": "Launch at login"
+      },
+      "analytics": {
+        "title": "Help improve BreakTimer-new",
+        "helper": "To make breaks better, we would like to collect a small amount of non-sensitive information: a random installation ID, app version, OS family, language, install channel and the date. It cannot identify you and never includes break content or settings.",
+        "toggle": "Allow anonymous usage data",
+        "disabledHint": "Off: the app will not send any usage data."
+      },
+      "updates": {
+        "title": "Updates",
+        "autoCheck": "Check for updates automatically",
+        "autoCheckHint": "Checks at most once every 24 hours.",
+        "currentVersion": "Current version: {version}",
+        "check": "Check for updates",
+        "checking": "Checking for updates...",
+        "upToDate": "You're up to date.",
+        "available": "Version {version} is available.",
+        "publishedAt": "Published {date}",
+        "noRelease": "No published release is available yet.",
+        "unavailable": "Unable to check for updates.",
+        "retry": "Try again",
+        "downloadsTitle": "Download",
+        "quark": "Quark Drive",
+        "baidu": "Baidu Drive",
+        "baiduCode": "Extraction code: {code}",
+        "downloadsUnavailable": "Download links are not configured yet. Please try again later.",
+        "portableTitle": "Updating the portable version",
+        "portableStep1": "Download the new portable ZIP using any method above.",
+        "portableStep2": "Choose Quit from the tray menu so BreakTimer-new is fully closed.",
+        "portableStep3": "Extract the ZIP and copy breaktimer-new.exe, README.txt and portable.flag into the current program folder, replacing the old files.",
+        "portableStep4": "Do not delete or replace the data\\ folder; your settings and runtime data live there.",
+        "portableStep5": "Run breaktimer-new.exe again.",
+        "installedTitle": "Updating the installed version",
+        "installedHint": "Download the NSIS installer, quit BreakTimer-new, then run the installer to replace the existing installation. Your settings are kept.",
+        "errors": {
+          "network": "Network unavailable.",
+          "timeout": "The request timed out.",
+          "rateLimited": "GitHub is temporarily limiting requests. Try again later.",
+          "invalidResponse": "The update response was invalid.",
+          "http": "GitHub returned an unexpected response.",
+          "busy": "Another update check is already running."
+        }
       }
     },
     "break": {
@@ -151,6 +192,10 @@
     "notification": {
       "idleTitle": "Break automatically detected",
       "idleBody": "Away for {duration}"
+    },
+    "updates": {
+      "notificationTitle": "BreakTimer-new {version} is available",
+      "notificationBody": "You're on {current}. Open Settings → System to see the update."
     },
     "tray": {
       "enable": "Enable",

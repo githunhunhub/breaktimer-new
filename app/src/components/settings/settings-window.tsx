@@ -6,8 +6,10 @@ import { useI18n } from "@/lib/i18n";
 import { ipc } from "@/lib/ipc";
 import { cn } from "@/lib/utils";
 import type { Settings, SoundType } from "@/types/settings";
+import type { UpdateCheckResult, UpdateLinkKind } from "@/types/updates";
 
 import { AdvancedCard } from "./advanced-card";
+import { AnalyticsCard } from "./analytics-card";
 import { AudioCard } from "./audio-card";
 import { BackdropCard } from "./backdrop-card";
 import { BreaksCard } from "./breaks-card";
@@ -17,6 +19,7 @@ import { SmartBreaksCard } from "./smart-breaks-card";
 import { SnoozeCard } from "./snooze-card";
 import { StartupCard } from "./startup-card";
 import { ThemeCard } from "./theme-card";
+import { UpdatesCard } from "./updates-card";
 import { WorkingHoursCard } from "./working-hours-card";
 
 export interface SettingsClient {
@@ -24,6 +27,19 @@ export interface SettingsClient {
   setSettings: (settings: Settings) => Promise<void>;
   /** Plays a preview of a sound without saving (SPEC-0009); optional. */
   playSoundPreview?: (soundType: SoundType, volume: number) => Promise<void>;
+  /** App metadata, including whether this is a portable build (SPEC-0017). */
+  getAppInfo?: () => Promise<{
+    name: string;
+    version: string;
+    settingsPath: string;
+    portable: boolean;
+  }>;
+  getUpdateStatus?: () => Promise<UpdateCheckResult | null>;
+  checkForUpdate?: () => Promise<UpdateCheckResult>;
+  openUpdateLink?: (kind: UpdateLinkKind) => Promise<void>;
+  onUpdateStatus?: (
+    handler: (result: UpdateCheckResult) => void,
+  ) => Promise<() => void>;
 }
 
 interface SettingsWindowProps {
@@ -230,6 +246,12 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
             <>
               <LanguageCard settings={draft} onPatch={updateDraft} />
               <StartupCard settings={draft} onPatch={updateDraft} />
+              <AnalyticsCard settings={draft} onPatch={updateDraft} />
+              <UpdatesCard
+                settings={draft}
+                onPatch={updateDraft}
+                client={client}
+              />
             </>
           )}
 

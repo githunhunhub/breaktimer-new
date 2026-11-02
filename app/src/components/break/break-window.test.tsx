@@ -21,6 +21,8 @@ afterEach(cleanup);
 function makeSettings(overrides: Partial<Settings> = {}): Settings {
   return {
     language: null,
+    checkForUpdates: true,
+    analyticsEnabled: true,
     autoLaunch: false,
     breaksEnabled: true,
     trayTextEnabled: false,
