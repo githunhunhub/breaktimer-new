@@ -7,6 +7,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use crate::app_paths::AppPaths;
 use crate::autostart;
 use crate::breaks::BreakStatus;
+use crate::diagnostics;
 use crate::error::AppResult;
 use crate::flow;
 use crate::i18n::I18nState;
@@ -62,7 +63,7 @@ pub fn set_settings(
     if locale_changed(&previous_i18n, &next_i18n)
         && let Err(error) = app.emit(flow::LOCALE_CHANGED_EVENT, next_i18n)
     {
-        eprintln!("failed to emit locale change: {error}");
+        log::error!("failed to emit locale change: {error}");
     }
     Ok(())
 }
@@ -160,6 +161,12 @@ pub fn start_break_now(app: AppHandle, state: State<'_, AppState>) -> BreakStatu
 #[tauri::command]
 pub fn play_sound_preview(sound_type: SoundType, volume: f32) {
     sounds::play_preview(sound_type, volume);
+}
+
+/// Records an uncaught WebView error in the local diagnostic log (SPEC-0019).
+#[tauri::command]
+pub fn log_frontend_error(message: String, stack: String) {
+    diagnostics::log_frontend_error(&message, &stack);
 }
 
 #[cfg(test)]

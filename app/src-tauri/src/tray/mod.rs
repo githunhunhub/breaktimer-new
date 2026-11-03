@@ -432,7 +432,7 @@ pub fn refresh<R: Runtime>(app: &AppHandle<R>) {
     };
 
     let Some(icon) = app.tray_by_id(TRAY_ID) else {
-        eprintln!("tray icon is not registered");
+        log::error!("tray icon is not registered");
         return;
     };
 
@@ -443,14 +443,14 @@ pub fn refresh<R: Runtime>(app: &AppHandle<R>) {
         next_layout,
         previous_locale != snapshot.locale,
     ) {
-        eprintln!("failed to update tray menu: {error}");
+        log::error!("failed to update tray menu: {error}");
         return;
     }
 
     // Unsupported on Windows and Linux panels without title support, where the
     // call is a no-op (SPEC-0006 macOS title).
     if let Err(error) = icon.set_title(snapshot.title.as_deref()) {
-        eprintln!("failed to update tray title: {error}");
+        log::error!("failed to update tray title: {error}");
     }
 
     let tray_state = app.state::<Mutex<TrayStateStore<R>>>();
@@ -506,7 +506,7 @@ fn set_breaks_enabled<R: Runtime>(app: &AppHandle<R>, state: &AppState, enabled:
         ..current.clone()
     };
     if let Err(error) = state.store.set_settings(next.clone()) {
-        eprintln!("failed to change the breaks state: {error}");
+        log::error!("failed to change the breaks state: {error}");
         return;
     }
 
@@ -523,7 +523,7 @@ fn disable_breaks<R: Runtime>(app: &AppHandle<R>, state: &AppState, seconds: Opt
     // leave breaks off instead of off-but-unscheduled.
     let end_time = seconds.map(|seconds| Utc::now().timestamp() + seconds.max(1));
     if let Err(error) = state.store.set_disable_end_time(end_time) {
-        eprintln!("failed to persist the disable end time: {error}");
+        log::error!("failed to persist the disable end time: {error}");
     }
 
     refresh(app);

@@ -79,6 +79,13 @@ BreakTimer-new 图标，即可打开设置或执行托盘菜单操作。
 `%APPDATA%\com.githunhunhub.breaktimernew\settings.json`。卸载应用后如需彻底清理，
 可在确认不再需要设置后删除该目录。
 
+### 出现异常时，日志在哪里？
+
+本地诊断日志不会上传。安装版位于
+`%LOCALAPPDATA%\com.githunhunhub.breaktimernew\logs\breaktimer-new.log`；便携版位于
+`<程序目录>\data\logs\breaktimer-new.log`。上一份轮转日志名为
+`breaktimer-new.1.log`。反馈问题时可提供日志，但请先检查其中是否包含不希望公开的信息。
+
 ### 这个版本会继承旧版 BreakTimer 的设置吗？
 
 不会。BreakTimer-new 是独立的桌面应用，不读取、迁移或修改旧版 BreakTimer 的设置。

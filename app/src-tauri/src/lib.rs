@@ -2,6 +2,7 @@ mod app_paths;
 mod autostart;
 mod breaks;
 mod commands;
+mod diagnostics;
 mod error;
 mod flow;
 mod i18n;
@@ -60,6 +61,7 @@ pub fn run() {
                     return Ok(());
                 }
             };
+            diagnostics::init(&paths.logs_dir, paths.portable);
             if let Some(settings_dir) = paths.settings_path.parent() {
                 fs::create_dir_all(settings_dir)?;
             }
@@ -68,7 +70,7 @@ pub fn run() {
             // The anonymous installation identity is created on the first
             // launch and kept with the settings file (SPEC-0018).
             if let Err(error) = store.ensure_install_identity(&telemetry::current_day()) {
-                eprintln!("failed to prepare the installation identity: {error}");
+                log::error!("failed to prepare the installation identity: {error}");
             }
             let state = AppState::new(store);
             let settings = state.store.settings();
@@ -88,7 +90,7 @@ pub fn run() {
             // Keep the OS registration in sync with the stored preference;
             // development builds skip the real registration (SPEC-0007).
             if let Err(error) = autostart::set_enabled(app.handle(), settings.auto_launch) {
-                eprintln!("failed to apply the launch-at-login setting: {error}");
+                log::error!("failed to apply the launch-at-login setting: {error}");
             }
 
             app.manage(state);
@@ -123,6 +125,7 @@ pub fn run() {
             commands::get_update_status,
             commands::check_for_update,
             commands::open_update_link,
+            commands::log_frontend_error,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

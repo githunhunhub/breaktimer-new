@@ -115,6 +115,14 @@
   不再请求；启动时不弹窗、不发系统通知（ADR-0020）。
 - 更新检查保持独立，不携带任何标识（SPEC-0017）。
 
+### 本地诊断日志（SPEC-0019）
+
+- `diagnostics` 模块把后端错误、Rust panic 与 WebView 未捕获异常写入本机滚动文件；
+  不发送网络请求，也不进入装机统计。
+- 安装版写入 `%LOCALAPPDATA%\com.githunhunhub.breaktimernew\logs\`，便携版写入
+  `<程序目录>\data\logs\`；单文件上限 2 MiB，只保留一个轮转备份。
+- 日志初始化或写入失败时回退到 stderr，不得阻止应用启动。
+
 ## 与旧架构的关键差异
 
 | 维度          | 旧版（Electron）                                | 新版（Tauri v2）                                                   |

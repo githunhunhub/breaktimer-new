@@ -3,7 +3,10 @@ import { createRoot } from "react-dom/client";
 
 import App from "./App";
 import "./index.css";
+import { installGlobalErrorLogging } from "./lib/diagnostics";
 import { I18nProvider } from "./lib/i18n";
+
+installGlobalErrorLogging();
 
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>

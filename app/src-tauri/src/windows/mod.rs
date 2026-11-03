@@ -179,7 +179,7 @@ pub fn close_all<R: Runtime>(app: &AppHandle<R>) {
     for (label, window) in app.webview_windows() {
         if label.starts_with(BREAK_WINDOW_PREFIX) {
             if let Err(error) = window.close() {
-                eprintln!("failed to close break window {label}: {error}");
+                log::error!("failed to close break window {label}: {error}");
             }
         }
     }
@@ -280,7 +280,7 @@ where
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
             if let Err(error) = task(&app) {
-                eprintln!("failed to {error_context}: {error}");
+                log::error!("failed to {error_context}: {error}");
             }
         })?;
 
@@ -330,7 +330,7 @@ pub fn handle_window_event<R: Runtime>(window: &Window<R>, event: &WindowEvent) 
     if settings_close_behavior(window.label(), quitting) == SettingsCloseBehavior::Hide {
         api.prevent_close();
         if let Err(error) = window.hide() {
-            eprintln!("failed to hide the settings window: {error}");
+            log::error!("failed to hide the settings window: {error}");
         }
     }
 }
@@ -353,13 +353,13 @@ pub fn restore_settings_window<R: Runtime>(app: &AppHandle<R>) {
             let _ = delayed_app.run_on_main_thread(move || {
                 if let Some(window) = dispatch.get_webview_window(SETTINGS_WINDOW_LABEL) {
                     if let Err(error) = window.set_focus() {
-                        eprintln!("failed to refocus the settings window: {error}");
+                        log::error!("failed to refocus the settings window: {error}");
                     }
                 }
             });
         });
     if let Err(error) = spawn_result {
-        eprintln!("failed to schedule the settings window refocus: {error}");
+        log::error!("failed to schedule the settings window refocus: {error}");
     }
 }
 
@@ -371,7 +371,7 @@ fn apply_settings_restore<R: Runtime>(window: &WebviewWindow<R>) {
             SettingsRestoreStep::Focus => window.set_focus(),
         };
         if let Err(error) = result {
-            eprintln!("failed to {step:?} the settings window: {error}");
+            log::error!("failed to {step:?} the settings window: {error}");
         }
     }
 }
@@ -440,15 +440,15 @@ fn apply_geometry<R: Runtime>(window: &WebviewWindow<R>, geometry: WindowGeometr
 
 fn apply_presentation<R: Runtime>(window: &WebviewWindow<R>, presentation: WindowPresentation) {
     if let Err(error) = window.set_focusable(presentation.focusable) {
-        eprintln!("failed to set break window focusable state: {error}");
+        log::error!("failed to set break window focusable state: {error}");
     }
     apply_geometry(window, presentation.geometry);
     if let Err(error) = window.show() {
-        eprintln!("failed to show break window: {error}");
+        log::error!("failed to show break window: {error}");
     }
     if presentation.focus_on_show {
         if let Err(error) = window.set_focus() {
-            eprintln!("failed to focus break window: {error}");
+            log::error!("failed to focus break window: {error}");
         }
     }
 }

@@ -92,7 +92,7 @@ impl SettingsStore {
         let outcome = migrations::run(stored_settings, stored_version);
         if let Some((version, message)) = &outcome.failure {
             // Leave the file as-is; a failed migration must never corrupt data.
-            eprintln!("settings migration {version} failed, keeping stored data: {message}");
+            log::error!("settings migration {version} failed, keeping stored data: {message}");
         }
 
         let settings = if outcome.settings.is_null() {

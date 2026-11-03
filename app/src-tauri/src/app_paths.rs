@@ -10,6 +10,7 @@ pub const PORTABLE_FLAG_FILE: &str = "portable.flag";
 pub struct AppPaths {
     pub portable: bool,
     pub settings_path: PathBuf,
+    pub logs_dir: PathBuf,
     pub webview2_dir: PathBuf,
 }
 
@@ -49,6 +50,7 @@ pub fn prepare(
         return Ok(AppPaths {
             portable,
             settings_path: config_dir.join("settings.json"),
+            logs_dir: local_data_dir.join("logs"),
             webview2_dir: local_data_dir.to_path_buf(),
         });
     }
@@ -62,6 +64,7 @@ pub fn prepare(
     Ok(AppPaths {
         portable,
         settings_path: data_dir.join("settings.json"),
+        logs_dir: data_dir.join("logs"),
         webview2_dir,
     })
 }
@@ -141,6 +144,7 @@ mod tests {
 
         assert!(!paths.portable);
         assert_eq!(paths.settings_path, config_dir.join("settings.json"));
+        assert_eq!(paths.logs_dir, local_data_dir.join("logs"));
         assert_eq!(paths.webview2_dir, local_data_dir);
     }
 
@@ -163,6 +167,7 @@ mod tests {
             paths.settings_path,
             app_dir.join("data").join("settings.json")
         );
+        assert_eq!(paths.logs_dir, app_dir.join("data").join("logs"));
         assert_eq!(paths.webview2_dir, app_dir.join("data").join("webview2"));
     }
 
@@ -179,6 +184,7 @@ mod tests {
 
         assert!(!paths.portable);
         assert_eq!(paths.settings_path, config_dir.join("settings.json"));
+        assert_eq!(paths.logs_dir, local_data_dir.join("logs"));
         assert_eq!(paths.webview2_dir, local_data_dir);
     }
 

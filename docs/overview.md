@@ -2,7 +2,7 @@
 
 ## 目标
 
-1. **学习 AI 编程**：把本次重构当作「如何更好地用 AI 完成项目开发」的实践，关键技术结论按文档工作流沉淀到 `docs/` 与 `.ai/sessions/`。
+1. **学习 AI 编程**：把本次重构当作「如何更好地用 AI 完成项目开发」的实践，关键技术结论按文档工作流沉淀到 `docs/`。
 2. **重写 BreakTimer**：用 Tauri v2（Rust）实现独立的 `BreakTimer-new`，
    替换原项目的 Electron（见 ADR-0002、ADR-0011）。
 
@@ -21,6 +21,8 @@
   Release 或网盘下载页；不包含应用内自动下载与安装（SPEC-0017、ADR-0018）。
 - 装机统计：匿名 `installId` 的首次装机与每日心跳，输出累计/新增/活跃装机、装机留存与
   版本、安装形态分布；默认开启、可关闭，只上报白名单字段（SPEC-0018、ADR-0019）。
+- 本地诊断日志：运行错误、Rust panic 与前端未捕获异常只写入本机滚动日志，不上报
+  （SPEC-0019）。
 - 系统通知（`Notification` 模式）。
 - 自启动（auto-launch）。
 - 独立的 `BreakTimer-new` 产品名与 `com.githunhunhub.breaktimernew` 应用身份。

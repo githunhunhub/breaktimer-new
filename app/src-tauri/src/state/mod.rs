@@ -204,7 +204,7 @@ impl AppState {
         // Persisting first keeps the deadline and the enabled state in sync:
         // `set_settings` clears `disableEndTime` while breaks are on.
         if let Err(error) = self.store.set_settings(next.clone()) {
-            eprintln!("failed to re-enable breaks after a timed disable: {error}");
+            log::error!("failed to re-enable breaks after a timed disable: {error}");
             return false;
         }
 

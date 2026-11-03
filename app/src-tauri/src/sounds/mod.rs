@@ -26,7 +26,7 @@ pub fn play(settings: &Settings, is_start: bool) {
 
     std::thread::spawn(move || {
         if let Err(error) = play_blocking(bytes, volume) {
-            eprintln!("failed to play break sound: {error}");
+            log::error!("failed to play break sound: {error}");
         }
     });
 }

@@ -27,6 +27,8 @@ export const ipc = {
   checkForUpdate: () => invoke<UpdateCheckResult>("check_for_update"),
   openUpdateLink: (kind: UpdateLinkKind) =>
     invoke<void>("open_update_link", { kind }),
+  logFrontendError: (message: string, stack: string) =>
+    invoke<void>("log_frontend_error", { message, stack }),
   getBreakStatus: () => invoke<BreakStatus>("get_break_status"),
   beginBreak: () => invoke<BreakStatus>("begin_break"),
   endBreak: () => invoke<BreakStatus>("end_break"),

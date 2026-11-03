@@ -205,7 +205,7 @@ fn run_cycle(app: &AppHandle) {
             return;
         }
         if let Err(error) = state.store.set_telemetry_install_reported(true) {
-            eprintln!("failed to persist the installation metric state: {error}");
+            log::error!("failed to persist the installation metric state: {error}");
         }
     }
 
@@ -220,7 +220,7 @@ fn run_cycle(app: &AppHandle) {
     );
     if send(&payload) {
         if let Err(error) = state.store.set_telemetry_last_ping_day(Some(today)) {
-            eprintln!("failed to persist the installation metric day: {error}");
+            log::error!("failed to persist the installation metric day: {error}");
         }
     }
 }

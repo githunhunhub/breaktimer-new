@@ -48,7 +48,7 @@ pub fn tick<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
             } else {
                 let settings = state.store.settings();
                 if let Err(error) = windows::show_prompt(app, &settings) {
-                    eprintln!("failed to show break prompt: {error}");
+                    log::error!("failed to show break prompt: {error}");
                 }
                 emit_status(app, state);
             }
@@ -131,7 +131,7 @@ fn break_started<R: Runtime>(app: &AppHandle<R>, state: &AppState, _start: &Brea
     }
 
     if let Err(error) = windows::show_break(app) {
-        eprintln!("failed to show break window: {error}");
+        log::error!("failed to show break window: {error}");
     }
     sounds::play(&settings, true);
     emit_status(app, state);
@@ -149,7 +149,7 @@ fn notify_idle_reset<R: Runtime>(app: &AppHandle<R>, state: &AppState, idle_seco
     let title = translate(&locale, "notification.idleTitle", &[]);
     let body = idle_reset_body(idle_seconds, &locale);
     if let Err(error) = notifications::notify(app, &title, &body) {
-        eprintln!("failed to show idle reset notification: {error}");
+        log::error!("failed to show idle reset notification: {error}");
     }
 }
 
@@ -168,7 +168,7 @@ fn notify_break<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
     let body = notification_body(&settings.break_message, &locale);
 
     if let Err(error) = notifications::notify(app, &title, &body) {
-        eprintln!("failed to show break notification: {error}");
+        log::error!("failed to show break notification: {error}");
     }
     sounds::play(&settings, true);
 
@@ -209,7 +209,7 @@ fn idle_reset_body(idle_seconds: u64, locale: &str) -> String {
 pub fn emit_status<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
     let status = state.break_status(Utc::now());
     if let Err(error) = app.emit(BREAK_STATUS_EVENT, status) {
-        eprintln!("failed to emit break status: {error}");
+        log::error!("failed to emit break status: {error}");
     }
     // Every scheduler change is also a tray change (SPEC-0006).
     tray::refresh(app);
