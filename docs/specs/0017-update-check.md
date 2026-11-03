@@ -65,6 +65,14 @@ electron-updater 检查更新，但新版尚未接入；直接做应用内自动
       配置缺失时发布仍成功，应用显示下载链接未配置提示。
 - [ ] **U17** 设置页之外没有新增托盘菜单项；现有托盘菜单行为不变。
 
+## 人工验收步骤
+
+1. 在 `<repo-root>/app` 执行 `pnpm tauri:dev`，打开设置 → 系统 → 更新。
+2. 点击「检查更新」，确认界面显示「已是最新」或「发现新版本」，应用不崩溃，也不出现
+   `http2 feature is not enabled`。
+3. 断网后再次点击，确认显示「无法检查更新」；恢复网络后确认后续自动检查仍可运行。
+4. 下一次正式 Tag 发布后，确认 Release 正文的网盘下载段落、隐藏标记和应用端下载入口一致。
+
 ## 非目标 / 边界
 
 - 不接入 `tauri-plugin-updater`，不做应用内下载、静默安装、自动重启或回滚。
@@ -109,7 +117,7 @@ electron-updater 检查更新，但新版尚未接入；直接做应用内自动
 - [ ] 发布脚本 / Workflow：读取 `.github/release-downloads.json`，附加可见下载段落与隐藏标记。
 - [ ] 测试：Rust 纯函数与 HTTP 错误映射、前端卡片状态、通知去重、发布元数据解析。
 - [ ] 人工验收：当前版本、模拟新版本、断网、便携版、安装版、中英文、休息中通知。
-- [ ] 收尾：更新 spec 状态、写 `.ai/sessions/`、更新 `.ai/memory.md`。
+- [ ] 收尾：更新 spec 状态、`docs/specs/README.md` 与 `docs/roadmap.md`。
 
 ## 变更记录
 
@@ -119,3 +127,4 @@ electron-updater 检查更新，但新版尚未接入；直接做应用内自动
 | 2026-11-02 | 实现完成：`updates` 模块、设置页 `Updates` 卡片、自动检查与通知、便携版步骤、Release 下载元数据；全部门禁通过，待 Windows 人工验收 |
 | 2026-11-02 | 下载入口顺序调整为百度网盘、夸克网盘、GitHub Releases |
 | 2026-11-02 | 去掉 GitHub Releases 下载入口；GitHub 仅用于版本检查，下载入口只保留百度、夸克网盘 |
+| 2026-11-03 | 修复手动检查更新时 `native-tls` 协商 HTTP/2 但 `reqwest` 未启用 `http2` 导致的 `hyper-util` panic；增加真实 GitHub 请求回归测试 |

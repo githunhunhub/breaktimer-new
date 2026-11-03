@@ -130,10 +130,10 @@ pub fn check_now(app: &AppHandle, state: &AppState) -> UpdateCheckResult {
         .store
         .set_update_last_checked_at(Some(now.timestamp()))
     {
-        eprintln!("failed to persist update check time: {error}");
+        log::error!("failed to persist update check time: {error}");
     }
     if let Err(error) = app.emit(UPDATE_STATUS_EVENT, &result) {
-        eprintln!("failed to emit update status: {error}");
+        log::error!("failed to emit update status: {error}");
     }
 
     result
@@ -375,7 +375,7 @@ fn dispatch_notify(app: &AppHandle) {
         let state = handle.state::<AppState>();
         maybe_notify_pending(&handle, &state, Utc::now());
     }) {
-        eprintln!("failed to dispatch update notification: {error}");
+        log::error!("failed to dispatch update notification: {error}");
     }
 }
 
@@ -402,14 +402,14 @@ fn maybe_notify(app: &AppHandle, state: &AppState, result: &UpdateCheckResult, n
     );
 
     if let Err(error) = notifications::notify(app, &title, &body) {
-        eprintln!("failed to show update notification: {error}");
+        log::error!("failed to show update notification: {error}");
         return;
     }
     if let Err(error) = state
         .store
         .set_update_last_notified_version(Some(latest.to_string()))
     {
-        eprintln!("failed to record the notified update version: {error}");
+        log::error!("failed to record the notified update version: {error}");
     }
 }
 
@@ -444,7 +444,7 @@ impl FetchError {
             Self::RateLimited => UpdateErrorCode::RateLimited,
             Self::InvalidResponse => UpdateErrorCode::InvalidResponse,
             Self::Http(status) => {
-                eprintln!("update check failed with HTTP status {status}");
+                log::error!("update check failed with HTTP status {status}");
                 UpdateErrorCode::Http
             }
         }
@@ -491,6 +491,12 @@ fn fetch_latest_release() -> Result<Option<Release>, FetchError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    #[ignore = "requires network access to GitHub"]
+    fn fetches_the_latest_release_with_the_configured_tls_stack() {
+        fetch_latest_release().expect("GitHub should return a valid latest-release response");
+    }
 
     #[test]
     fn parses_and_compares_stable_versions() {
