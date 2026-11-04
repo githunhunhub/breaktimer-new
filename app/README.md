@@ -17,6 +17,7 @@ pnpm test
 pnpm lint
 pnpm typecheck
 pnpm build
+pnpm verify
 ```
 
 Run from `src-tauri/`:

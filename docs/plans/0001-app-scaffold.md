@@ -4,6 +4,8 @@
 - 日期：2026-10-13
 - 关联：ADR-0002 · SPEC-0010
 
+> 历史记录：本计划已交付，除修订该功能外无需通读；当前状态见 `docs/roadmap.md`。
+
 ## 目标
 
 在 `app/` 下建立可运行的 Tauri v2 工程：React + TypeScript 前端、Rust 后端，打通 `invoke`/command IPC，并纳入 Git。

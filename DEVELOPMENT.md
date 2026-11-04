@@ -10,7 +10,8 @@
 1. [`docs/overview.md`](docs/overview.md) —— 目标、范围、非目标
 2. [`docs/roadmap.md`](docs/roadmap.md) —— 开发计划
 3. [`docs/architecture.md`](docs/architecture.md) —— 现状与目标架构
-4. [`AGENTS.md`](AGENTS.md) —— AI 协作约定（也定义了整个目录结构）
+4. [`docs/decisions/README.md`](docs/decisions/README.md) —— 为什么这样决定（ADR 索引）
+5. [`AGENTS.md`](AGENTS.md) —— AI 协作约定（也定义了整个目录结构）
 
 ## 目录结构
 
@@ -61,6 +62,19 @@ git push github develop
 
 正式发版时先把已确认的 `develop` 合入 `master`，再从 `master` 执行发布命令。不要在
 `master` 上直接开发或提交普通修复。
+
+## 本地验证
+
+改代码后在 `app/` 执行门禁（仅依赖变更时先跑安装）：
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm verify
+```
+
+`pnpm verify` 调用 `app/scripts/verify.ps1`，依次运行格式化检查、lint、类型检查、前端测试与
+构建，以及 `cargo fmt --check`、`cargo check --locked --all-targets`、`cargo test --locked
+--all-targets`；不包含任何打包命令。
 
 ## 装机统计端点
 

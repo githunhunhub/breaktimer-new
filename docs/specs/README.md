@@ -5,26 +5,29 @@
 
 ## 状态总览
 
-| 编号                                                 | 需求                                         | 状态        | 关联                                                                 | 代码                                                                                                                                               |
-| ---------------------------------------------------- | -------------------------------------------- | ----------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [SPEC-0001](0001-cross-device-git-baseline.md)       | 跨设备 Git 管理基线                          | done        | ADR-0001 · ADR-0021                                                  | 根目录仓库配置                                                                                                                                     |
-| [SPEC-0002](0002-break-window-fullscreen-overlay.md) | Popup 休息窗全屏输入阻断（保留可选视觉遮罩） | done        | ADR-0002 · ADR-0004 · ADR-0007                                       | `app/`（A8/A9/A14、`showBackdrop=false`、推迟/跳过、混合 DPI 与单段 60 秒休息前倒计时均通过 Windows 人工验收）                                     |
-| [SPEC-0003](0003-break-scheduling.md)                | 休息调度                                     | done        | ADR-0002 · SPEC-0002                                                 | `app/`（阶段 2/3/4 完成；Windows 托盘触发与调度续排人工通过）                                                                                      |
-| [SPEC-0004](0004-working-hours.md)                   | 工作时段                                     | done        | ADR-0002 · SPEC-0003                                                 | `app/`（阶段 3 实现与自动化验证完成）                                                                                                              |
-| [SPEC-0005](0005-idle-reset.md)                      | 闲置重置                                     | done        | ADR-0002 · ADR-0005 · SPEC-0003                                      | `app/`（关闭闲置重置后忽略 `Idle` 的修复、第 300 秒回归与便携版人工验收均通过）                                                                    |
-| [SPEC-0006](0006-system-tray.md)                     | 系统托盘                                     | done        | ADR-0002 · ADR-0006 · ADR-0007 · ADR-0010 · SPEC-0003                | `app/`（稳定根菜单、菜单保持、无残影、A12/A13 与 Windows 隐藏 macOS-only 标题设置均通过人工验收）                                                  |
-| [SPEC-0007](0007-auto-launch.md)                     | 自启动                                       | done        | ADR-0002                                                             | `app/`（Windows 发布产物 D1-D4 登录自启与注册路径人工验收通过）                                                                                    |
-| [SPEC-0008](0008-notification-mode.md)               | 通知模式（Notification）                     | done        | ADR-0002 · ADR-0006 · SPEC-0003                                      | `app/`（通知标题读取 `breakTitle`，默认值与自定义值修复已通过自动化与 Windows 人工复验）                                                           |
-| [SPEC-0009](0009-sounds.md)                          | 声音                                         | done        | ADR-0002 · ADR-0003 · SPEC-0002 · SPEC-0008                          | `app/`（阶段 2 实现与 Windows 人工验收完成）                                                                                                       |
-| [SPEC-0010](0010-settings-persistence-and-window.md) | 设置持久化与设置窗口                         | done        | ADR-0002                                                             | `app/`（四页签、Theme、关闭隐藏、托盘恢复、Quit 与 Windows System 页签移除 `Menu Bar Text` 均通过人工验收）                                        |
-| [SPEC-0011](0011-windows-nsis-release.md)            | Windows 发布产物（NSIS 与便携 ZIP）          | done        | ADR-0008 · ADR-0009 · SPEC-0007 · SPEC-0012                          | `app/src-tauri/tauri.conf.json`、安装包、便携 ZIP 与发布版可执行文件（NSIS 安装/卸载、图标、版本与登录自启人工通过；产物哈希已记录）               |
-| [SPEC-0012](0012-portable-zip.md)                    | Windows 便携 ZIP                             | done        | ADR-0009 · SPEC-0007 · SPEC-0011                                     | `app/scripts/package-portable.ps1`、`app/src-tauri/src/app_paths.rs`（完整便携流程、异常标记、安装版互斥、便携自启动与 NSIS 隔离均通过）           |
-| [SPEC-0013](0013-app-rename.md)                      | 应用更名为 BreakTimer-new                    | done        | ADR-0011 · SPEC-0007 · SPEC-0010 · SPEC-0011 · SPEC-0012             | `app/src-tauri/tauri.conf.json`、`app/package.json`、Cargo/Rust 入口、托盘/窗口与服务设置文案、便携脚本（自动化、运行时与 Windows 人工验收均通过） |
-| [SPEC-0014](0014-multilingual-support.md)            | 多语言支持                                   | done        | ADR-0012 · PLAN-0003 · SPEC-0002 · SPEC-0006 · SPEC-0008 · SPEC-0010 | L1-L15、通知标题修复与 Windows 中英文运行时人工验收全部通过                                                                                        |
-| [SPEC-0015](0015-github-tag-release.md)              | GitHub Tag 发布流水线                        | in-progress | ADR-0013 · ADR-0014 · ADR-0015 · ADR-0017 · PLAN-0004 · SPEC-0011 · SPEC-0012 | `.github/workflows/release.yml`、单命令发布脚本（`develop` 开发、`master` 发版；GitHub 单一远程正式发布）                                         |
-| [SPEC-0016](0016-landing-page.md)                    | 宣传页（Landing Page）                       | draft       | SPEC-0011 · SPEC-0012 · ADR-0011                                      | 待建（站点目录与托管平台见 spec 开放问题 Q1 / Q2）                                                                                                 |
-| [SPEC-0017](0017-update-check.md)                    | 更新检查                                     | in-progress | ADR-0018 · SPEC-0015 · SPEC-0010 · SPEC-0014                         | `app/src-tauri/src/updates/`、设置页 `Updates` 卡片、自动检查与下载入口（自动化门禁通过，待 Windows 人工验收）                                     |
-| [SPEC-0018](0018-installation-metrics.md)            | 装机统计                                     | in-progress | ADR-0019 · SPEC-0010 · SPEC-0012 · SPEC-0014 · SPEC-0017             | `app/src-tauri/src/telemetry/`、设置页 `AnalyticsCard`、`server/metrics/`（Worker + D1）；自动化门禁通过，待人工验收                                  |
-| [SPEC-0019](0019-local-diagnostic-logs.md)           | 本地诊断日志                                 | in-progress | SPEC-0012 · SPEC-0018                                                | `app/src-tauri/src/diagnostics.rs`、前端全局异常桥接（自动化门禁通过，待 Windows 人工验收）                                                        |
+> 「主要实现」只写定位用的短指针；验收记录与未完成项以各 spec 正文为准。
+> 需求进度只在本表与 spec 头部同步，不再抄进 `docs/roadmap.md`。
+
+| 编号 | 需求 | 状态 | 关联 | 主要实现 |
+| --- | --- | --- | --- | --- |
+| [SPEC-0001](0001-cross-device-git-baseline.md) | 跨设备 Git 管理基线 | done | ADR-0001 · ADR-0021 | 根目录仓库配置 |
+| [SPEC-0002](0002-break-window-fullscreen-overlay.md) | Popup 休息窗全屏输入阻断（保留可选视觉遮罩） | done | ADR-0002 · ADR-0004 · ADR-0007 | `components/break/`、`windows/` |
+| [SPEC-0003](0003-break-scheduling.md) | 休息调度 | done | ADR-0002 · SPEC-0002 | `breaks/`、`flow.rs` |
+| [SPEC-0004](0004-working-hours.md) | 工作时段 | done | ADR-0002 · SPEC-0003 | `breaks/`、`working-hours-card.tsx` |
+| [SPEC-0005](0005-idle-reset.md) | 闲置重置 | done | ADR-0002 · ADR-0005 · SPEC-0003 | `system_state.rs`、`breaks/` |
+| [SPEC-0006](0006-system-tray.md) | 系统托盘 | done | ADR-0002 · ADR-0006 · ADR-0007 · ADR-0010 · SPEC-0003 | `tray/` |
+| [SPEC-0007](0007-auto-launch.md) | 自启动 | done | ADR-0002 | `autostart/`、`startup-card.tsx` |
+| [SPEC-0008](0008-notification-mode.md) | 通知模式（Notification） | done | ADR-0002 · ADR-0006 · SPEC-0003 | `flow.rs`、`notifications/` |
+| [SPEC-0009](0009-sounds.md) | 声音 | done | ADR-0002 · ADR-0003 · SPEC-0002 · SPEC-0008 | `sounds/`、`audio-card.tsx` |
+| [SPEC-0010](0010-settings-persistence-and-window.md) | 设置持久化与设置窗口 | done | ADR-0002 | `state/`、`settings-window.tsx` |
+| [SPEC-0011](0011-windows-nsis-release.md) | Windows 发布产物（NSIS 与便携 ZIP） | done | ADR-0008 · ADR-0009 · SPEC-0007 · SPEC-0012 | `tauri.conf.json`、发布脚本 |
+| [SPEC-0012](0012-portable-zip.md) | Windows 便携 ZIP | done | ADR-0009 · SPEC-0007 · SPEC-0011 | `package-portable.ps1`、`app_paths.rs` |
+| [SPEC-0013](0013-app-rename.md) | 应用更名为 BreakTimer-new | done | ADR-0011 · SPEC-0007 · SPEC-0010 · SPEC-0011 · SPEC-0012 | `tauri.conf.json`、`package.json` |
+| [SPEC-0014](0014-multilingual-support.md) | 多语言支持 | done | ADR-0012 · PLAN-0003 · SPEC-0002 · SPEC-0006 · SPEC-0008 · SPEC-0010 | `locales/`、`i18n.tsx`、`i18n/` |
+| [SPEC-0015](0015-github-tag-release.md) | GitHub Tag 发布流水线 | in-progress | ADR-0013 · ADR-0014 · ADR-0015 · ADR-0017 · PLAN-0004 · SPEC-0011 · SPEC-0012 | `.github/workflows/release.yml`、`release*.ps1` |
+| [SPEC-0016](0016-landing-page.md) | 宣传页（Landing Page） | draft | SPEC-0011 · SPEC-0012 · ADR-0011 | 待建（见 spec Q1 / Q2） |
+| [SPEC-0017](0017-update-check.md) | 更新检查 | in-progress | ADR-0018 · SPEC-0015 · SPEC-0010 · SPEC-0014 | `updates/`、`updates-card.tsx` |
+| [SPEC-0018](0018-installation-metrics.md) | 装机统计 | in-progress | ADR-0019 · SPEC-0010 · SPEC-0012 · SPEC-0014 · SPEC-0017 | `telemetry/`、`analytics-card.tsx`、`server/metrics/` |
+| [SPEC-0019](0019-local-diagnostic-logs.md) | 本地诊断日志 | in-progress | SPEC-0012 · SPEC-0018 | `diagnostics.rs`、`lib/diagnostics.ts` |
 
 <!-- 新增 spec 后在此表追加一行。状态：draft / confirmed / in-progress / done / superseded -->
