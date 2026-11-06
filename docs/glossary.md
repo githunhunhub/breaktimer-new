@@ -25,6 +25,6 @@
 | 发布下载元数据 | Release download metadata | Release 正文中的隐藏 JSON 标记，提供夸克 / 百度网盘下载入口                                   |
 | 便携版更新     | Portable update        | 退出应用后手动解压新 ZIP 并覆盖程序文件，保留 `data\` 目录；应用不自我替换                     |
 | 装机           | Installation           | 一份独立的运行数据目录（安装版 AppData 或便携版 `data\`）及其随机 `installId`；统计的最小单位（SPEC-0018） |
-| 装机统计       | Installation metrics   | 匿名的首次装机事件与每日心跳上报，用于累计/新增/活跃装机、留存与版本分布（SPEC-0018）         |
+| 装机统计       | Installation metrics   | 匿名首次装机与每日心跳，经 HLL 草图输出 M1～M8 近似趋势，不保存逐装机明细（SPEC-0018、ADR-0023） |
+| HLL 草图       | HyperLogLog sketch     | 由 `installId` 哈希派生的寄存器数组，可合并并估计去重基数，无法还原装机明细（SPEC-0018）       |
 | 分发量         | Distribution count     | 下载次数（GitHub `download_count` 与网盘后台），不等于装机量                                   |
-| 装机留存       | Installation retention | 同一 `installId` 在首次装机后第 N 天或第 N 周仍活跃的比例                                      |

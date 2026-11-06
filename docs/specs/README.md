@@ -27,7 +27,7 @@
 | [SPEC-0015](0015-github-tag-release.md) | GitHub Tag 发布流水线 | in-progress | ADR-0013 · ADR-0014 · ADR-0015 · ADR-0017 · PLAN-0004 · SPEC-0011 · SPEC-0012 | `.github/workflows/release.yml`、`release*.ps1` |
 | [SPEC-0016](0016-landing-page.md) | 宣传页（Landing Page） | draft | SPEC-0011 · SPEC-0012 · ADR-0011 | 待建（见 spec Q1 / Q2） |
 | [SPEC-0017](0017-update-check.md) | 更新检查 | in-progress | ADR-0018 · SPEC-0015 · SPEC-0010 · SPEC-0014 | `updates/`、`updates-card.tsx` |
-| [SPEC-0018](0018-installation-metrics.md) | 装机统计 | in-progress | ADR-0019 · SPEC-0010 · SPEC-0012 · SPEC-0014 · SPEC-0017 | `telemetry/`、`analytics-card.tsx`、`server/metrics/` |
+| [SPEC-0018](0018-installation-metrics.md) | 装机统计 | in-progress | ADR-0019 · ADR-0020 · ADR-0023 · SPEC-0010 · SPEC-0012 · SPEC-0014 · SPEC-0017 | `telemetry/`、`analytics-card.tsx`、`server/metrics/` |
 | [SPEC-0019](0019-local-diagnostic-logs.md) | 本地诊断日志 | in-progress | SPEC-0012 · SPEC-0018 | `diagnostics.rs`、`lib/diagnostics.ts` |
 
 <!-- 新增 spec 后在此表追加一行。状态：draft / confirmed / in-progress / done / superseded -->

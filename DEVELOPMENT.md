@@ -78,25 +78,31 @@ pnpm verify
 
 ## 装机统计端点
 
-匿名装机统计的服务端在 `server/metrics/`（Cloudflare Worker + D1，SPEC-0018 /
-ADR-0019）。首次部署与查询步骤见 `server/metrics/README.md`，要点：
+匿名装机统计的服务端在 `server/metrics/`（EdgeOne Pages / Makers Edge Functions + KV HLL，
+SPEC-0018 / ADR-0023）。首次部署与查询步骤见 `server/metrics/README.md`，要点：
 
 ```powershell
-cd server/metrics
-npx wrangler login
-npx wrangler d1 create breaktimer_metrics   # 把 database_id 填进 wrangler.toml
-npx wrangler d1 execute breaktimer_metrics --remote --file schema.sql
-npx wrangler deploy
+# 在 EdgeOne 控制台创建 Makers 项目、KV Namespace 并以 METRICS_KV 绑定项目；
+# 设置环境变量 DISABLED、MAINTENANCE_TOKEN，绑定稳定的自定义 HTTPS 域名；
+# 部署仓库中的 edge-functions/ 后核验平台访问日志、KV 区域与 WAF。
 ```
 
 发布构建必须带上端点环境变量，否则统计能力整体关闭：
 
 ```powershell
-$env:BREAKTIMER_METRICS_URL = "https://<worker>.workers.dev/v1/collect"
+$env:BREAKTIMER_METRICS_URL = "https://<metrics-domain>/v1/collect"
 ```
 
-本地校验逻辑：`node --test server/metrics/test/validate.test.mjs`。
-报表 SQL 在 `server/metrics/queries.sql`，口径见 `docs/specs/0018-installation-metrics.md`。
+本地运行全部服务端测试（含 HLL、写入、报表）：
+
+```powershell
+cd server/metrics
+npm test
+```
+
+维护令牌保护的 `GET /api/report?from=…&to=…&granularity=day|month&format=json|csv`
+输出 M1～M8 的近似聚合；口径见 `docs/specs/0018-installation-metrics.md`。客户端只能访问
+自定义域名下的 Edge Function，不能直接访问 KV。
 
 ## 打包与发布
 

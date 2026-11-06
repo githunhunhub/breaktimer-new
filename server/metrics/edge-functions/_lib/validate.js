@@ -16,6 +16,8 @@ export const ALLOWED_FIELDS = new Set([
   "channel",
 ]);
 
+export const MAX_FIRST_LAUNCH_BACKLOG_DAYS = 730;
+
 const UUID_V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -45,9 +47,9 @@ export function dayDistance(a, b) {
 }
 
 /**
- * Client clocks and time zones legitimately differ from UTC, so accept today
- * plus or minus one day. Anything else is rejected rather than clamped, so a
- * forged backlog cannot inflate the history.
+ * Client clocks and time zones legitimately differ from UTC, so event days
+ * accept today plus or minus one day. The first-launch day has its own
+ * offline-backlog rule in validateEventWindow().
  */
 export function isRecentDay(day, serverDay) {
   const distance = dayDistance(day, serverDay);
@@ -86,5 +88,27 @@ export function validateEvent(payload) {
   }
   if (!CHANNEL.has(payload.channel)) return "invalid channel";
 
+  return null;
+}
+
+/** Applies the server-day acceptance window after shape validation. */
+export function validateEventWindow(payload, serverDay) {
+  const invalid = validateEvent(payload);
+  if (invalid) return invalid;
+  if (!isRecentDay(payload.day, serverDay)) return "day out of range";
+
+  if (payload.event === "install") {
+    const age = dayDistance(payload.firstLaunchDay, serverDay);
+    const afterEvent = dayDistance(payload.firstLaunchDay, payload.day);
+    if (
+      age === null ||
+      afterEvent === null ||
+      age < 0 ||
+      age > MAX_FIRST_LAUNCH_BACKLOG_DAYS ||
+      afterEvent < 0
+    ) {
+      return "firstLaunchDay out of range";
+    }
+  }
   return null;
 }

@@ -27,5 +27,5 @@ macOS/Linux 不在当前范围。
 | [SPEC-0015 GitHub Tag 发布流水线](specs/0015-github-tag-release.md) | 版本校验、构建、`git-cliff` 变更日志与 Release；待下一次正式 Tag 端到端验收 |
 | [SPEC-0016 宣传页](specs/0016-landing-page.md) | 站点目录、托管平台、域名等开放问题待确认 |
 | [SPEC-0017 更新检查](specs/0017-update-check.md) | 启动后自动检查 + 设置页手动检查；待 Windows 人工验收与网盘链接补齐 |
-| [SPEC-0018 装机统计](specs/0018-installation-metrics.md) | 匿名 `installId` 首次装机与每日心跳；待部署端点与 Windows 人工验收 |
+| [SPEC-0018 装机统计](specs/0018-installation-metrics.md) | EdgeOne Edge Functions + KV HLL 的 M1～M8 近似统计；待部署端点与 Windows 人工验收 |
 | [SPEC-0019 本地诊断日志](specs/0019-local-diagnostic-logs.md) | 本机滚动日志，不上报；待 Windows 人工验收 |

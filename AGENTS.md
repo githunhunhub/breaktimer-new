@@ -25,7 +25,7 @@
 | `.github/` | CI 与发布流水线（`workflows/release.yml`）、`git-cliff` 配置 | 按需 |
 | `app/` | **新代码（成果）**；命令见 `app/README.md` | 按需 |
 | `app/scripts/` | 发布 / 打包 / 验证脚本（属代码，不是 AI 文件） | 按需 |
-| `server/` | 装机统计端点（Cloudflare Worker + D1，SPEC-0018） | 按需 |
+| `server/` | 装机统计端点（EdgeOne Edge Functions + KV，SPEC-0018） | 按需 |
 | `breaktimer-app/` | 旧源码（参考，**只读**，不修改） | 参考 |
 | `DEVELOPMENT.md` | 人用的开发 / 发布步骤（完整命令来源） | 常看 |
 | `README.md` | 面向用户的安装与使用说明 | 按需 |

@@ -138,7 +138,7 @@
       },
       "analytics": {
         "title": "Help improve BreakTimer-new",
-        "helper": "To make breaks better, we would like to collect a small amount of non-sensitive information: a random installation ID, app version, OS family, language, install channel and the date. It cannot identify you and never includes break content or settings.",
+        "helper": "To make breaks better, we would like to collect a small amount of non-sensitive information: a random installation ID, app version, OS family, language, install channel and the date. It is turned into anonymous, approximate aggregate trends and cannot identify you; no per-installation details are kept. It never includes break content or settings.",
         "toggle": "Allow anonymous usage data",
         "disabledHint": "Off: the app will not send any usage data."
       },

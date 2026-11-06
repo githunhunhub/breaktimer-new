@@ -1,4 +1,4 @@
-//! Anonymous installation metrics (SPEC-0018, ADR-0019).
+//! Anonymous installation metrics (SPEC-0018, ADR-0019, ADR-0023).
 //!
 //! Only installation-level, day-granular data leaves the machine: a random
 //! install id, the local day, the first-launch day, the app version, a coarse
@@ -21,7 +21,7 @@ use crate::state::AppState;
 /// Set at build time after deploying `server/metrics`:
 ///
 /// ```text
-/// BREAKTIMER_METRICS_URL=https://<worker>.workers.dev/v1/collect
+/// BREAKTIMER_METRICS_URL=https://<metrics-domain>/v1/collect
 /// ```
 const COLLECT_URL: &str = match option_env!("BREAKTIMER_METRICS_URL") {
     Some(url) => url,
@@ -317,9 +317,7 @@ mod tests {
         assert!(!endpoint_is_usable(""));
         assert!(!endpoint_is_usable("   "));
         assert!(!endpoint_is_usable("http://example.com/v1/collect"));
-        assert!(endpoint_is_usable(
-            "https://metrics.example.workers.dev/v1/collect"
-        ));
+        assert!(endpoint_is_usable("https://metrics.example.com/v1/collect"));
     }
 
     #[test]

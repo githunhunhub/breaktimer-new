@@ -79,7 +79,7 @@
 | 自启动注册 | `autostart/mod.rs` | SPEC-0007 |
 | 后端翻译与系统语言解析 | `i18n/mod.rs` | SPEC-0014 · ADR-0012 |
 | 更新检查 | `updates/mod.rs` | SPEC-0017 · ADR-0018 |
-| 装机统计上报 | `telemetry/mod.rs` | SPEC-0018 · ADR-0019 |
+| 装机统计上报 | `telemetry/mod.rs` | SPEC-0018 · ADR-0019 · ADR-0023 |
 | 诊断日志 | `diagnostics.rs` | SPEC-0019 |
 | 错误类型 | `error.rs` | — |
 
@@ -91,7 +91,7 @@
 | 便携 ZIP 打包 | `app/scripts/package-portable.ps1` | SPEC-0012 |
 | 发布流水线与版本脚本 | `.github/workflows/release.yml`、`app/scripts/release*.ps1`、`app/scripts/release-version.mjs` | SPEC-0015 · ADR-0013 |
 | 验证门禁脚本 | `app/scripts/verify.ps1` | `AGENTS.md` |
-| 装机统计端点（Worker + D1） | `server/metrics/` | SPEC-0018 · ADR-0019 |
+| 装机统计端点（EdgeOne Edge Functions + KV HLL） | `server/metrics/` | SPEC-0018 · ADR-0019 · ADR-0023 |
 
 ## 关键实现约定（改动前需了解的不变量）
 
