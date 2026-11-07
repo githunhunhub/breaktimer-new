@@ -6,8 +6,9 @@
 //! channel. Nothing here can identify a person or a device, and the server
 //! never stores IP addresses.
 //!
-//! Reporting stays disabled unless `BREAKTIMER_METRICS_URL` is set at build
-//! time, so forks and local builds never send data to the maintainer endpoint.
+//! Reporting stays disabled unless the build-time switch below is on and
+//! `BREAKTIMER_METRICS_URL` is set, so forks, local builds and builds made
+//! before the endpoint exists never send data to the maintainer endpoint.
 
 use std::time::Duration;
 
@@ -27,6 +28,10 @@ const COLLECT_URL: &str = match option_env!("BREAKTIMER_METRICS_URL") {
     Some(url) => url,
     None => "",
 };
+
+/// Temporary build-time kill switch (SPEC-0018 requirement 13). Reporting stays
+/// paused until `server/metrics` is deployed; set this to `true` to resume.
+const REPORTING_SWITCH: bool = false;
 
 const SCHEMA_VERSION: u32 = 1;
 const STARTUP_DELAY_SECONDS: u64 = 90;
@@ -76,6 +81,16 @@ pub fn current_day() -> String {
 pub fn endpoint_is_usable(url: &str) -> bool {
     let url = url.trim();
     !url.is_empty() && url.starts_with("https://")
+}
+
+/// Whether this build can report at all: the switch must be on and a usable
+/// HTTPS endpoint must be configured at build time.
+pub fn reporting_enabled() -> bool {
+    reporting_active(REPORTING_SWITCH, COLLECT_URL)
+}
+
+fn reporting_active(switch: bool, url: &str) -> bool {
+    switch && endpoint_is_usable(url)
 }
 
 pub fn build_payload(
@@ -141,7 +156,7 @@ fn windows_build_number() -> Option<u32> {
 /// Starts the background reporter. Development builds and unconfigured builds
 /// do nothing at all (SPEC-0018).
 pub fn spawn(app: AppHandle) {
-    if cfg!(debug_assertions) || !endpoint_is_usable(COLLECT_URL) {
+    if cfg!(debug_assertions) || !reporting_enabled() {
         return;
     }
 
@@ -318,6 +333,23 @@ mod tests {
         assert!(!endpoint_is_usable("   "));
         assert!(!endpoint_is_usable("http://example.com/v1/collect"));
         assert!(endpoint_is_usable("https://metrics.example.com/v1/collect"));
+    }
+
+    #[test]
+    fn reporting_requires_both_the_switch_and_an_https_endpoint() {
+        assert!(!reporting_active(
+            false,
+            "https://metrics.example.com/v1/collect"
+        ));
+        assert!(!reporting_active(true, ""));
+        assert!(!reporting_active(
+            true,
+            "http://metrics.example.com/v1/collect"
+        ));
+        assert!(reporting_active(
+            true,
+            "https://metrics.example.com/v1/collect"
+        ));
     }
 
     #[test]

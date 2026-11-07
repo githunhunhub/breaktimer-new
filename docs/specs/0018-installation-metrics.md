@@ -87,6 +87,9 @@ Cloudflare Worker + D1 路线部署不通后，服务端改为 EdgeOne Pages / M
     所有数值为近似估计，且不得输出逐装机列表。
 12. 下载量（分发量）作为对照指标：手工读取 GitHub Release 资产 `download_count` 与网盘
     后台数据，不写入 KV。
+13. 客户端上报另受一个构建期总开关控制。服务端端点部署完成前，开关保持关闭：应用不发出
+    任何统计请求，设置页不显示「帮助改进 BreakTimer-new」卡片；端点部署并核验完成后把
+    开关打开，恢复需求 3 的默认开启与卡片行为。开关不影响本地 `installId` 的生成。
 
 ## 上报字段白名单
 
@@ -161,13 +164,15 @@ Cloudflare Worker + D1 路线部署不通后，服务端改为 EdgeOne Pages / M
 - [ ] **I13** `README.md` 隐私段落与实现一致，文案中不出现「用户数」等不准确表述。
 - [ ] **I14** 统计请求只走 HTTPS，不跟随重定向，无 Cookie。
 - [ ] **I15** 关闭统计后，应用行为、休息调度、更新检查均不受影响。
+- [ ] **I16** 上报总开关关闭时不发出任何统计请求，设置页不显示「帮助改进 BreakTimer-new」
+      卡片；开关打开且配置了端点后恢复 I12 的行为。
 
 ## 人工验收步骤
 
 1. 按 `server/metrics/README.md` 部署 EdgeOne Pages / Makers Edge Functions + KV，绑定
    稳定的自定义 HTTPS 域名与变量名 `METRICS_KV`，在构建环境中设置
-   `BREAKTIMER_METRICS_URL=https://<metrics-domain>/v1/collect`；记录控制台访问日志字段、
-   保留期与 KV 区域。
+   `BREAKTIMER_METRICS_URL=https://<metrics-domain>/v1/collect`，并把客户端上报总开关
+   `REPORTING_SWITCH` 打开后重新构建；记录控制台访问日志字段、保留期与 KV 区域。
 2. 分别使用 NSIS 安装版与便携 ZIP 启动，抓包确认只发送白名单字段，且没有 IP、
    用户名、路径或内容字段。
 3. 首次启动断网，确认 UI 不阻塞；恢复网络后确认 `install` 补报且归日为
@@ -201,6 +206,9 @@ Cloudflare Worker + D1 路线部署不通后，服务端改为 EdgeOne Pages / M
   补一次心跳；UI 不等待结果。
 - 端点由构建期环境变量 `BREAKTIMER_METRICS_URL` 注入；未设置时统计能力整体关闭，
   保证 fork 与本地构建不会把数据发到维护者端点。
+- 客户端上报总开关 `REPORTING_SWITCH`（`app/src-tauri/src/telemetry/mod.rs`）当前为
+  `false`：服务端部署完成前彻底屏蔽上报，并通过 `get_app_info` 的
+  `analyticsReportingEnabled` 隐藏设置页统计卡片。只有开关打开且端点可用时才会上报。
 - 客户端边界：`Tauri Rust reqwest → 自定义 HTTPS 域名 → Edge Function → METRICS_KV`。
   EdgeOne KV 仅由 Edge Functions 访问，客户端不能直连；平台默认项目域名在中国大陆需要
   3 小时预览链接，不能作为稳定端点。
@@ -252,6 +260,7 @@ M7、M8 在两种粒度中都作为历史总量输出。所有响应带 `Cache-C
 - [x] 测试：字段白名单断言、日期校验、身份持久化与前端开关。
 - [x] 服务端：EdgeOne Edge Function、HLL 写入、M1～M8 聚合报表、CSV 导出与 Node 测试；
       删除旧 Worker + D1 代码。平台部署联调仍待人工验收。
+- [x] 临时屏蔽：客户端上报总开关关闭，暂停请求与设置页统计卡片；待服务端部署后打开。
 - [ ] 人工验收：抓包、断网补报、关闭开关、便携版与安装版、重放、M1～M8 导出、
       平台日志/域名/区域/KV 绑定核验。
 - [ ] 收尾：更新 spec 状态、`docs/specs/README.md` 与 `docs/roadmap.md`。
@@ -276,3 +285,4 @@ M7、M8 在两种粒度中都作为历史总量输出。所有响应带 `Cache-C
 | 2026-11-02 | 服务端选型定为 Cloudflare Worker + D1（ADR-0019），状态转 `in-progress`，开始实现 |
 | 2026-11-03 | 将部署与 Windows 人工验收步骤归档到本 spec，移除对 `.ai/sessions/` 的依赖（ADR-0021） |
 | 2026-11-05 | Cloudflare 路线不通；按 ADR-0023 改用 EdgeOne Edge Functions + KV HLL 近似聚合。指标收窄为 M1～M8，删除逐装机事实键、随机分片、留存、安装形态占比与 SQL 报表；需求与验收重新确认 |
+| 2026-11-07 | 服务端端点尚未部署，客户端上报增加构建期总开关并暂时关闭；暂停期间不发请求、不显示设置页统计卡片，部署完成后打开开关恢复 |

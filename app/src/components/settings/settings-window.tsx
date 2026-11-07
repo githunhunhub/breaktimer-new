@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/lib/i18n";
-import { ipc } from "@/lib/ipc";
+import { ipc, type AppInfo } from "@/lib/ipc";
 import { cn } from "@/lib/utils";
 import type { Settings, SoundType } from "@/types/settings";
 import type { UpdateCheckResult, UpdateLinkKind } from "@/types/updates";
@@ -28,12 +28,7 @@ export interface SettingsClient {
   /** Plays a preview of a sound without saving (SPEC-0009); optional. */
   playSoundPreview?: (soundType: SoundType, volume: number) => Promise<void>;
   /** App metadata, including whether this is a portable build (SPEC-0017). */
-  getAppInfo?: () => Promise<{
-    name: string;
-    version: string;
-    settingsPath: string;
-    portable: boolean;
-  }>;
+  getAppInfo?: () => Promise<AppInfo>;
   getUpdateStatus?: () => Promise<UpdateCheckResult | null>;
   checkForUpdate?: () => Promise<UpdateCheckResult>;
   openUpdateLink?: (kind: UpdateLinkKind) => Promise<void>;
@@ -66,6 +61,8 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
+  const [analyticsReportingEnabled, setAnalyticsReportingEnabled] =
+    useState(true);
 
   useEffect(() => {
     let active = true;
@@ -81,6 +78,24 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
         if (!active) return;
         setError(messageFrom(cause));
       });
+
+    return () => {
+      active = false;
+    };
+  }, [client]);
+
+  useEffect(() => {
+    if (!client.getAppInfo) return;
+
+    let active = true;
+    client
+      .getAppInfo()
+      .then((info) => {
+        if (active && info.analyticsReportingEnabled === false) {
+          setAnalyticsReportingEnabled(false);
+        }
+      })
+      .catch(() => {});
 
     return () => {
       active = false;
@@ -246,7 +261,9 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
             <>
               <LanguageCard settings={draft} onPatch={updateDraft} />
               <StartupCard settings={draft} onPatch={updateDraft} />
-              <AnalyticsCard settings={draft} onPatch={updateDraft} />
+              {analyticsReportingEnabled && (
+                <AnalyticsCard settings={draft} onPatch={updateDraft} />
+              )}
               <UpdatesCard
                 settings={draft}
                 onPatch={updateDraft}

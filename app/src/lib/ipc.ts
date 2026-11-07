@@ -56,4 +56,6 @@ export interface AppInfo {
   version: string;
   settingsPath: string;
   portable: boolean;
+  /** Whether this build sends anonymous installation metrics (SPEC-0018). */
+  analyticsReportingEnabled?: boolean;
 }

@@ -135,6 +135,30 @@ describe("SettingsWindow", () => {
     expect(screen.getByRole("switch", { name: "启用休息" })).toBeTruthy();
   });
 
+  it("hides the analytics card while client reporting is paused", async () => {
+    const client: SettingsClient = {
+      ...makeClient(makeSettings()),
+      getAppInfo: vi.fn().mockResolvedValue({
+        name: "BreakTimer-new",
+        version: "0.1.1",
+        settingsPath: "settings.json",
+        portable: false,
+        analyticsReportingEnabled: false,
+      }),
+    };
+
+    render(<SettingsWindow client={client} />);
+    await openSettingsTab("System");
+
+    await waitFor(() => {
+      expect(screen.queryByText("Help improve BreakTimer-new")).toBeNull();
+    });
+    expect(screen.getByText("Start at login")).toBeTruthy();
+    expect(
+      screen.queryByRole("switch", { name: "Allow anonymous usage data" }),
+    ).toBeNull();
+  });
+
   it("shows the four settings tabs and opens General by default", async () => {
     const client = makeClient(makeSettings());
 

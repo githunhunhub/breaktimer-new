@@ -121,7 +121,9 @@
   动态项显隐（ADR-0010）。临时禁用写入 `disableEndTime`，由 1 秒 tick 到期自动恢复。
 - 数据目录：安装版 `%APPDATA%\com.githunhunhub.breaktimernew`，便携版 `<程序目录>\data\`；
   设置、日志与 `installId` 都在其中（SPEC-0012）。
-- 开发构建（`debug_assertions`）跳过真实自启动注册、更新自动检查与装机统计上报。
+- 开发构建（`debug_assertions`）跳过真实自启动注册、更新自动检查与装机统计上报；
+  装机统计另有构建期总开关 `REPORTING_SWITCH`，当前关闭（服务端未部署），
+  同时隐藏设置页统计卡片（SPEC-0018）。
 
 ## 落地状态（摘要）
 

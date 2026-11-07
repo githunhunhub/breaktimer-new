@@ -13,6 +13,7 @@ use crate::flow;
 use crate::i18n::I18nState;
 use crate::sounds;
 use crate::state::{AppState, Settings, SettingsEffects, SoundType};
+use crate::telemetry;
 use crate::updates::{self, UpdateCheckResult, UpdateLinkKind};
 
 /// Basic application metadata used by the M3 scaffold screen.
@@ -23,6 +24,8 @@ pub struct AppInfo {
     pub version: String,
     pub settings_path: String,
     pub portable: bool,
+    /// Whether this build sends anonymous installation metrics (SPEC-0018).
+    pub analytics_reporting_enabled: bool,
 }
 
 #[tauri::command]
@@ -89,6 +92,7 @@ pub fn get_app_info(
         version: app.package_info().version.to_string(),
         settings_path: state.store.path().to_string_lossy().into_owned(),
         portable: paths.portable,
+        analytics_reporting_enabled: telemetry::reporting_enabled(),
     }
 }
 
@@ -180,6 +184,7 @@ mod tests {
             version: "0.1.0".to_string(),
             settings_path: "settings.json".to_string(),
             portable: false,
+            analytics_reporting_enabled: false,
         })
         .unwrap();
 
@@ -187,6 +192,7 @@ mod tests {
         assert_eq!(value["version"], "0.1.0");
         assert_eq!(value["settingsPath"], "settings.json");
         assert_eq!(value["portable"], false);
+        assert_eq!(value["analyticsReportingEnabled"], false);
     }
 
     #[test]
