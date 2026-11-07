@@ -146,20 +146,6 @@ function applyFallback(html, showFallback) {
   return html.replace(pattern, (tag) => toggleHidden(tag, !showFallback));
 }
 
-function applyVersion(html, tagName) {
-  if (typeof tagName !== "string" || tagName.trim() === "") {
-    throw new Error("Release is missing tag_name.");
-  }
-
-  const pattern =
-    /(<([a-z][a-z0-9-]*)\b[^>]*\bdata-release-version\b[^>]*>)[\s\S]*?(<\/\2>)/i;
-  if (!pattern.test(html)) {
-    throw new Error("Missing data-release-version placeholder.");
-  }
-
-  return html.replace(pattern, `$1${escapeHtml(tagName.trim())}$3`);
-}
-
 export function applyReleaseLinks(html, release) {
   const links = parseDownloadMetadata(release?.body ?? "");
   const hasAnyLink = Boolean(links.baidu || links.quark);
@@ -170,9 +156,7 @@ export function applyReleaseLinks(html, release) {
   result = setCardHidden(result, "baidu", !links.baidu);
   result = setCardHidden(result, "quark", !links.quark);
   result = applyBaiduCode(result, links.baiduCode);
-  result = applyFallback(result, !hasAnyLink);
-
-  return applyVersion(result, release?.tag_name);
+  return applyFallback(result, !hasAnyLink);
 }
 
 export async function fetchLatestRelease({

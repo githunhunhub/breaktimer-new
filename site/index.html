@@ -48,7 +48,6 @@
         </a>
         <nav class="site-nav" aria-label="主导航">
           <a href="#features">功能</a>
-          <a href="#difference">与旧版</a>
           <a href="#download">下载</a>
         </nav>
         <a class="lang-link" href="en/index.html" hreflang="en" lang="en">English</a>
@@ -153,35 +152,6 @@
         </div>
       </section>
 
-      <section class="section" id="difference" aria-labelledby="difference-title">
-        <div class="container">
-          <div class="difference-panel">
-            <div>
-              <h2 id="difference-title">独立重写，可与旧版共存</h2>
-              <p class="panel-lede">
-                BreakTimer-new 源自
-                <a href="https://github.com/tom-james-watson/breaktimer-app">tom-james-watson/breaktimer-app</a>，
-                使用 Tauri v2、Rust、React 与 TypeScript 独立重写，不是旧版的分支。
-              </p>
-            </div>
-            <ul class="difference-list">
-              <li>
-                <strong>不迁移旧设置</strong>
-                <span>不读取、迁移或修改旧版 BreakTimer 的设置。</span>
-              </li>
-              <li>
-                <strong>独立应用身份</strong>
-                <span>与旧版使用不同的应用身份，可以同时安装。</span>
-              </li>
-              <li>
-                <strong>当前只支持 Windows</strong>
-                <span>Windows 10 / 11（x64）；macOS 与 Linux 不在当前发布范围内。</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
       <section class="section section-alt" id="download" aria-labelledby="download-title">
         <div class="container">
           <div class="section-heading">
@@ -193,10 +163,13 @@
           </div>
 
           <div class="download-grid">
-            <article class="download-card featured" data-download-card="baidu">
+            <article class="download-card" data-download-card="baidu">
               <h3>百度网盘</h3>
               <p class="file-name">安装版 + 便携版</p>
               <p>国内访问稳定，打开分享后按提示填写提取码。</p>
+              <p class="download-code" data-download-code>
+                提取码：<strong data-baidu-code>发布后公布</strong>
+              </p>
               <!-- release-download:baidu -->
               <a
                 class="button button-primary"
@@ -205,9 +178,6 @@
               >
                 打开百度网盘
               </a>
-              <p class="download-code" data-download-code>
-                提取码：<strong data-baidu-code>发布后公布</strong>
-              </p>
             </article>
 
             <article class="download-card" data-download-card="quark">
@@ -216,7 +186,7 @@
               <p>无需安装客户端，可以在浏览器里直接转存与下载。</p>
               <!-- release-download:quark -->
               <a
-                class="button button-secondary"
+                class="button button-primary"
                 data-download="quark"
                 href="https://pan.quark.cn/"
               >
@@ -248,7 +218,6 @@
           </div>
 
           <p class="download-meta">
-            最新版本：<strong data-release-version>见 GitHub Releases</strong> ·
             <a href="https://github.com/githunhunhub/breaktimer-new/releases">版本历史与 SHA256SUMS</a>
           </p>
 
@@ -302,9 +271,6 @@
             </li>
             <li>
               <a href="https://github.com/githunhunhub/breaktimer-new/blob/master/README.md">使用说明</a>
-            </li>
-            <li>
-              <a href="https://github.com/tom-james-watson/breaktimer-app">旧版 BreakTimer</a>
             </li>
           </ul>
         </div>

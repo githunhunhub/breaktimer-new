@@ -48,7 +48,6 @@
         </a>
         <nav class="site-nav" aria-label="Main navigation">
           <a href="#features">Features</a>
-          <a href="#difference">Original app</a>
           <a href="#download">Download</a>
         </nav>
         <a class="lang-link" href="../index.html" hreflang="zh-CN" lang="zh-CN">简体中文</a>
@@ -169,36 +168,6 @@
         </div>
       </section>
 
-      <section class="section" id="difference" aria-labelledby="difference-title">
-        <div class="container">
-          <div class="difference-panel">
-            <div>
-              <h2 id="difference-title">An independent rewrite that can coexist</h2>
-              <p class="panel-lede">
-                BreakTimer-new is derived from
-                <a href="https://github.com/tom-james-watson/breaktimer-app">tom-james-watson/breaktimer-app</a>
-                and independently rewritten with Tauri v2, Rust, React and TypeScript. It is
-                not a branch of the original app.
-              </p>
-            </div>
-            <ul class="difference-list">
-              <li>
-                <strong>Settings are not migrated</strong>
-                <span>BreakTimer-new does not read, migrate or modify the original BreakTimer's settings.</span>
-              </li>
-              <li>
-                <strong>A separate app identity</strong>
-                <span>It uses a different app identity and can be installed alongside the original.</span>
-              </li>
-              <li>
-                <strong>Windows only for now</strong>
-                <span>Windows 10 / 11 (x64); macOS and Linux are not in the current release scope.</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </section>
-
       <section class="section section-alt" id="download" aria-labelledby="download-title">
         <div class="container">
           <div class="section-heading">
@@ -210,10 +179,13 @@
           </div>
 
           <div class="download-grid">
-            <article class="download-card featured" data-download-card="baidu">
+            <article class="download-card" data-download-card="baidu">
               <h3>Baidu Pan</h3>
               <p class="file-name">Installer + portable ZIP</p>
               <p>Reliable inside mainland China; enter the access code after opening the share.</p>
+              <p class="download-code" data-download-code>
+                Access code: <strong data-baidu-code>Announced with the release</strong>
+              </p>
               <!-- release-download:baidu -->
               <a
                 class="button button-primary"
@@ -222,9 +194,6 @@
               >
                 Open Baidu Pan
               </a>
-              <p class="download-code" data-download-code>
-                Access code: <strong data-baidu-code>Announced with the release</strong>
-              </p>
             </article>
 
             <article class="download-card" data-download-card="quark">
@@ -233,7 +202,7 @@
               <p>No desktop client needed — save and download straight from the browser.</p>
               <!-- release-download:quark -->
               <a
-                class="button button-secondary"
+                class="button button-primary"
                 data-download="quark"
                 href="https://pan.quark.cn/"
               >
@@ -270,7 +239,6 @@
           </div>
 
           <p class="download-meta">
-            Latest version: <strong data-release-version>See GitHub Releases</strong> ·
             <a href="https://github.com/githunhunhub/breaktimer-new/releases">Version history and SHA256SUMS</a>
           </p>
 
@@ -329,9 +297,6 @@
             </li>
             <li>
               <a href="https://github.com/githunhunhub/breaktimer-new/blob/master/README.md">Readme</a>
-            </li>
-            <li>
-              <a href="https://github.com/tom-james-watson/breaktimer-app">Original BreakTimer</a>
             </li>
           </ul>
         </div>

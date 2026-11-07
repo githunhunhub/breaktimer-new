@@ -114,7 +114,6 @@ for (const page of pages) {
       "release-download:baidu",
       "release-download:quark",
       "data-download-fallback",
-      "data-release-version",
     ]) {
       if (!html.includes(marker)) {
         errors.push(`${page}: missing ${marker} placeholder.`);

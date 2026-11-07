@@ -9,8 +9,11 @@ import {
 const page = `<!doctype html>
 <section id="download">
   <div class="download-grid">
-    <article class="download-card featured" data-download-card="baidu">
+    <article class="download-card" data-download-card="baidu">
       <h3>百度网盘</h3>
+      <p class="download-code" data-download-code>
+        提取码：<strong data-baidu-code>发布后公布</strong>
+      </p>
       <!-- release-download:baidu -->
       <a
         class="button button-primary"
@@ -19,16 +22,13 @@ const page = `<!doctype html>
       >
         打开百度网盘
       </a>
-      <p class="download-code" data-download-code>
-        提取码：<strong data-baidu-code>发布后公布</strong>
-      </p>
     </article>
 
     <article class="download-card" data-download-card="quark">
       <h3>夸克网盘</h3>
       <!-- release-download:quark -->
       <a
-        class="button button-secondary"
+        class="button button-primary"
         data-download="quark"
         href="https://pan.quark.cn/"
       >
@@ -42,7 +42,7 @@ const page = `<!doctype html>
   </p>
 
   <p class="download-meta">
-    最新版本：<strong data-release-version>见 GitHub Releases</strong>
+    <a href="https://github.com/githunhunhub/breaktimer-new/releases">版本历史与 SHA256SUMS</a>
   </p>
 </section>`;
 
@@ -109,7 +109,7 @@ test("rejects a malformed marker payload", () => {
   );
 });
 
-test("writes both links, the access code and the version", () => {
+test("writes both links and the access code", () => {
   const result = applyReleaseLinks(page, release);
   assert.match(
     result,
@@ -120,9 +120,8 @@ test("writes both links, the access code and the version", () => {
     /release-download:quark -->[\s\S]*?href="https:\/\/pan\.quark\.cn\/s\/def"/,
   );
   assert.match(result, /data-baidu-code>bt12<\/strong>/);
-  assert.match(result, /data-release-version>v0\.1\.2<\/strong>/);
   assert.doesNotMatch(result, /releases\/latest/);
-  assert.match(result, /<article class="download-card featured" data-download-card="baidu">/);
+  assert.match(result, /<article class="download-card" data-download-card="baidu">/);
   assert.match(result, /<article class="download-card" data-download-card="quark">/);
   assert.match(result, /<p class="download-fallback" data-download-fallback hidden>/);
 });
@@ -146,7 +145,6 @@ test("hides unconfigured cards and shows the fallback", () => {
   assert.match(result, /data-download-card="baidu" hidden>/);
   assert.match(result, /data-download-card="quark" hidden>/);
   assert.match(result, /<p class="download-fallback" data-download-fallback>/);
-  assert.match(result, /data-release-version>v0\.1\.1<\/strong>/);
   assert.match(result, /href="https:\/\/pan\.baidu\.com\/"/);
   assert.match(result, /href="https:\/\/pan\.quark\.cn\/"/);
 });
@@ -158,7 +156,7 @@ test("keeps one card and hides the other when only one link exists", () => {
   });
   assert.match(
     result,
-    /<article class="download-card featured" data-download-card="baidu" hidden>/,
+    /<article class="download-card" data-download-card="baidu" hidden>/,
   );
   assert.doesNotMatch(result, /data-download-card="quark"[^>]*hidden/);
   assert.match(
@@ -199,13 +197,6 @@ test("fails when a download placeholder is missing", () => {
     () =>
       applyReleaseLinks(page.replace("release-download:quark", "removed"), release),
     /Missing release-download:quark placeholder/,
-  );
-});
-
-test("fails when the version placeholder is missing", () => {
-  assert.throws(
-    () => applyReleaseLinks(page.replace("data-release-version", "removed"), release),
-    /Missing data-release-version placeholder/,
   );
 });
 

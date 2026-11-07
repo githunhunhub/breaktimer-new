@@ -15,7 +15,7 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 
 ## 需求（做什么）
 
-1. 单页静态宣传页，信息层级对齐参考站：顶栏 → Hero → 特性区 → 与旧版的关系 → 下载区 → 页脚。
+1. 单页静态宣传页，信息层级对齐参考站：顶栏 → Hero → 特性区 → 下载区 → 页脚。
 2. 内容只描述当前已实现的能力（SPEC-0002 ~ SPEC-0014），不承诺 macOS/Linux、自动更新、
    企业部署或任何尚未实现的特性。
 3. 下载区引导到发布侧网盘入口（百度网盘、夸克网盘），与应用内更新检查一致；不直接链接
@@ -23,8 +23,8 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
    页面说明两者差异；网盘未配置时显示「暂未配置」提示并以 GitHub Releases 兜底。
    未签名安装包在 SmartScreen 下的处置（「更多信息」→「仍要运行」）措辞与 `README.md`
    保持一致。
-4. 说明与旧版 BreakTimer 的关系：独立重写、不迁移旧设置、可与旧版共存（源自
-   `tom-james-watson/breaktimer-app`）。
+4. 说明与旧版 BreakTimer 的关系：不单独设「与旧版」区块，关系由页脚署名说明
+   （源自 `tom-james-watson/breaktimer-app`，重写实现、不是旧版分支）。
 5. 纯静态实现：资源全部本地，不引远程字体与 CDN，无第三方统计、无 Cookie、无表单。
 6. 站点目录独立于 `app/`（应用代码）与 `docs/`（Markdown 事实源），发布产物只有站点目录。
 7. 托管在 GitHub Pages 或 Cloudflare Pages，二者取其一或都配，见「开放问题」Q2。
@@ -62,12 +62,11 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 
 | 区块     | 内容                                                      | 素材                  |
 | -------- | --------------------------------------------------------- | --------------------- |
-| 顶栏     | 名称 + 锚点导航（功能 / 下载 / 关于）                     | `app/public/icon.png` |
+| 顶栏     | 名称 + 锚点导航（功能 / 下载）                            | `app/public/icon.png` |
 | Hero     | 一句话价值 + 「下载」+「GitHub」两个按钮                  | 图标 + 纯排版视觉（Q5） |
 | 特性     | 四张卡：休息调度 / 全屏阻断与通知 / 托盘与自启 / 中英双语 | 线性图标（Q5）        |
-| 关系说明 | 独立重写、不迁移旧数据、可与旧版共存                      | 无                    |
 | 下载     | 百度 / 夸克网盘入口 + 安装版与便携版说明 + SmartScreen     | 无                    |
-| 页脚     | 仓库 / Releases / 源自 BreakTimer 的署名 / 许可声明（Q6） | 无                    |
+| 页脚     | 仓库 / Releases / 使用说明 + 源自 BreakTimer 的署名       | 无                    |
 
 ## 实现计划
 
@@ -107,7 +106,8 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 - 页面保持纯静态 HTML / CSS，不引入构建器、远程字体、CDN、第三方统计、Cookie 或表单。
 - 下载入口在本地预览时保留 `pan.baidu.com` / `pan.quark.cn` 占位链接与「发布后公布」
   提取码；部署时由 `site/scripts/resolve-downloads.mjs` 读取最新 Release 正文的
-  `breaktimer-downloads` 标记，写入网盘链接、提取码与版本号，避免版本号与链接写死。
+  `breaktimer-downloads` 标记，只写入网盘链接与提取码。页面不展示版本号，版本以
+  GitHub Releases 为唯一事实源，下载区只保留「版本历史与 SHA256SUMS」链接。
   未配置的网盘卡片在部署产物中被隐藏，并显示 GitHub Releases 兜底提示。
 - GitHub Pages 的 Source 需在仓库设置中选为「GitHub Actions」；workflow 只从 `master` 与手动
   触发部署，不构建或改写 `app/`，也不修改 `release.yml`。
@@ -173,3 +173,7 @@ node --test site/scripts/resolve-downloads.test.mjs
 | 2026-11-07 | 回答 Q1～Q6（采用推荐项），状态改为 in-progress；新增 `site/`、`.github/workflows/pages.yml` 与 ADR-0024；完成 L1～L6、L8、L9 验收，L7 待部署 |
 | 2026-11-07 | 修复 `file://` 直接打开时语言切换跳到目录索引：站内导航链接改为显式 `index.html`，不再依赖服务器目录索引 |
 | 2026-11-07 | 下载区改为引导网盘（百度 / 夸克），与应用内更新检查一致；来源改为 Release 正文元数据，新增 ADR-0025；`resolve-downloads.mjs` 与测试改为解析网盘标记并在未配置时降级 |
+| 2026-11-07 | 下载区两张网盘卡统一为相同边框与主按钮样式，提取码移到按钮之前 |
+| 2026-11-07 | 移除「与旧版」关系说明区块及对应导航项，与旧版的关系改由页脚署名说明；需求第 1、4 条与设计要点同步调整 |
+| 2026-11-07 | 下载区去掉「最新版本」占位，只保留「版本历史与 SHA256SUMS」链接；删除 `data-release-version` 占位与版本回填逻辑（`resolve-downloads.mjs`、`check-static.mjs` 与测试同步） |
+| 2026-11-07 | 页脚去掉「旧版 BreakTimer」外链，旧项目只保留署名段落里的仓库链接 |

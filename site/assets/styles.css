@@ -17,10 +17,6 @@
   --focus: #b5551b;
   --shadow: 0 18px 45px rgba(16, 36, 31, 0.09);
   --shadow-soft: 0 8px 24px rgba(16, 36, 31, 0.07);
-  --panel: #0f2f2a;
-  --panel-text: #eaf6f1;
-  --panel-muted: #b5d1c7;
-  --panel-border: rgba(234, 246, 241, 0.16);
   --note-bg: #fff6e0;
   --note-border: #e3bf72;
   --note-text: #493812;
@@ -45,10 +41,6 @@
     --focus: #f0b26b;
     --shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
     --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.28);
-    --panel: #102a24;
-    --panel-text: #eaf6f1;
-    --panel-muted: #a9c9be;
-    --panel-border: rgba(234, 246, 241, 0.14);
     --note-bg: #2b2412;
     --note-border: #8a6c2c;
     --note-text: #f4e4bd;
@@ -530,67 +522,6 @@ h1 span {
   font-size: 0.92rem;
 }
 
-.difference-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
-  gap: 48px;
-  padding: clamp(30px, 5vw, 58px);
-  border-radius: 28px;
-  background: var(--panel);
-  color: var(--panel-text);
-  box-shadow: var(--shadow);
-}
-
-.difference-panel h2 {
-  margin-bottom: 16px;
-  font-size: clamp(1.75rem, 3vw, 2.45rem);
-  letter-spacing: -0.035em;
-  line-height: 1.15;
-}
-
-.difference-panel .panel-lede {
-  margin-bottom: 0;
-  color: var(--panel-muted);
-}
-
-.difference-panel a {
-  color: var(--panel-text);
-  font-weight: 650;
-}
-
-.difference-list {
-  display: grid;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.difference-list li {
-  padding-block: 18px;
-  border-top: 1px solid var(--panel-border);
-}
-
-.difference-list li:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-
-.difference-list li:last-child {
-  padding-bottom: 0;
-}
-
-.difference-list strong {
-  display: block;
-  margin-bottom: 3px;
-  font-size: 0.98rem;
-}
-
-.difference-list span {
-  color: var(--panel-muted);
-  font-size: 0.9rem;
-}
-
 .download-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -642,10 +573,6 @@ h1 span {
   margin: 22px 0 0;
   color: var(--muted);
   font-size: 0.9rem;
-}
-
-.download-meta strong {
-  color: var(--text);
 }
 
 .download-code {
@@ -860,11 +787,6 @@ h1 span {
   .features {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-
-  .difference-panel {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 30px;
-  }
 }
 
 @media (max-width: 640px) {
@@ -939,11 +861,6 @@ h1 span {
   .feature-card,
   .download-card {
     padding: 24px 21px;
-  }
-
-  .difference-panel {
-    padding: 28px 22px;
-    border-radius: 22px;
   }
 
   .notice {
