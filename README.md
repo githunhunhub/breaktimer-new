@@ -11,8 +11,10 @@ BreakTimer-new 是一款 Windows 桌面休息提醒应用。你可以设置工�
 
 ## 下载与安装
 
-前往 [GitHub Releases](https://github.com/githunhunhub/breaktimer-new/releases)
-下载最新版本；正式产物只通过 GitHub Releases 发布。
+最新版本优先通过网盘分发：在 [Releases](https://github.com/githunhunhub/breaktimer-new/releases)
+中最新版本的「下载方式」段落里选择百度网盘或夸克网盘（百度网盘需填提取码）。
+网盘里同时提供安装版与便携版；网盘链接尚未配置时，也可以从同一 Release 的资产下载
+`*-setup.exe` 或 `*-portable.zip`。
 
 | 版本                       | 适用场景                       | 使用方式                                  |
 | -------------------------- | ------------------------------ | ----------------------------------------- |

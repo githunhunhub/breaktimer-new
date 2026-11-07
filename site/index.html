@@ -186,45 +186,70 @@
         <div class="container">
           <div class="section-heading">
             <h2 id="download-title">下载 BreakTimer-new</h2>
-            <p>正式产物只通过 GitHub Releases 发布。选择安装版日常使用，或使用便携版随目录携带数据。</p>
+            <p>
+              安装版与便携版都放在网盘里，选一个顺手的入口即可。GitHub Releases 保留版本历史与
+              SHA256SUMS 校验和。
+            </p>
           </div>
 
           <div class="download-grid">
-            <article class="download-card featured">
+            <article class="download-card featured" data-download-card="baidu">
+              <h3>百度网盘</h3>
+              <p class="file-name">安装版 + 便携版</p>
+              <p>国内访问稳定，打开分享后按提示填写提取码。</p>
+              <!-- release-download:baidu -->
+              <a
+                class="button button-primary"
+                data-download="baidu"
+                href="https://pan.baidu.com/"
+              >
+                打开百度网盘
+              </a>
+              <p class="download-code" data-download-code>
+                提取码：<strong data-baidu-code>发布后公布</strong>
+              </p>
+            </article>
+
+            <article class="download-card" data-download-card="quark">
+              <h3>夸克网盘</h3>
+              <p class="file-name">安装版 + 便携版</p>
+              <p>无需安装客户端，可以在浏览器里直接转存与下载。</p>
+              <!-- release-download:quark -->
+              <a
+                class="button button-secondary"
+                data-download="quark"
+                href="https://pan.quark.cn/"
+              >
+                打开夸克网盘
+              </a>
+            </article>
+          </div>
+
+          <p class="download-fallback" data-download-fallback hidden>
+            本次发布尚未配置网盘链接。可以先用
+            <a href="https://github.com/githunhunhub/breaktimer-new/releases">GitHub Releases</a>
+            中的安装版或便携版；补齐网盘链接并重新部署后，入口会显示在这里。
+          </p>
+
+          <div class="download-kinds">
+            <div class="download-kind">
               <h3>安装版</h3>
               <p class="file-name">BreakTimer-new_v*_x64-setup.exe</p>
               <p>日常安装使用。默认按当前用户安装，通常不需要管理员权限。</p>
-              <!-- release-download:nsis -->
-              <a
-                class="button button-primary"
-                data-download="nsis"
-                href="https://github.com/githunhunhub/breaktimer-new/releases/latest"
-              >
-                下载安装版
-              </a>
-            </article>
-
-            <article class="download-card">
+            </div>
+            <div class="download-kind">
               <h3>便携版</h3>
               <p class="file-name">BreakTimer-new_v*_x64-portable.zip</p>
               <p>
                 解压到可写目录并运行 <code>breaktimer-new.exe</code>。设置和运行数据保存在程序目录的
                 <code>data\</code> 中，可随文件夹一起移动。
               </p>
-              <!-- release-download:portable -->
-              <a
-                class="button button-secondary"
-                data-download="portable"
-                href="https://github.com/githunhunhub/breaktimer-new/releases/latest"
-              >
-                下载便携版
-              </a>
-            </article>
+            </div>
           </div>
 
           <p class="download-meta">
             最新版本：<strong data-release-version>见 GitHub Releases</strong> ·
-            <a href="https://github.com/githunhunhub/breaktimer-new/releases">全部版本与 SHA256SUMS</a>
+            <a href="https://github.com/githunhunhub/breaktimer-new/releases">版本历史与 SHA256SUMS</a>
           </p>
 
           <div class="notice">

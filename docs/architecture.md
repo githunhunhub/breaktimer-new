@@ -101,8 +101,9 @@
 - `index.html`（简体中文，默认）与 `en/index.html` 共享 `assets/styles.css`，语言切换是普通链接。
 - `.github/workflows/pages.yml` 先跑 `site/scripts/check-static.mjs`（禁止 `<script>`、
   远程资源与坏链）与解析器单测，再复制 `site/` 为 `_site`，用
-  `site/scripts/resolve-downloads.mjs` 把最新 Release 的 `*-setup.exe` /
-  `*-portable.zip` 直链写进副本，最后部署到 GitHub Pages（ADR-0024）。
+  `site/scripts/resolve-downloads.mjs` 读取最新 Release 正文的 `breaktimer-downloads`
+  标记（百度 / 夸克网盘，与 SPEC-0017 同源），把链接与提取码写进副本，最后部署到
+  GitHub Pages（ADR-0024、ADR-0025）。
 - 站点基址固定为 `https://githunhunhub.github.io/breaktimer-new/`；canonical、`hreflang`、
   OG、`sitemap.xml`、`robots.txt` 与 `404.html` 都依赖该基址，更换域名时必须同步修改。
 

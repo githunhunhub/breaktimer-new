@@ -1,66 +1,204 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { applyReleaseLinks, selectReleaseAssets } from "./resolve-downloads.mjs";
-
-const release = {
-  tag_name: "v0.1.1",
-  assets: [
-    {
-      name: "BreakTimer-new_v0.1.1_x64-setup.exe",
-      browser_download_url:
-        "https://github.com/githunhunhub/breaktimer-new/releases/download/v0.1.1/BreakTimer-new_v0.1.1_x64-setup.exe",
-    },
-    {
-      name: "BreakTimer-new_v0.1.1_x64-portable.zip",
-      browser_download_url:
-        "https://github.com/githunhunhub/breaktimer-new/releases/download/v0.1.1/BreakTimer-new_v0.1.1_x64-portable.zip",
-    },
-    {
-      name: "SHA256SUMS.txt",
-      browser_download_url:
-        "https://github.com/githunhunhub/breaktimer-new/releases/download/v0.1.1/SHA256SUMS.txt",
-    },
-  ],
-};
+import {
+  applyReleaseLinks,
+  parseDownloadMetadata,
+} from "./resolve-downloads.mjs";
 
 const page = `<!doctype html>
-<p>Latest version: <strong data-release-version>See GitHub Releases</strong></p>
-<!-- release-download:nsis -->
-<a class="button" data-download="nsis" href="https://github.com/githunhunhub/breaktimer-new/releases/latest">
-  Download installer
-</a>
-<!-- release-download:portable -->
-<a class="button" data-download="portable" href="https://github.com/githunhunhub/breaktimer-new/releases/latest">
-  Download portable
-</a>`;
+<section id="download">
+  <div class="download-grid">
+    <article class="download-card featured" data-download-card="baidu">
+      <h3>百度网盘</h3>
+      <!-- release-download:baidu -->
+      <a
+        class="button button-primary"
+        data-download="baidu"
+        href="https://pan.baidu.com/"
+      >
+        打开百度网盘
+      </a>
+      <p class="download-code" data-download-code>
+        提取码：<strong data-baidu-code>发布后公布</strong>
+      </p>
+    </article>
 
-test("selects exactly one installer and one portable asset", () => {
-  const selected = selectReleaseAssets(release.assets);
-  assert.equal(selected.installer.name, "BreakTimer-new_v0.1.1_x64-setup.exe");
-  assert.equal(selected.portable.name, "BreakTimer-new_v0.1.1_x64-portable.zip");
+    <article class="download-card" data-download-card="quark">
+      <h3>夸克网盘</h3>
+      <!-- release-download:quark -->
+      <a
+        class="button button-secondary"
+        data-download="quark"
+        href="https://pan.quark.cn/"
+      >
+        打开夸克网盘
+      </a>
+    </article>
+  </div>
+
+  <p class="download-fallback" data-download-fallback hidden>
+    GitHub Releases 兜底提示
+  </p>
+
+  <p class="download-meta">
+    最新版本：<strong data-release-version>见 GitHub Releases</strong>
+  </p>
+</section>`;
+
+const release = {
+  tag_name: "v0.1.2",
+  body: `## 下载方式
+
+- [百度网盘](https://pan.baidu.com/s/abc)（提取码：bt12）
+- [夸克网盘](https://pan.quark.cn/s/def)
+
+<!-- breaktimer-downloads {"baidu":"https://pan.baidu.com/s/abc","quark":"https://pan.quark.cn/s/def","baiduCode":"bt12"} -->
+`,
+};
+
+test("parses a configured download marker", () => {
+  assert.deepEqual(parseDownloadMetadata(release.body), {
+    baidu: "https://pan.baidu.com/s/abc",
+    quark: "https://pan.quark.cn/s/def",
+    baiduCode: "bt12",
+  });
 });
 
-test("rejects releases without a unique installer and portable asset", () => {
-  assert.throws(() => selectReleaseAssets([]), /exactly one \*-setup\.exe/);
+test("treats a missing marker as unconfigured", () => {
+  assert.deepEqual(parseDownloadMetadata("## 变更\n\n- 修复若干问题\n"), {
+    baidu: null,
+    quark: null,
+    baiduCode: null,
+  });
+  assert.deepEqual(parseDownloadMetadata(""), {
+    baidu: null,
+    quark: null,
+    baiduCode: null,
+  });
+});
+
+test("treats empty or null values as unconfigured", () => {
+  const parsed = parseDownloadMetadata(
+    '<!-- breaktimer-downloads {"baidu":null,"quark":"  ","baiduCode":"ignored"} -->',
+  );
+  assert.deepEqual(parsed, { baidu: null, quark: null, baiduCode: null });
+});
+
+test("rejects links that are not https on the expected host", () => {
   assert.throws(
-    () => selectReleaseAssets([release.assets[0], release.assets[2]]),
-    /exactly one \*-portable\.zip/,
+    () =>
+      parseDownloadMetadata(
+        '<!-- breaktimer-downloads {"baidu":"http://pan.baidu.com/s/abc"} -->',
+      ),
+    /Baidu download link must use https:\/\/pan\.baidu\.com/,
+  );
+  assert.throws(
+    () =>
+      parseDownloadMetadata(
+        '<!-- breaktimer-downloads {"quark":"https://example.com/s/abc"} -->',
+      ),
+    /Quark download link must use https:\/\/pan\.quark\.cn/,
   );
 });
 
-test("rewrites download links and the version label", () => {
+test("rejects a malformed marker payload", () => {
+  assert.throws(
+    () => parseDownloadMetadata("<!-- breaktimer-downloads not-json -->"),
+    /invalid breaktimer-downloads marker/,
+  );
+});
+
+test("writes both links, the access code and the version", () => {
   const result = applyReleaseLinks(page, release);
-  assert.match(result, /href="https:\/\/github\.com\/githunhunhub\/breaktimer-new\/releases\/download\/v0\.1\.1\/BreakTimer-new_v0\.1\.1_x64-setup\.exe"/);
-  assert.match(result, /href="https:\/\/github\.com\/githunhunhub\/breaktimer-new\/releases\/download\/v0\.1\.1\/BreakTimer-new_v0\.1\.1_x64-portable\.zip"/);
-  assert.match(result, /data-release-version>v0\.1\.1<\/strong>/);
+  assert.match(
+    result,
+    /release-download:baidu -->[\s\S]*?href="https:\/\/pan\.baidu\.com\/s\/abc"/,
+  );
+  assert.match(
+    result,
+    /release-download:quark -->[\s\S]*?href="https:\/\/pan\.quark\.cn\/s\/def"/,
+  );
+  assert.match(result, /data-baidu-code>bt12<\/strong>/);
+  assert.match(result, /data-release-version>v0\.1\.2<\/strong>/);
   assert.doesNotMatch(result, /releases\/latest/);
+  assert.match(result, /<article class="download-card featured" data-download-card="baidu">/);
+  assert.match(result, /<article class="download-card" data-download-card="quark">/);
+  assert.match(result, /<p class="download-fallback" data-download-fallback hidden>/);
+});
+
+test("escapes ampersands in share links", () => {
+  const result = applyReleaseLinks(page, {
+    tag_name: "v0.1.2",
+    body: '<!-- breaktimer-downloads {"quark":"https://pan.quark.cn/s/def?pwd=1&x=2"} -->',
+  });
+  assert.match(
+    result,
+    /href="https:\/\/pan\.quark\.cn\/s\/def\?pwd=1&amp;x=2"/,
+  );
+});
+
+test("hides unconfigured cards and shows the fallback", () => {
+  const result = applyReleaseLinks(page, {
+    tag_name: "v0.1.1",
+    body: "## 变更\n\n- 首次发布\n",
+  });
+  assert.match(result, /data-download-card="baidu" hidden>/);
+  assert.match(result, /data-download-card="quark" hidden>/);
+  assert.match(result, /<p class="download-fallback" data-download-fallback>/);
+  assert.match(result, /data-release-version>v0\.1\.1<\/strong>/);
+  assert.match(result, /href="https:\/\/pan\.baidu\.com\/"/);
+  assert.match(result, /href="https:\/\/pan\.quark\.cn\/"/);
+});
+
+test("keeps one card and hides the other when only one link exists", () => {
+  const result = applyReleaseLinks(page, {
+    tag_name: "v0.1.2",
+    body: '<!-- breaktimer-downloads {"quark":"https://pan.quark.cn/s/def"} -->',
+  });
+  assert.match(
+    result,
+    /<article class="download-card featured" data-download-card="baidu" hidden>/,
+  );
+  assert.doesNotMatch(result, /data-download-card="quark"[^>]*hidden/);
+  assert.match(
+    result,
+    /release-download:quark -->[\s\S]*?href="https:\/\/pan\.quark\.cn\/s\/def"/,
+  );
+  assert.match(result, /<p class="download-fallback" data-download-fallback hidden>/);
+});
+
+test("hides the access code paragraph when Baidu has no code", () => {
+  const result = applyReleaseLinks(page, {
+    tag_name: "v0.1.2",
+    body: '<!-- breaktimer-downloads {"baidu":"https://pan.baidu.com/s/abc"} -->',
+  });
+  assert.match(
+    result,
+    /<p class="download-code" data-download-code hidden>/,
+  );
+});
+
+test("shows pre-hidden cards once their link is configured", () => {
+  const hiddenPage = page
+    .replace('data-download-card="baidu">', 'data-download-card="baidu" hidden>')
+    .replace('data-download-card="quark">', 'data-download-card="quark" hidden>');
+  const result = applyReleaseLinks(hiddenPage, release);
+  assert.doesNotMatch(result, /data-download-card="baidu"[^>]*hidden/);
+  assert.doesNotMatch(result, /data-download-card="quark"[^>]*hidden/);
+  assert.match(result, /<p class="download-code" data-download-code>/);
 });
 
 test("fails when a download placeholder is missing", () => {
   assert.throws(
-    () => applyReleaseLinks(page.replace("release-download:portable", "removed"), release),
-    /Missing release-download:portable placeholder/,
+    () =>
+      applyReleaseLinks(page.replace("release-download:baidu", "removed"), release),
+    /Missing release-download:baidu placeholder/,
+  );
+  assert.throws(
+    () =>
+      applyReleaseLinks(page.replace("release-download:quark", "removed"), release),
+    /Missing release-download:quark placeholder/,
   );
 });
 
@@ -68,5 +206,12 @@ test("fails when the version placeholder is missing", () => {
   assert.throws(
     () => applyReleaseLinks(page.replace("data-release-version", "removed"), release),
     /Missing data-release-version placeholder/,
+  );
+});
+
+test("fails when the fallback placeholder is missing", () => {
+  assert.throws(
+    () => applyReleaseLinks(page.replace("data-download-fallback", "removed"), release),
+    /Missing data-download-fallback placeholder/,
   );
 });

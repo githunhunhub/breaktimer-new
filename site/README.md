@@ -3,7 +3,8 @@
 BreakTimer-new 的对外单页宣传页：纯静态 HTML / CSS，中英双语，由
 `.github/workflows/pages.yml` 发布到 GitHub Pages。需求见
 [SPEC-0016](../docs/specs/0016-landing-page.md)，决策见
-[ADR-0024](../docs/decisions/0024-landing-page-static-github-pages.md)。
+[ADR-0024](../docs/decisions/0024-landing-page-static-github-pages.md) 与
+[ADR-0025](../docs/decisions/0025-landing-page-netdisk-downloads.md)。
 
 本文件只给维护者看，不随站点发布（发布时 workflow 会从 `_site` 中删除）。
 
@@ -18,7 +19,7 @@ BreakTimer-new 的对外单页宣传页：纯静态 HTML / CSS，中英双语，
 | `assets/icon.png`、`icon-64.png` | 由 `app/public/icon.png` 缩放而来的站点图标              |
 | `robots.txt`、`sitemap.xml`      | 爬虫规则与站点地图                                       |
 | `scripts/check-static.mjs`       | 静态检查：无 `<script>`、无远程资源、无坏链              |
-| `scripts/resolve-downloads.mjs`  | 部署时把最新 Release 下载直链写入副本                    |
+| `scripts/resolve-downloads.mjs`  | 部署时把最新 Release 的百度 / 夸克网盘链接写入副本       |
 
 ## 本地检查
 
@@ -37,6 +38,12 @@ node --test site/scripts/resolve-downloads.test.mjs
 
 - 不引入构建器、远程字体、CDN、第三方统计、Cookie 或表单。
 - 页面文案只描述 `README.md` 与 spec 已实现的能力。
+- 下载入口是百度网盘与夸克网盘，链接来自最新 Release 正文的隐藏标记
+  `<!-- breaktimer-downloads {"baidu":"...","quark":"...","baiduCode":"..."} -->`
+  （与 SPEC-0017 同源，由 `app/scripts/release-downloads.mjs` 依据
+  `.github/release-downloads.json` 生成）。标记缺失或字段为空时对应卡片隐藏，
+  页面显示「暂未配置」提示并保留 GitHub Releases 兜底；链接必须是 `https` 且主机为
+  `pan.baidu.com` / `pan.quark.cn`，否则部署失败。
 - 图标源变化时重建两个站点图标（需要 ImageMagick 或等价工具）：
 
   ```powershell

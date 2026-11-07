@@ -110,7 +110,12 @@ for (const page of pages) {
   await checkPage(page);
   if (page !== "404.html") {
     const html = await readFile(path.join(siteDir, page), "utf8");
-    for (const marker of ["release-download:nsis", "release-download:portable", "data-release-version"]) {
+    for (const marker of [
+      "release-download:baidu",
+      "release-download:quark",
+      "data-download-fallback",
+      "data-release-version",
+    ]) {
       if (!html.includes(marker)) {
         errors.push(`${page}: missing ${marker} placeholder.`);
       }

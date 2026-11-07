@@ -204,30 +204,61 @@
           <div class="section-heading">
             <h2 id="download-title">Download BreakTimer-new</h2>
             <p>
-              Official builds are published only through GitHub Releases. Choose the installer
-              for everyday use, or the portable ZIP to carry settings with the folder.
+              Both the installer and the portable ZIP are shared on a file host — pick whichever
+              is easier for you. GitHub Releases keeps the version history and SHA256SUMS.
             </p>
           </div>
 
           <div class="download-grid">
-            <article class="download-card featured">
+            <article class="download-card featured" data-download-card="baidu">
+              <h3>Baidu Pan</h3>
+              <p class="file-name">Installer + portable ZIP</p>
+              <p>Reliable inside mainland China; enter the access code after opening the share.</p>
+              <!-- release-download:baidu -->
+              <a
+                class="button button-primary"
+                data-download="baidu"
+                href="https://pan.baidu.com/"
+              >
+                Open Baidu Pan
+              </a>
+              <p class="download-code" data-download-code>
+                Access code: <strong data-baidu-code>Announced with the release</strong>
+              </p>
+            </article>
+
+            <article class="download-card" data-download-card="quark">
+              <h3>Quark Pan</h3>
+              <p class="file-name">Installer + portable ZIP</p>
+              <p>No desktop client needed — save and download straight from the browser.</p>
+              <!-- release-download:quark -->
+              <a
+                class="button button-secondary"
+                data-download="quark"
+                href="https://pan.quark.cn/"
+              >
+                Open Quark Pan
+              </a>
+            </article>
+          </div>
+
+          <p class="download-fallback" data-download-fallback hidden>
+            No download link is configured for this release yet. For now you can use the
+            installer or portable ZIP from
+            <a href="https://github.com/githunhunhub/breaktimer-new/releases">GitHub Releases</a>;
+            the file-host links appear here after the next deploy.
+          </p>
+
+          <div class="download-kinds">
+            <div class="download-kind">
               <h3>Installer</h3>
               <p class="file-name">BreakTimer-new_v*_x64-setup.exe</p>
               <p>
                 For everyday installation. Installs per user by default and usually does not
                 require administrator rights.
               </p>
-              <!-- release-download:nsis -->
-              <a
-                class="button button-primary"
-                data-download="nsis"
-                href="https://github.com/githunhunhub/breaktimer-new/releases/latest"
-              >
-                Download installer
-              </a>
-            </article>
-
-            <article class="download-card">
+            </div>
+            <div class="download-kind">
               <h3>Portable ZIP</h3>
               <p class="file-name">BreakTimer-new_v*_x64-portable.zip</p>
               <p>
@@ -235,20 +266,12 @@
                 and runtime data stay in <code>data\</code> next to the app and move with the
                 folder.
               </p>
-              <!-- release-download:portable -->
-              <a
-                class="button button-secondary"
-                data-download="portable"
-                href="https://github.com/githunhunhub/breaktimer-new/releases/latest"
-              >
-                Download portable
-              </a>
-            </article>
+            </div>
           </div>
 
           <p class="download-meta">
             Latest version: <strong data-release-version>See GitHub Releases</strong> ·
-            <a href="https://github.com/githunhunhub/breaktimer-new/releases">All versions and SHA256SUMS</a>
+            <a href="https://github.com/githunhunhub/breaktimer-new/releases">Version history and SHA256SUMS</a>
           </p>
 
           <div class="notice">
