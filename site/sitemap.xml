@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml"
+>
+  <url>
+    <loc>https://githunhunhub.github.io/breaktimer-new/</loc>
+    <xhtml:link
+      rel="alternate"
+      hreflang="zh-CN"
+      href="https://githunhunhub.github.io/breaktimer-new/"
+    />
+    <xhtml:link
+      rel="alternate"
+      hreflang="en"
+      href="https://githunhunhub.github.io/breaktimer-new/en/"
+    />
+    <xhtml:link
+      rel="alternate"
+      hreflang="x-default"
+      href="https://githunhunhub.github.io/breaktimer-new/"
+    />
+  </url>
+  <url>
+    <loc>https://githunhunhub.github.io/breaktimer-new/en/</loc>
+    <xhtml:link
+      rel="alternate"
+      hreflang="zh-CN"
+      href="https://githunhunhub.github.io/breaktimer-new/"
+    />
+    <xhtml:link
+      rel="alternate"
+      hreflang="en"
+      href="https://githunhunhub.github.io/breaktimer-new/en/"
+    />
+    <xhtml:link
+      rel="alternate"
+      hreflang="x-default"
+      href="https://githunhunhub.github.io/breaktimer-new/"
+    />
+  </url>
+</urlset>

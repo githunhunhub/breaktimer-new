@@ -22,9 +22,10 @@
 | `docs/specs/` | 需求规格（一需求一文件）+ 索引 + 模板 | 常看 |
 | `docs/decisions/` | ADR：为什么这样决定，索引见 `README.md` | 按需 |
 | `docs/plans/` | 大工程的任务拆解（小需求写在 spec 内） | 按需 |
-| `.github/` | CI 与发布流水线（`workflows/release.yml`）、`git-cliff` 配置 | 按需 |
+| `.github/` | CI 与发布流水线（`workflows/release.yml`）、宣传页发布（`workflows/pages.yml`）、`git-cliff` 配置 | 按需 |
 | `app/` | **新代码（成果）**；命令见 `app/README.md` | 按需 |
 | `app/scripts/` | 发布 / 打包 / 验证脚本（属代码，不是 AI 文件） | 按需 |
+| `site/` | 对外宣传页（纯静态，中英双语，GitHub Pages 发布；SPEC-0016） | 按需 |
 | `server/` | 装机统计端点（EdgeOne Edge Functions + KV，SPEC-0018） | 按需 |
 | `breaktimer-app/` | 旧源码（参考，**只读**，不修改） | 参考 |
 | `DEVELOPMENT.md` | 人用的开发 / 发布步骤（完整命令来源） | 常看 |

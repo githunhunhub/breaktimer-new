@@ -18,6 +18,7 @@
 ```
 docs/            一等公民文档：目标 / 架构 / 计划 / 规格 / 决策
 app/             新代码（成果）
+site/            对外宣传页（纯静态，GitHub Pages 发布）
 breaktimer-app/  旧版源码（参考，只读）
 ```
 
@@ -75,6 +76,32 @@ pnpm verify
 `pnpm verify` 调用 `app/scripts/verify.ps1`，依次运行格式化检查、lint、类型检查、前端测试与
 构建，以及 `cargo fmt --check`、`cargo check --locked --all-targets`、`cargo test --locked
 --all-targets`；不包含任何打包命令。
+
+## 宣传页
+
+对外宣传页是纯静态 HTML / CSS，位于 `site/`，由 `.github/workflows/pages.yml` 发布到
+GitHub Pages（SPEC-0016 / ADR-0024）。它不属于 `app/`，不参与 pnpm 与 Cargo 门禁，
+也不需要 `pnpm install`。
+
+本地检查（只需 Node，无第三方依赖）：
+
+```powershell
+node site/scripts/check-static.mjs site
+node --test site/scripts/resolve-downloads.test.mjs
+```
+
+本地预览：`npx --yes serve site`。根路径预览足以检查布局与响应式；`site/404.html`
+使用 `/breaktimer-new/` 绝对路径，只在真实项目子路径部署时生效。
+
+首次部署需要人工完成：仓库 Settings → Pages → Build and deployment → Source 选择
+「GitHub Actions」。workflow 在 `master` 推送且改动 `site/**` 或该 workflow 时自动运行，
+也可在 Actions 中手动 `workflow_dispatch`。它只上传 `site/` 的副本，并在部署时用
+`site/scripts/resolve-downloads.mjs` 把最新 Release 的安装版 / 便携版直链写入副本；
+不构建应用，也不修改 `release.yml`。
+
+站点基址固定为 `https://githunhunhub.github.io/breaktimer-new/`。若以后绑定自定义域名，
+必须同步修改 `site/index.html`、`site/en/index.html`、`site/404.html`、`site/robots.txt`
+与 `site/sitemap.xml` 中的绝对地址。
 
 ## 装机统计端点
 

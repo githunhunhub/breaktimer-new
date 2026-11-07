@@ -27,6 +27,7 @@
 - 系统通知（`Notification` 模式）。
 - 自启动（auto-launch）。
 - 独立的 `BreakTimer-new` 产品名与 `com.githunhunhub.breaktimernew` 应用身份。
+- 对外宣传页：纯静态、中英双语，托管于 GitHub Pages；只描述已实现能力（SPEC-0016、ADR-0024）。
 - 当前验收与发布平台：Windows（x64）；macOS/Linux 暂不纳入当前里程碑。
 
 ## 非目标（Out of scope）

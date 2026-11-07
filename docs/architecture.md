@@ -92,6 +92,19 @@
 | 发布流水线与版本脚本 | `.github/workflows/release.yml`、`app/scripts/release*.ps1`、`app/scripts/release-version.mjs` | SPEC-0015 · ADR-0013 |
 | 验证门禁脚本 | `app/scripts/verify.ps1` | `AGENTS.md` |
 | 装机统计端点（EdgeOne Edge Functions + KV HLL） | `server/metrics/` | SPEC-0018 · ADR-0019 · ADR-0023 |
+| 宣传页（纯静态，中英双语） | `site/`、`site/scripts/`、`.github/workflows/pages.yml` | SPEC-0016 · ADR-0024 |
+
+### 宣传页（`site/`）
+
+- `site/` 独立于 `app/` 与 `docs/`：没有构建器、没有依赖树，不参与 `pnpm verify` 与
+  Cargo 门禁；发布产物只有该目录的副本。
+- `index.html`（简体中文，默认）与 `en/index.html` 共享 `assets/styles.css`，语言切换是普通链接。
+- `.github/workflows/pages.yml` 先跑 `site/scripts/check-static.mjs`（禁止 `<script>`、
+  远程资源与坏链）与解析器单测，再复制 `site/` 为 `_site`，用
+  `site/scripts/resolve-downloads.mjs` 把最新 Release 的 `*-setup.exe` /
+  `*-portable.zip` 直链写进副本，最后部署到 GitHub Pages（ADR-0024）。
+- 站点基址固定为 `https://githunhunhub.github.io/breaktimer-new/`；canonical、`hreflang`、
+  OG、`sitemap.xml`、`robots.txt` 与 `404.html` 都依赖该基址，更换域名时必须同步修改。
 
 ## 关键实现约定（改动前需了解的不变量）
 

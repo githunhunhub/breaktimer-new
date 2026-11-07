@@ -28,3 +28,4 @@
 | 装机统计       | Installation metrics   | 匿名首次装机与每日心跳，经 HLL 草图输出 M1～M8 近似趋势，不保存逐装机明细（SPEC-0018、ADR-0023） |
 | HLL 草图       | HyperLogLog sketch     | 由 `installId` 哈希派生的寄存器数组，可合并并估计去重基数，无法还原装机明细（SPEC-0018）       |
 | 分发量         | Distribution count     | 下载次数（GitHub `download_count` 与网盘后台），不等于装机量                                   |
+| 宣传页         | Landing page           | `site/` 下的纯静态中英双语页面，托管于 GitHub Pages；发布时解析最新 Release 下载直链（SPEC-0016、ADR-0024） |

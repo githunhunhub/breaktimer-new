@@ -12,6 +12,9 @@ npm-debug.log*
 .cache/
 .tmp/
 
+# 宣传页本地暂存产物（由 site/ 复制生成）
+_site/
+
 # 本地环境与密钥（示例文件保留，可入库）
 .env
 .env.*

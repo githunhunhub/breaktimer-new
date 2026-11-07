@@ -29,5 +29,6 @@
 | [ADR-0021](0021-retire-ai-process-directory.md) | 退出 `.ai` 私有过程目录 | 已接受 | SPEC-0001 · 取代 ADR-0016 |
 | [ADR-0022](0022-ai-context-index-and-dedupe.md) | AI 上下文索引化与去重复 | 已接受 | `AGENTS.md` · `docs/architecture.md` |
 | [ADR-0023](0023-installation-metrics-edgeone-kv-hll.md) | 装机统计改用 EdgeOne KV + HLL 近似聚合 | 已接受 | SPEC-0018 · 部分取代 ADR-0019 |
+| [ADR-0024](0024-landing-page-static-github-pages.md) | 宣传页采用仓库内静态站点与 GitHub Pages | 已接受 | SPEC-0016 |
 
 <!-- 新增 ADR 后在此表追加一行，并保持编号递增。 -->

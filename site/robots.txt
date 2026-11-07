@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://githunhunhub.github.io/breaktimer-new/sitemap.xml

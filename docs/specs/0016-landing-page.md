@@ -1,8 +1,8 @@
 # SPEC-0016：宣传页（Landing Page）
 
-- 状态：draft
+- 状态：in-progress
 - 日期：2026-11-02
-- 关联：SPEC-0011 · SPEC-0012 · ADR-0011 · 视觉参考 <https://breaktimer.app/>
+- 关联：SPEC-0011 · SPEC-0012 · ADR-0011 · ADR-0024 · 视觉参考 <https://breaktimer.app/>
 
 ## 背景 / 问题
 
@@ -30,16 +30,16 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 
 ## 验收标准（可测）
 
-- [ ] **L1** 本地静态服务器下页面可用，1440px 与 375px 两个宽度下无横向滚动、无元素重叠。
-- [ ] **L2** 下载区每个链接都可点开并返回 200，目标为 GitHub Releases 或其中资产。
-- [ ] **L3** 页面文案逐条对照 `README.md`「主要功能」，不出现 README 与 spec 之外的能力描述。
-- [ ] **L4** 断网后刷新（外链除外）样式与图片完整，证明无远程字体 / CDN 依赖。
-- [ ] **L5** 按子路径（模拟 `/breaktimer-new/`）部署后所有资源返回 200。
-- [ ] **L6** 桌面 Lighthouse 的 Performance / Accessibility / Best Practices / SEO 均 ≥ 90，
+- [x] **L1** 本地静态服务器下页面可用，1440px 与 375px 两个宽度下无横向滚动、无元素重叠。
+- [x] **L2** 下载区每个链接都可点开并返回 200，目标为 GitHub Releases 或其中资产。
+- [x] **L3** 页面文案逐条对照 `README.md`「主要功能」，不出现 README 与 spec 之外的能力描述。
+- [x] **L4** 断网后刷新（外链除外）样式与图片完整，证明无远程字体 / CDN 依赖。
+- [x] **L5** 按子路径（模拟 `/breaktimer-new/`）部署后所有资源返回 200。
+- [x] **L6** 桌面 Lighthouse 的 Performance / Accessibility / Best Practices / SEO 均 ≥ 90，
       结果随验收记录提交。
 - [ ] **L7** 上线后站点地址、HTTPS 证书与 404 行为均符合预期。
-- [ ] **L8** 发布 workflow 只发布站点目录，不构建、不改写 `app/` 产物，不触碰发布流水线（SPEC-0015）。
-- [ ] **L9** `app/` 全部门禁保持通过（`pnpm format:check` / `lint` / `typecheck` / `test` / `build`
+- [x] **L8** 发布 workflow 只发布站点目录，不构建、不改写 `app/` 产物，不触碰发布流水线（SPEC-0015）。
+- [x] **L9** `app/` 全部门禁保持通过（`pnpm format:check` / `lint` / `typecheck` / `test` / `build`
       与 cargo 的 `fmt --check` / `check` / `test`）。
 
 ## 非目标 / 边界
@@ -58,20 +58,21 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 | 区块     | 内容                                                      | 素材                  |
 | -------- | --------------------------------------------------------- | --------------------- |
 | 顶栏     | 名称 + 锚点导航（功能 / 下载 / 关于）                     | `app/public/icon.png` |
-| Hero     | 一句话价值 + 「下载」+「GitHub」两个按钮                  | 图标 + 应用截图（Q5） |
-| 特性     | 四张卡：休息调度 / 全屏阻断与通知 / 托盘与自启 / 中英双语 | 截图（Q5）            |
+| Hero     | 一句话价值 + 「下载」+「GitHub」两个按钮                  | 图标 + 纯排版视觉（Q5） |
+| 特性     | 四张卡：休息调度 / 全屏阻断与通知 / 托盘与自启 / 中英双语 | 线性图标（Q5）        |
 | 关系说明 | 独立重写、不迁移旧数据、可与旧版共存                      | 无                    |
 | 下载     | 安装版 / 便携版两个入口 + SmartScreen 说明                | 无                    |
 | 页脚     | 仓库 / Releases / 源自 BreakTimer 的署名 / 许可声明（Q6） | 无                    |
 
 ## 实现计划
 
-- [ ] 回答「开放问题」Q1 ~ Q6，答案回填本 spec 并把状态改为 `confirmed`。
-- [ ] 按 Q1 建站点目录，写出单页 HTML / CSS 与本地资源。
-- [ ] 按 L1 ~ L5 完成本地验收。
+- [x] 回答「开放问题」Q1 ~ Q6，答案回填本 spec，状态改为 `in-progress`。
+- [x] 按 Q1 建站点目录，写出单页 HTML / CSS 与本地资源。
+- [x] 按 L1 ~ L5 完成本地验收。
 - [ ] 按 Q2 / Q3 配置托管与发布，跑通一次真实部署。
-- [ ] 按 L6 ~ L8 完成上线验收。
-- [ ] 更新 `README.md`（补站点地址）与 `docs/roadmap.md`。
+- [ ] 按 L7 完成上线验收（站点地址、HTTPS、404）。
+- [x] 同步 `docs/roadmap.md`、`docs/architecture.md` 与各索引。
+- [ ] 部署成功后更新 `README.md`（补站点地址）。
 
 ## 开放问题
 
@@ -84,8 +85,72 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 | Q5  | 截图与图标       | `app/public/icon.png` + 新截 `pnpm tauri:dev` 界面 / 纯排版无图              | 阻塞 Hero 与特性区                            |
 | Q6  | 许可与署名       | 补 `LICENSE`（类型待定）/ 页脚仅署名「源自 tom-james-watson/breaktimer-app」 | 公开站点必须能回答「能不能用、能不能改」      |
 
+## 开放问题结论（2026-11-07）
+
+| #   | 结论                                                                                                                                             |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Q1  | 站点放在仓库根 `site/`，与应用代码 `app/`、文档源 `docs/` 分开。                                                                                 |
+| Q2  | 首版使用 GitHub Pages，新增 `.github/workflows/pages.yml`，只发布 `site/`；Cloudflare Pages 暂不配置。                                           |
+| Q3  | 暂不绑定自定义域名，站点基址为 `https://githunhunhub.github.io/breaktimer-new/`；资源全部使用相对路径，兼容子路径部署。                          |
+| Q4  | 中英双语静态页：`site/index.html`（简体中文，默认）与 `site/en/index.html`；语言切换使用普通链接，不依赖 JS。                                    |
+| Q5  | 使用 `app/public/icon.png` 的副本与纯排版视觉，不新增应用截图；图标变化时同步 `site/assets/icon.png`。                                          |
+| Q6  | 本轮不新增 `LICENSE`；页脚署名旧项目，并明确写出「本项目当前未声明开源许可证」，避免对使用与修改权限作出未经授权的承诺。                        |
+
+补充约定：
+
+- 页面保持纯静态 HTML / CSS，不引入构建器、远程字体、CDN、第三方统计、Cookie 或表单。
+- 下载入口在本地预览时指向 GitHub Releases 页面；部署时由 `site/scripts/resolve-downloads.mjs`
+  读取最新 Release，把链接替换为对应的 `*-setup.exe` / `*-portable.zip` 资产，避免版本号写死。
+- GitHub Pages 的 Source 需在仓库设置中选为「GitHub Actions」；workflow 只从 `master` 与手动
+  触发部署，不构建或改写 `app/`，也不修改 `release.yml`。
+
+## 验收记录
+
+最近一次本地验收：2026-11-07（仓库 `<repo-root>`）。
+
+实现位置：
+
+| 关注点           | 文件                                                                       |
+| ---------------- | -------------------------------------------------------------------------- |
+| 中文主页 / 英文主页 / 404 | `site/index.html`、`site/en/index.html`、`site/404.html`            |
+| 样式与图标       | `site/assets/styles.css`、`site/assets/icon.png`、`site/assets/icon-64.png` |
+| 站点元信息       | `site/robots.txt`、`site/sitemap.xml`                                      |
+| 发布 workflow    | `.github/workflows/pages.yml`                                              |
+| 静态检查         | `site/scripts/check-static.mjs`                                            |
+| 下载直链解析     | `site/scripts/resolve-downloads.mjs`、`site/scripts/resolve-downloads.test.mjs` |
+
+校验命令：
+
+```shell
+node site/scripts/check-static.mjs site
+node --test site/scripts/resolve-downloads.test.mjs
+```
+
+结果：
+
+- **L1**：headless Edge 在 1440×1100 与 375×1400 下检查中英文页面，`scrollWidth` 等于
+  `clientWidth`，无横向溢出元素，无元素重叠。
+- **L2**：最新 Release `v0.1.1` 的 `BreakTimer-new_v0.1.1_x64-setup.exe`、
+  `BreakTimer-new_v0.1.1_x64-portable.zip`，以及 `releases/latest`、`releases` 页面
+  均返回 HTTP 200。
+- **L3**：文案逐条对照 `README.md`「主要功能」，只描述已实现能力；明确写出仅支持
+  Windows 10 / 11（x64）、无代码签名与 SmartScreen 处置。
+- **L4**：`check-static` 证明页面无 `<script>`、无远程 `img` / `link` 资源，
+  CSS 无远程 `url()` 与 `@import`；样式与图标全部来自 `site/assets/`。
+- **L5**：本地静态服务器按 `/breaktimer-new/` 子路径提供站点，首页、英文页、样式、
+  图标、`robots.txt`、`sitemap.xml` 均返回 200，未知路径返回 404。
+- **L6**：桌面 Lighthouse（本地 gzip 静态服务）Performance 96 / Accessibility 100 /
+  Best Practices 100 / SEO 100。首轮图标未缩放（约 175KB）时 Performance 为 87，
+  缩放到 256×256 并启用 gzip 后达标。
+- **L8**：`pages.yml` 只把 `site/` 复制为 `_site` 后上传，不运行 pnpm / Cargo，
+  不修改 `release.yml`。
+- **L9**：`app/` 执行 `pnpm verify` 全部通过（前端 87 个测试、Rust 128 个测试通过，
+  需联网的更新检查测试按设计 ignored）。
+- **L7**：待真实部署后回填（站点地址、HTTPS 证书、404 行为）。
+
 ## 变更记录
 
 | 日期       | 变更                                                                                 |
 | ---------- | ------------------------------------------------------------------------------------ |
 | 2026-11-02 | 创建。该需求最初误记入 Voxarium 仓库（SPEC-007 / T-043），同日迁移到本项目并删除误记 |
+| 2026-11-07 | 回答 Q1～Q6（采用推荐项），状态改为 in-progress；新增 `site/`、`.github/workflows/pages.yml` 与 ADR-0024；完成 L1～L6、L8、L9 验收，L7 待部署 |
