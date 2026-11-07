@@ -121,5 +121,13 @@ BreakTimer-new 图标，即可打开设置或执行托盘菜单操作。
 BreakTimer-new 采用文档先行的开发方式。项目结构、开发命令、文档入口和跨设备同步
 约定见 [DEVELOPMENT.md](DEVELOPMENT.md)。
 
-本项目源自 [tom-james-watson/breaktimer-app](https://github.com/tom-james-watson/breaktimer-app)，
-当前使用 Tauri v2、Rust、React 和 TypeScript 独立重写。
+## 许可证
+
+本项目以
+[GNU 通用公共许可证第 3 版或更高版本（GPL-3.0-or-later）](LICENSE) 发布：你可以自由
+使用、修改与再分发，但再分发衍生作品时必须同样以 GPLv3 开放源码，且不提供任何担保。
+许可证全文见 [LICENSE](LICENSE)，版权与上游署名见 [NOTICE](NOTICE)。
+
+本项目源自 [tom-james-watson/breaktimer-app](https://github.com/tom-james-watson/breaktimer-app)
+（Copyright (C) Tom James Watson，GPL-3.0-or-later），复用了上游的应用图标与提示音资源，
+其余部分使用 Tauri v2、Rust、React 和 TypeScript 重写。

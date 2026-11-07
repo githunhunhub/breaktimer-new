@@ -46,3 +46,4 @@
 - 技术栈：以 `docs/architecture.md` 与 `docs/decisions/0002-technology-stack.md` 为准
 - 旧实现仅作参考：`breaktimer-app/`
 - 不迁移、清理或兼容旧 `BreakTimer` 的数据、自启动和安装身份。
+- 开源许可：GPL-3.0-or-later，衍生作品与再分发必须同样开放源码（SPEC-0020、ADR-0026）。

@@ -2,7 +2,7 @@
 
 - 状态：in-progress
 - 日期：2026-11-02
-- 关联：SPEC-0011 · SPEC-0012 · ADR-0011 · ADR-0024 · 视觉参考 <https://breaktimer.app/>
+- 关联：SPEC-0011 · SPEC-0012 · SPEC-0020 · ADR-0011 · ADR-0024 · ADR-0025 · 视觉参考 <https://breaktimer.app/>
 
 ## 背景 / 问题
 
@@ -52,7 +52,8 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 - 不自行托管安装包，也不自建镜像；安装包仍由 GitHub Releases 产出与存档，网盘只作为
   对国内用户更友好的分享入口，内容与 Release 资产一致。
 - 不做在线试用、Web 版或内嵌演示播放器。
-- 不复制参考站的文案、图片与字体文件：旧站内容为 GPLv3，本项目当前没有 `LICENSE`（见 Q6）。
+- 不复制参考站的文案、图片与字体文件：旧站内容为 GPLv3；本站只使用自有文案，
+  许可声明与署名规则见 SPEC-0020。
 - 不修改 `app/` 运行代码，不改变发布流水线语义，只新增独立的站点发布配置。
 
 ## 设计要点
@@ -66,7 +67,7 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 | Hero     | 一句话价值 + 「下载」+「GitHub」两个按钮                  | 图标 + 纯排版视觉（Q5） |
 | 特性     | 四张卡：休息调度 / 全屏阻断与通知 / 托盘与自启 / 中英双语 | 线性图标（Q5）        |
 | 下载     | 百度 / 夸克网盘入口 + 安装版与便携版说明 + SmartScreen     | 无                    |
-| 页脚     | 仓库 / Releases / 使用说明 + 源自 BreakTimer 的署名       | 无                    |
+| 页脚     | 仓库 / Releases / 使用说明 / 许可证 + 源自 BreakTimer 的署名 | 无                   |
 
 ## 实现计划
 
@@ -99,7 +100,7 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 | Q3  | 暂不绑定自定义域名，站点基址为 `https://githunhunhub.github.io/breaktimer-new/`；资源全部使用相对路径，兼容子路径部署。                          |
 | Q4  | 中英双语静态页：`site/index.html`（简体中文，默认）与 `site/en/index.html`；语言切换使用普通链接，不依赖 JS。                                    |
 | Q5  | 使用 `app/public/icon.png` 的副本与纯排版视觉，不新增应用截图；图标变化时同步 `site/assets/icon.png`。                                          |
-| Q6  | 本轮不新增 `LICENSE`；页脚署名旧项目，并明确写出「本项目当前未声明开源许可证」，避免对使用与修改权限作出未经授权的承诺。                        |
+| Q6  | 该结论已由 SPEC-0020 取代：仓库整体采用 GPL-3.0-or-later，根目录提供 `LICENSE` 与 `NOTICE`，页脚改为许可声明 + 指向 `master` 分支 `LICENSE` 的链接。 |
 
 补充约定：
 
@@ -173,6 +174,7 @@ node --test site/scripts/resolve-downloads.test.mjs
 | 2026-11-07 | 回答 Q1～Q6（采用推荐项），状态改为 in-progress；新增 `site/`、`.github/workflows/pages.yml` 与 ADR-0024；完成 L1～L6、L8、L9 验收，L7 待部署 |
 | 2026-11-07 | 修复 `file://` 直接打开时语言切换跳到目录索引：站内导航链接改为显式 `index.html`，不再依赖服务器目录索引 |
 | 2026-11-07 | 下载区改为引导网盘（百度 / 夸克），与应用内更新检查一致；来源改为 Release 正文元数据，新增 ADR-0025；`resolve-downloads.mjs` 与测试改为解析网盘标记并在未配置时降级 |
+| 2026-11-07 | 许可证落地（SPEC-0020 / ADR-0026）：页脚新增「许可证」链接与 GPL-3.0-or-later 声明，删去「本项目当前未声明开源许可证」，Q6 结论同步更新 |
 | 2026-11-07 | 下载区两张网盘卡统一为相同边框与主按钮样式，提取码移到按钮之前 |
 | 2026-11-07 | 移除「与旧版」关系说明区块及对应导航项，与旧版的关系改由页脚署名说明；需求第 1、4 条与设计要点同步调整 |
 | 2026-11-07 | 下载区去掉「最新版本」占位，只保留「版本历史与 SHA256SUMS」链接；删除 `data-release-version` 占位与版本回填逻辑（`resolve-downloads.mjs`、`check-static.mjs` 与测试同步） |

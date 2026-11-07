@@ -3,6 +3,7 @@ name = "breaktimer-new"
 version = "0.1.1"
 description = "Manage periodic breaks"
 authors = ["BreakTimer-new contributors"]
+license = "GPL-3.0-or-later"
 edition = "2024"
 
 [lib]

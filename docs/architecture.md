@@ -93,6 +93,7 @@
 | 验证门禁脚本 | `app/scripts/verify.ps1` | `AGENTS.md` |
 | 装机统计端点（EdgeOne Edge Functions + KV HLL） | `server/metrics/` | SPEC-0018 · ADR-0019 · ADR-0023 |
 | 宣传页（纯静态，中英双语） | `site/`、`site/scripts/`、`.github/workflows/pages.yml` | SPEC-0016 · ADR-0024 |
+| 开源许可与署名 | `LICENSE`、`NOTICE`、`README.md` | SPEC-0020 · ADR-0026 |
 
 ### 宣传页（`site/`）
 

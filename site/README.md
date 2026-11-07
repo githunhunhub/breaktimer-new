@@ -38,6 +38,9 @@ node --test site/scripts/resolve-downloads.test.mjs
 
 - 不引入构建器、远程字体、CDN、第三方统计、Cookie 或表单。
 - 页面文案只描述 `README.md` 与 spec 已实现的能力。
+- 页脚的许可声明（GPL-3.0-or-later）必须与根目录 `LICENSE`、`NOTICE` 和
+  `README.md` 的「许可证」一节保持一致；链接固定指向 `master` 分支的 `LICENSE`，
+  因为 `LICENSE` 不随站点发布（见 SPEC-0020 / ADR-0026）。
 - 下载入口是百度网盘与夸克网盘，链接来自最新 Release 正文的隐藏标记
   `<!-- breaktimer-downloads {"baidu":"...","quark":"...","baiduCode":"..."} -->`
   （与 SPEC-0017 同源，由 `app/scripts/release-downloads.mjs` 依据

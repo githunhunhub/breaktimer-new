@@ -31,5 +31,6 @@
 | [ADR-0023](0023-installation-metrics-edgeone-kv-hll.md) | 装机统计改用 EdgeOne KV + HLL 近似聚合 | 已接受 | SPEC-0018 · 部分取代 ADR-0019 |
 | [ADR-0024](0024-landing-page-static-github-pages.md) | 宣传页采用仓库内静态站点与 GitHub Pages | 已接受 | SPEC-0016 |
 | [ADR-0025](0025-landing-page-netdisk-downloads.md) | 宣传页下载入口改用 Release 网盘元数据 | 已接受 | SPEC-0016 · SPEC-0017 · 部分取代 ADR-0024 |
+| [ADR-0026](0026-gpl-3-0-or-later-license.md) | 项目整体采用 GPL-3.0-or-later 并补齐许可证与署名 | 已接受 | SPEC-0020 · SPEC-0016 · 部分取代 ADR-0024 |
 
 <!-- 新增 ADR 后在此表追加一行，并保持编号递增。 -->
