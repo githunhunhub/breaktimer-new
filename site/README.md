@@ -29,6 +29,10 @@ node --test site/scripts/resolve-downloads.test.mjs
 
 本地预览：`npx --yes serve site`。
 
+也可以直接双击 `site/index.html` 用 `file://` 打开：站内链接都指向具体的
+`index.html` 文件（不写 `en/`、`./` 这类目录形式），因为浏览器不会为目录自动补
+`index.html`。`404.html` 使用 `/breaktimer-new/` 绝对路径，只在 Pages 子路径部署时生效。
+
 ## 约定
 
 - 不引入构建器、远程字体、CDN、第三方统计、Cookie 或表单。

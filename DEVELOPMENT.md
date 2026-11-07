@@ -90,8 +90,9 @@ node site/scripts/check-static.mjs site
 node --test site/scripts/resolve-downloads.test.mjs
 ```
 
-本地预览：`npx --yes serve site`。根路径预览足以检查布局与响应式；`site/404.html`
-使用 `/breaktimer-new/` 绝对路径，只在真实项目子路径部署时生效。
+本地预览：`npx --yes serve site`。根路径预览足以检查布局与响应式；也可以直接双击
+`site/index.html` 用 `file://` 打开，站内链接写的是具体的 `index.html`（不依赖目录索引）。
+`site/404.html` 使用 `/breaktimer-new/` 绝对路径，只在真实项目子路径部署时生效。
 
 首次部署需要人工完成：仓库 Settings → Pages → Build and deployment → Source 选择
 「GitHub Actions」。workflow 在 `master` 推送且改动 `site/**` 或该 workflow 时自动运行，

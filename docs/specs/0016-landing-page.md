@@ -147,6 +147,8 @@ node --test site/scripts/resolve-downloads.test.mjs
 - **L9**：`app/` 执行 `pnpm verify` 全部通过（前端 87 个测试、Rust 128 个测试通过，
   需联网的更新检查测试按设计 ignored）。
 - **L7**：待真实部署后回填（站点地址、HTTPS 证书、404 行为）。
+- **附加**：`file://` 直接打开 `site/index.html` 时，语言切换与品牌链接均在
+  `index.html` 与 `en/index.html` 之间正常跳转（站内链接不写目录形式，见 2026-11-07 变更记录）。
 
 ## 变更记录
 
@@ -154,3 +156,4 @@ node --test site/scripts/resolve-downloads.test.mjs
 | ---------- | ------------------------------------------------------------------------------------ |
 | 2026-11-02 | 创建。该需求最初误记入 Voxarium 仓库（SPEC-007 / T-043），同日迁移到本项目并删除误记 |
 | 2026-11-07 | 回答 Q1～Q6（采用推荐项），状态改为 in-progress；新增 `site/`、`.github/workflows/pages.yml` 与 ADR-0024；完成 L1～L6、L8、L9 验收，L7 待部署 |
+| 2026-11-07 | 修复 `file://` 直接打开时语言切换跳到目录索引：站内导航链接改为显式 `index.html`，不再依赖服务器目录索引 |
