@@ -1,6 +1,6 @@
 {
   "_comment": "Fill in the Baidu/Quark share URLs before release. Null or empty values hide the corresponding button.",
-  "quark": null,
-  "baidu": null,
-  "baiduCode": null
+  "quark": "https://pan.quark.cn/s/378bf6c7a2d3",
+  "baidu": "https://pan.baidu.com/s/1pOKhMZ8Ga-RgIgRLseGMbw?pwd=wt3j",
+  "baiduCode": "wt3j"
 }

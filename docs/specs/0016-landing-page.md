@@ -35,7 +35,7 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 - [x] **L1** 本地静态服务器下页面可用，1440px 与 375px 两个宽度下无横向滚动、无元素重叠。
 - [ ] **L2** 下载区每个链接都可点开并返回 200：网盘入口指向发布元数据（`baidu` / `quark`）
       给出的 HTTPS 链接，未配置时页面显示提示并提供 GitHub Releases 兜底。
-      网盘链接补齐后复验（当前 `v0.1.1` 未配置）。
+      网盘链接已补齐，需在下次发布后复验（`v0.1.1` 时未配置）。
 - [x] **L3** 页面文案逐条对照 `README.md`「主要功能」，不出现 README 与 spec 之外的能力描述。
 - [x] **L4** 断网后刷新（外链除外）样式与图片完整，证明无远程字体 / CDN 依赖。
 - [x] **L5** 按子路径（模拟 `/breaktimer-new/`）部署后所有资源返回 200。
@@ -76,7 +76,7 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 - [x] 按 L1 ~ L5 完成本地验收。
 - [ ] 按 Q2 / Q3 配置托管与发布，跑通一次真实部署。
 - [ ] 按 L7 完成上线验收（站点地址、HTTPS、404）。
-- [ ] 补齐网盘链接（`.github/release-downloads.json`）后复验 L2。
+- [x] 补齐网盘链接（`.github/release-downloads.json`，2026-11-11）；L2 待下次发布后复验。
 - [x] 同步 `docs/roadmap.md`、`docs/architecture.md` 与各索引。
 - [ ] 部署成功后更新 `README.md`（补站点地址）。
 
@@ -179,3 +179,4 @@ node --test site/scripts/resolve-downloads.test.mjs
 | 2026-11-07 | 移除「与旧版」关系说明区块及对应导航项，与旧版的关系改由页脚署名说明；需求第 1、4 条与设计要点同步调整 |
 | 2026-11-07 | 下载区去掉「最新版本」占位，只保留「版本历史与 SHA256SUMS」链接；删除 `data-release-version` 占位与版本回填逻辑（`resolve-downloads.mjs`、`check-static.mjs` 与测试同步） |
 | 2026-11-07 | 页脚去掉「旧版 BreakTimer」外链，旧项目只保留署名段落里的仓库链接 |
+| 2026-11-11 | 补齐 `.github/release-downloads.json` 中的夸克 / 百度网盘分享链接与百度提取码，L2 待发布后复验 |
