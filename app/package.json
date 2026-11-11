@@ -1,7 +1,7 @@
 {
   "name": "breaktimer-new",
   "private": true,
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "Manage periodic breaks",
   "license": "GPL-3.0-or-later",
   "type": "module",
