@@ -9,6 +9,8 @@ BreakTimer-new 是一款 Windows 桌面休息提醒应用。你可以设置工�
 
 当前发布版本支持 **Windows 10 / 11（x64）**。
 
+项目主页（中英双语）：<https://githunhunhub.github.io/breaktimer-new/>
+
 ## 下载与安装
 
 最新版本优先通过网盘分发：在 [Releases](https://github.com/githunhunhub/breaktimer-new/releases)
@@ -100,8 +102,8 @@ BreakTimer-new 图标，即可打开设置或执行托盘菜单操作。
 ## 隐私与匿名统计
 
 > 当前版本尚未部署统计端点，客户端上报处于暂停状态：应用不会发出任何统计请求，
-> 设置页也不会显示「允许发送匿名使用信息」卡片。服务端部署完成后会重新启用，届时按
-> 以下口径上报。
+> 设置页也不会显示「允许发送匿名使用信息」卡片。该状态会长期保持，待服务端部署完成
+> 后再评估是否启用；启用后按以下口径上报。
 
 为了持续改进 BreakTimer-new，应用会发送少量匿名的非敏感信息：
 

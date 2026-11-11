@@ -1,6 +1,6 @@
 # SPEC-0016：宣传页（Landing Page）
 
-- 状态：in-progress
+- 状态：done
 - 日期：2026-11-02
 - 关联：SPEC-0011 · SPEC-0012 · SPEC-0020 · ADR-0011 · ADR-0024 · ADR-0025 · 视觉参考 <https://breaktimer.app/>
 
@@ -33,15 +33,15 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 ## 验收标准（可测）
 
 - [x] **L1** 本地静态服务器下页面可用，1440px 与 375px 两个宽度下无横向滚动、无元素重叠。
-- [ ] **L2** 下载区每个链接都可点开并返回 200：网盘入口指向发布元数据（`baidu` / `quark`）
+- [x] **L2** 下载区每个链接都可点开并返回 200：网盘入口指向发布元数据（`baidu` / `quark`）
       给出的 HTTPS 链接，未配置时页面显示提示并提供 GitHub Releases 兜底。
-      网盘链接已补齐，需在下次发布后复验（`v0.1.1` 时未配置）。
+      2026-11-11 已在线上站点复验：两张网盘卡输出真实链接与提取码，兜底提示不再出现。
 - [x] **L3** 页面文案逐条对照 `README.md`「主要功能」，不出现 README 与 spec 之外的能力描述。
 - [x] **L4** 断网后刷新（外链除外）样式与图片完整，证明无远程字体 / CDN 依赖。
 - [x] **L5** 按子路径（模拟 `/breaktimer-new/`）部署后所有资源返回 200。
 - [x] **L6** 桌面 Lighthouse 的 Performance / Accessibility / Best Practices / SEO 均 ≥ 90，
       结果随验收记录提交。
-- [ ] **L7** 上线后站点地址、HTTPS 证书与 404 行为均符合预期。
+- [x] **L7** 上线后站点地址、HTTPS 证书与 404 行为均符合预期。
 - [x] **L8** 发布 workflow 只发布站点目录，不构建、不改写 `app/` 产物，不触碰发布流水线（SPEC-0015）。
 - [x] **L9** `app/` 全部门禁保持通过（`pnpm format:check` / `lint` / `typecheck` / `test` / `build`
       与 cargo 的 `fmt --check` / `check` / `test`）。
@@ -74,11 +74,11 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 - [x] 回答「开放问题」Q1 ~ Q6，答案回填本 spec，状态改为 `in-progress`。
 - [x] 按 Q1 建站点目录，写出单页 HTML / CSS 与本地资源。
 - [x] 按 L1 ~ L5 完成本地验收。
-- [ ] 按 Q2 / Q3 配置托管与发布，跑通一次真实部署。
-- [ ] 按 L7 完成上线验收（站点地址、HTTPS、404）。
-- [x] 补齐网盘链接（`.github/release-downloads.json`，2026-11-11）；L2 待下次发布后复验。
+- [x] 按 Q2 / Q3 配置托管与发布，跑通一次真实部署。
+- [x] 按 L7 完成上线验收（站点地址、HTTPS、404）。
+- [x] 补齐网盘链接（`.github/release-downloads.json`，2026-11-11）；L2 已在线上站点复验。
 - [x] 同步 `docs/roadmap.md`、`docs/architecture.md` 与各索引。
-- [ ] 部署成功后更新 `README.md`（补站点地址）。
+- [x] 部署成功后更新 `README.md`（补站点地址）。
 
 ## 开放问题
 
@@ -158,11 +158,16 @@ node --test site/scripts/resolve-downloads.test.mjs
   不修改 `release.yml`。
 - **L9**：`app/` 执行 `pnpm verify` 全部通过（前端 87 个测试、Rust 128 个测试通过，
   需联网的更新检查测试按设计 ignored）。
-- **L7**：待真实部署后回填（站点地址、HTTPS 证书、404 行为）。
+- **L7（2026-11-11）**：GitHub Pages 已启用（Source: GitHub Actions），`pages.yml` 部署成功。
+  站点地址 <https://githunhunhub.github.io/breaktimer-new/>，首页与 `/en/index.html`
+  均返回 200，`https` 证书校验通过；请求不存在的路径返回 404。
+- **L2 复验（2026-11-11）**：线上首页与英文页的下载卡均输出
+  `https://pan.baidu.com/s/...` 与 `https://pan.quark.cn/s/...` 真实链接（百度提取码已渲染），
+  不再出现「暂未配置」提示。网盘页面本身需登录或前端校验，未用匿名请求核对状态码。
 - **下载入口**：`resolve-downloads.mjs` 从最新 Release 正文的
   `<!-- breaktimer-downloads {...} -->` 标记读取网盘链接，校验 https 与
   `pan.baidu.com` / `pan.quark.cn` 主机后写入两张下载卡；缺失时隐藏对应卡片并显示
-  「暂未配置」提示（当前 `v0.1.1` 未配置，页面走兜底状态）。
+  「暂未配置」提示。2026-11-11 起 `v0.1.1` Release 正文已带该标记，部署产物输出真实链接。
 - **附加**：`file://` 直接打开 `site/index.html` 时，语言切换与品牌链接均在
   `index.html` 与 `en/index.html` 之间正常跳转（站内链接不写目录形式，见 2026-11-07 变更记录）。
 
@@ -180,3 +185,4 @@ node --test site/scripts/resolve-downloads.test.mjs
 | 2026-11-07 | 下载区去掉「最新版本」占位，只保留「版本历史与 SHA256SUMS」链接；删除 `data-release-version` 占位与版本回填逻辑（`resolve-downloads.mjs`、`check-static.mjs` 与测试同步） |
 | 2026-11-07 | 页脚去掉「旧版 BreakTimer」外链，旧项目只保留署名段落里的仓库链接 |
 | 2026-11-11 | 补齐 `.github/release-downloads.json` 中的夸克 / 百度网盘分享链接与百度提取码，L2 待发布后复验 |
+| 2026-11-11 | 仓库启用 GitHub Pages（Source: GitHub Actions）并完成真实部署；回填 L7（站点地址、HTTPS、404）并复验 L2（线上网盘链接与提取码），`README.md` 补站点地址；全部验收通过，状态改为 done |

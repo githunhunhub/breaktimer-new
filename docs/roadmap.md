@@ -25,7 +25,4 @@ macOS/Linux 不在当前范围。
 | 需求 | 范围与下一步 |
 | --- | --- |
 | [SPEC-0015 GitHub Tag 发布流水线](specs/0015-github-tag-release.md) | 版本校验、构建、`git-cliff` 变更日志与 Release；待下一次正式 Tag 端到端验收 |
-| [SPEC-0016 宣传页](specs/0016-landing-page.md) | `site/` 中英双语静态页与 GitHub Pages workflow 已实现，下载入口改为百度 / 夸克网盘（ADR-0025）；待仓库启用 Pages（Source: GitHub Actions）并完成真实部署验收（L7） |
-| [SPEC-0017 更新检查](specs/0017-update-check.md) | 启动后自动检查 + 设置页手动检查；待 Windows 人工验收与网盘链接补齐 |
-| [SPEC-0018 装机统计](specs/0018-installation-metrics.md) | EdgeOne Edge Functions + KV HLL 的 M1～M8 近似统计；客户端上报已按构建期开关暂时屏蔽，待端点部署后打开并做 Windows 人工验收 |
-| [SPEC-0019 本地诊断日志](specs/0019-local-diagnostic-logs.md) | 本机滚动日志，不上报；待 Windows 人工验收 |
+| [SPEC-0018 装机统计](specs/0018-installation-metrics.md) | EdgeOne Edge Functions + KV HLL 的 M1～M8 近似统计；客户端上报已按构建期开关屏蔽且长期保持关闭，待端点部署后再评估启用并做 Windows 人工验收 |

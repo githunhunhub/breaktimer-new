@@ -94,8 +94,9 @@ node --test site/scripts/resolve-downloads.test.mjs
 `site/index.html` 用 `file://` 打开，站内链接写的是具体的 `index.html`（不依赖目录索引）。
 `site/404.html` 使用 `/breaktimer-new/` 绝对路径，只在真实项目子路径部署时生效。
 
-首次部署需要人工完成：仓库 Settings → Pages → Build and deployment → Source 选择
-「GitHub Actions」。workflow 在 `master` 推送且改动 `site/**` 或该 workflow 时自动运行，
+仓库 Pages 已启用（Settings → Pages → Build and deployment → Source 为「GitHub Actions」），
+站点已在 <https://githunhunhub.github.io/breaktimer-new/> 上线；迁移或重建仓库时需重新配置该项。
+workflow 在 `master` 推送且改动 `site/**` 或该 workflow 时自动运行，
 也可在 Actions 中手动 `workflow_dispatch`。它只上传 `site/` 的副本，并在部署时用
 `site/scripts/resolve-downloads.mjs` 解析最新 Release 正文的 `breaktimer-downloads`
 标记，把百度 / 夸克网盘链接写入副本（未配置时隐藏卡片并提示用 GitHub Releases 兜底）；
