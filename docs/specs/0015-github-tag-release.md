@@ -118,3 +118,4 @@ GitHub Release 之间没有统一的自动流程。应用版本同时存在于 `
 | 2026-10-26 | 变更日志标题改为带 `v` 的版本号；`CHANGES.md` 只作为 Release 正文，不再上传为 Assets 资产                                                                              |
 | 2026-10-26 | 确认 Tag 必须等待自动化与人工验收通过后再创建；已推送 Tag 不可移动，发布失败改用下一个 patch 版本                                                                      |
 | 2026-11-02 | 停用 Gitee 远程与双远程推送；发布入口只推 GitHub（ADR-0017）                                                                                                           |
+| 2026-11-11 | `v1.0.0` 发布暴露 `release.ps1` / `verify.ps1` 缺少 UTF-8 BOM，Windows PowerShell 5.1 按 ANSI 解码导致 `chore(release): 发布` 提交信息乱码；补 BOM 并新增 `scripts/script-encoding.test.mjs` 守卫 |

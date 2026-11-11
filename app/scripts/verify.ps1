@@ -1,4 +1,4 @@
-# Repository verification gate (AGENTS.md「验证门禁」).
+﻿# Repository verification gate (AGENTS.md「验证门禁」).
 # Packaging commands (tauri:build / portable:build) are deliberately excluded.
 
 $ErrorActionPreference = "Stop"
