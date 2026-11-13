@@ -51,11 +51,12 @@
 | 关注点 | 主要文件 | 相关文档 |
 | --- | --- | --- |
 | 入口与窗口分流（`break-*` → 休息窗，其余 → 设置窗） | `main.tsx`、`App.tsx` | SPEC-0010 |
-| 休息窗 UI 与倒计时 | `components/break/break-window.tsx`、`utils.ts` | SPEC-0002 |
+| 休息窗 UI、提示条与倒计时 | `components/break/break-window.tsx`、`utils.ts` | SPEC-0002 |
+| 激活休息卡（矩形 / 圆形环形进度） | `components/break/active-break-card.tsx` | SPEC-0021 · ADR-0027 · ADR-0028 |
 | 设置窗与四个页签 | `components/settings/settings-window.tsx` | SPEC-0010 |
-| 设置卡片（时长 / 时段 / 跳过 / 推迟 / 提示音 / 遮罩 / 主题 / 自启 / 语言 / 更新 / 统计） | `components/settings/*-card.tsx`、`durations.ts`、`working-hours.ts` | SPEC-0004 · 0007 · 0008 · 0009 · 0010 · 0014 · 0017 · 0018 |
+| 设置卡片（时长 / 时段 / 跳过 / 推迟 / 提示音 / 遮罩 / 主题 / 休息卡形状 / 自启 / 语言 / 更新 / 统计） | `components/settings/*-card.tsx`、`durations.ts`、`working-hours.ts` | SPEC-0004 · 0007 · 0008 · 0009 · 0010 · 0014 · 0017 · 0018 · 0021 |
 | 表单基础组件（shadcn/ui） | `components/ui/` | — |
-| IPC 封装与事件订阅 | `lib/ipc.ts` | SPEC-0010 |
+| IPC 封装与事件订阅（`break-status` / `locale-changed` / `update-status`） | `lib/ipc.ts` | SPEC-0010 · SPEC-0014 · SPEC-0017 |
 | 翻译层 `t()` / `I18nProvider` | `lib/i18n.tsx` | SPEC-0014 · ADR-0012 |
 | 前端异常上报桥接 | `lib/diagnostics.ts` | SPEC-0019 |
 | 前后端共享类型 | `types/*.ts` | — |
@@ -68,7 +69,7 @@
 | 入口、插件与状态装配 | `lib.rs`、`main.rs` | — |
 | Tauri command 面 | `commands.rs` | — |
 | 应用目录与便携版判定 | `app_paths.rs` | SPEC-0012 |
-| 设置模型、持久化与副作用 | `state/settings.rs`、`state/store.rs`、`state/migrations.rs`、`state/settings_effects.rs` | SPEC-0010 |
+| 设置模型、持久化与副作用 | `state/settings.rs`、`state/store.rs`、`state/migrations.rs`、`state/settings_effects.rs` | SPEC-0010 · SPEC-0021 |
 | 休息调度器（状态机） | `breaks/mod.rs` | SPEC-0003 · 0004 · 0005 |
 | 休息编排（窗口 / 声音 / 广播） | `flow.rs` | SPEC-0002 · 0008 |
 | 系统空闲与锁屏 | `system_state.rs` | ADR-0005 |

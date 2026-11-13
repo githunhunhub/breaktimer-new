@@ -8,6 +8,9 @@ export type SoundType = "NONE" | "GONG" | "BLIP" | "BLOOP" | "PING" | "SCIFI";
 
 export type TrayTextMode = "TIME_TO_NEXT_BREAK" | "TIME_SINCE_LAST_BREAK";
 
+/** Shape of the active Popup break card (SPEC-0021). */
+export type BreakCardShape = "RECTANGLE" | "CIRCLE";
+
 export interface WorkingHoursRange {
   fromMinutes: number;
   toMinutes: number;
@@ -48,6 +51,7 @@ export interface Settings {
   breakMessage: string;
   backgroundColor: string;
   textColor: string;
+  breakCardShape: BreakCardShape;
   showBackdrop: boolean;
   backdropOpacity: number;
   endBreakEnabled: boolean;

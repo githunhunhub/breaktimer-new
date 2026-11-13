@@ -50,6 +50,7 @@ function makeSettings(overrides: Partial<Settings> = {}): Settings {
     breakMessage: "Look away from the screen.",
     backgroundColor: "#16a085",
     textColor: "#ffffff",
+    breakCardShape: "RECTANGLE",
     showBackdrop: true,
     backdropOpacity: 0.7,
     endBreakEnabled: true,

@@ -32,5 +32,7 @@
 | [ADR-0024](0024-landing-page-static-github-pages.md) | 宣传页采用仓库内静态站点与 GitHub Pages | 已接受 | SPEC-0016 |
 | [ADR-0025](0025-landing-page-netdisk-downloads.md) | 宣传页下载入口改用 Release 网盘元数据 | 已接受 | SPEC-0016 · SPEC-0017 · 部分取代 ADR-0024 |
 | [ADR-0026](0026-gpl-3-0-or-later-license.md) | 项目整体采用 GPL-3.0-or-later 并补齐许可证与署名 | 已接受 | SPEC-0020 · SPEC-0016 · 部分取代 ADR-0024 |
+| [ADR-0027](0027-break-card-shape-settings-and-live-refresh.md) | 休息卡形状设置与保存后即时刷新 | 部分被 ADR-0028 取代 | SPEC-0021 · SPEC-0002 · SPEC-0010 · SPEC-0014 · ADR-0004 · ADR-0007 |
+| [ADR-0028](0028-break-card-shape-applies-from-next-break.md) | 休息卡形状从下一次休息生效 | 已接受 | SPEC-0021 · SPEC-0002 · SPEC-0010 · SPEC-0014 · ADR-0007 · 部分取代 ADR-0027 |
 
 <!-- 新增 ADR 后在此表追加一行，并保持编号递增。 -->

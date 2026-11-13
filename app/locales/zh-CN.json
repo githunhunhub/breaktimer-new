@@ -106,6 +106,13 @@
         "primaryColor": "主色",
         "textColor": "文字颜色"
       },
+      "breakCard": {
+        "title": "休息卡",
+        "helper": "选择休息卡的形状；休息前提示条仍为矩形。",
+        "shapeLabel": "形状",
+        "rectangle": "矩形",
+        "circle": "圆形"
+      },
       "audio": {
         "title": "音频",
         "breakSound": "休息声音",
@@ -185,6 +192,7 @@
       "snooze": "稍后提醒",
       "skip": "跳过",
       "cancel": "取消休息",
+      "progressLabel": "休息进度",
       "defaultTitle": "该休息了。",
       "defaultMessage": "放松眼睛。\n伸展双腿。\n深呼吸，放松。",
       "timeSince": "距上次休息 {duration}"

@@ -54,3 +54,13 @@ export function formatCountdown(remainingMs: number): string {
   const seconds = String(totalSeconds % 60).padStart(2, "0");
   return `${minutes}:${seconds}`;
 }
+
+/** The circle's normalized radius; actual pixels come from the SVG viewBox (SPEC-0021). */
+export const PROGRESS_RADIUS = 46;
+export const PROGRESS_CIRCUMFERENCE = 2 * Math.PI * PROGRESS_RADIUS;
+
+/** Ring dash offset for clockwise progress starting at 12 o'clock (SPEC-0021). */
+export function progressDashoffset(progress: number): number {
+  const clamped = Math.min(1, Math.max(0, progress));
+  return PROGRESS_CIRCUMFERENCE * (1 - clamped);
+}

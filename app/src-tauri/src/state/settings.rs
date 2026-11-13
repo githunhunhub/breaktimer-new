@@ -35,6 +35,14 @@ pub enum TrayTextMode {
     TimeSinceLastBreak,
 }
 
+/// Shape of the active Popup break card (SPEC-0021).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum BreakCardShape {
+    Rectangle,
+    Circle,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkingHoursRange {
@@ -85,6 +93,7 @@ pub struct Settings {
     pub break_message: String,
     pub background_color: String,
     pub text_color: String,
+    pub break_card_shape: BreakCardShape,
     pub show_backdrop: bool,
     pub backdrop_opacity: f32,
     pub end_break_enabled: bool,
@@ -144,6 +153,7 @@ impl Default for Settings {
             break_message: "Rest your eyes.\nStretch your legs.\nBreathe. Relax.".to_string(),
             background_color: "#16a085".to_string(),
             text_color: "#ffffff".to_string(),
+            break_card_shape: BreakCardShape::Rectangle,
             show_backdrop: true,
             backdrop_opacity: 0.7,
             end_break_enabled: true,
@@ -174,6 +184,7 @@ mod tests {
             settings.working_hours_monday.ranges,
             vec![WorkingHoursRange::default_range()]
         );
+        assert_eq!(settings.break_card_shape, BreakCardShape::Rectangle);
     }
 
     #[test]
@@ -184,6 +195,7 @@ mod tests {
         assert_eq!(settings.sound_type, SoundType::Gong);
         assert!(settings.check_for_updates);
         assert!(settings.analytics_enabled);
+        assert_eq!(settings.break_card_shape, BreakCardShape::Rectangle);
     }
 
     #[test]
@@ -206,5 +218,19 @@ mod tests {
         assert_eq!(json["analyticsEnabled"], true);
         assert_eq!(json["workingHoursMonday"]["enabled"], true);
         assert_eq!(json["workingHoursMonday"]["ranges"][0]["fromMinutes"], 540);
+        assert_eq!(json["breakCardShape"], "RECTANGLE");
+    }
+
+    #[test]
+    fn serializes_and_deserializes_the_break_card_shape() {
+        let settings = Settings {
+            break_card_shape: BreakCardShape::Circle,
+            ..Settings::default()
+        };
+        let json = serde_json::to_value(&settings).unwrap();
+        assert_eq!(json["breakCardShape"], "CIRCLE");
+
+        let restored: Settings = serde_json::from_value(json).unwrap();
+        assert_eq!(restored.break_card_shape, BreakCardShape::Circle);
     }
 }

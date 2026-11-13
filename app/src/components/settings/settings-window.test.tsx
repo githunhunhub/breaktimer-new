@@ -53,6 +53,7 @@ function makeSettings(overrides: Partial<Settings> = {}): Settings {
     breakMessage: "Look away from the screen.",
     backgroundColor: "#16a085",
     textColor: "#ffffff",
+    breakCardShape: "RECTANGLE",
     showBackdrop: true,
     backdropOpacity: 0.7,
     endBreakEnabled: true,
@@ -866,7 +867,7 @@ describe("SettingsWindow", () => {
     });
   });
 
-  it("orders Customization as Theme, Audio and Backdrop", async () => {
+  it("orders Customization as Theme, Break card, Audio and Backdrop", async () => {
     const client = makeClient(makeSettings());
     render(<SettingsWindow client={client} />);
 
@@ -877,7 +878,41 @@ describe("SettingsWindow", () => {
       ),
     ).map((title) => title.textContent);
 
-    expect(titles).toEqual(["Theme", "Audio", "Backdrop"]);
+    expect(titles).toEqual(["Theme", "Break card", "Audio", "Backdrop"]);
+  });
+
+  it("defaults to a rectangle and persists a circle shape", async () => {
+    const client = makeClient(makeSettings());
+    render(<SettingsWindow client={client} />);
+
+    await openSettingsTab("Customization");
+    const shape = screen.getByLabelText("Shape") as HTMLSelectElement;
+    expect(shape.value).toBe("RECTANGLE");
+    expect(screen.getByRole("option", { name: "Circle" })).toBeTruthy();
+
+    fireEvent.change(shape, { target: { value: "CIRCLE" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(client.setSettings).toHaveBeenCalledWith(
+        expect.objectContaining({ breakCardShape: "CIRCLE" }),
+      );
+    });
+  });
+
+  it("shows the break card shape control in Simplified Chinese", async () => {
+    const client = makeClient(makeSettings({ breakCardShape: "CIRCLE" }));
+    render(
+      <I18nProvider initialLocale="zh-CN" client={makeLocaleClient("zh-CN")}>
+        <SettingsWindow client={client} />
+      </I18nProvider>,
+    );
+
+    await openSettingsTab("自定义");
+    const shape = screen.getByLabelText("形状") as HTMLSelectElement;
+    expect(shape.value).toBe("CIRCLE");
+    expect(screen.getByRole("option", { name: "圆形" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "矩形" })).toBeTruthy();
   });
 
   it("loads and saves Theme and Backdrop edits in one draft", async () => {

@@ -12,6 +12,7 @@ import { AdvancedCard } from "./advanced-card";
 import { AnalyticsCard } from "./analytics-card";
 import { AudioCard } from "./audio-card";
 import { BackdropCard } from "./backdrop-card";
+import { BreakShapeCard } from "./break-shape-card";
 import { BreaksCard } from "./breaks-card";
 import { LanguageCard } from "./language-card";
 import { SkipCard } from "./skip-card";
@@ -248,6 +249,7 @@ export function SettingsWindow({ client = ipc }: SettingsWindowProps) {
           {activeTab === "customization" && (
             <>
               <ThemeCard settings={draft} onPatch={updateDraft} />
+              <BreakShapeCard settings={draft} onPatch={updateDraft} />
               <AudioCard
                 settings={draft}
                 onPatch={updateDraft}
