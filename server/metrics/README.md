@@ -12,15 +12,26 @@ HyperLogLog 草图并输出 M1～M8 近似聚合；不保存逐装机明细、�
 | `edge-functions/api/report.js` | `/api/report` 路由：仅允许 GET，维护令牌鉴权、M1～M8 JSON/CSV 报表 |
 | `edge-functions/_lib/*.js` | 不导出 handler 的共享模块：校验、HLL、键名、环境变量与写入/报表逻辑 |
 | `test/*.test.mjs` | `node --test`，无额外依赖；覆盖校验、HLL、写入、报表与隐私 |
+| `public/robots.txt` | 静态输出目录占位（禁止抓取）；不得放入任何源码 |
 | `edgeone.json` | 直接上传模式支持的响应头配置（仅 `headers` 字段） |
 | `.env.example` | 环境变量示例；真实值只在 EdgeOne 控制台配置 |
 
 ## 首次部署
 
-1. 在 EdgeOne 控制台创建 Makers 项目，关联 Git 仓库，并把项目根目录设为
-   `server/metrics`（或将该目录作为独立项目/直接上传目录）。`edge-functions/` 与
-   `edgeone.json` 必须位于被部署目录的根层。直接上传时，`edgeone.json` 只使用官方文档
-   支持的 `headers` 字段；项目构建参数在控制台配置，不写进该文件。
+1. 在 EdgeOne 控制台创建 Makers 项目，关联 Git 仓库，控制台字段按仓库结构填写：
+   - 项目名称：`breaktimer-new-metrics`
+   - 生产分支：`develop`。端点属于独立部署物，不占用 `master` 发版分支（铁律 8）；
+     端点稳定后可改回 `master`，`server/metrics` 在两个分支上一致。
+   - 框架预设：`Other`；加速区域：不含中国大陆（避免域名备案，区域结论写入 SPEC-0018
+     人工验收记录）。
+   - 根目录：`server/metrics`。`edge-functions/` 与 `edgeone.json` 必须位于被部署目录的
+     根层，否则路由前缀会变成 `/server/metrics/v1/collect`。
+   - 输出目录：`public`（其中只有 `robots.txt`）。**不得填 `.` 或 `edge-functions`**：
+     两者都会把 `_lib/` 共享模块当成静态资源公开出去。
+   - 构建命令 / 安装命令：留空；平台强制必填时填 `echo skip`（无构建步骤、无运行时依赖）。
+
+   直接上传时，`edgeone.json` 只使用官方文档支持的 `headers` 字段；项目构建参数在控制台
+   配置，不写进该文件。
 2. 开通 KV Storage 并创建 Namespace；在 `KV Storage → Bind Namespace` 绑定到该项目，
    **变量名填 `METRICS_KV`**。官方 KV 示例以全局变量访问绑定的 Namespace；代码同时兼容
    `context.env.METRICS_KV`、`context.METRICS_KV` 与全局 `METRICS_KV`，实际注入形式须在
