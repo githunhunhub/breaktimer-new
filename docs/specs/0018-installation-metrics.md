@@ -197,6 +197,10 @@ Cloudflare Worker + D1 路线部署不通后，服务端改为 EdgeOne Pages / M
 | `GET /api/report`（无令牌） | `401`，说明 `MAINTENANCE_TOKEN` 已通过 `context.env` 注入 |
 | `GET /_lib/collect.js`、`GET /edge-functions/_lib/hll.js` | `404`，共享模块未暴露（Q7 关闭） |
 | `POST /v1/collect`（白名单心跳） | `204`，KV `get`/`put` 全部成功，说明 `METRICS_KV` 绑定可用；`context.env` 的键里没有 `METRICS_KV`，绑定为全局变量形式（Q5 关闭） |
+| `GET /api/report`（带维护令牌，当日 `day` 报表） | `200`，`approximate` / `method=hll` / `consistency=eventual_60s` 元数据齐全；`active=1`、`versionsActive={"0.0.0":1}`（M1、M3），`newInstalls=0`、`totalInstalls=0`、`installsByVersion={}`，与只发过心跳的测试一致 |
+| 同一报表在写入后立即读取 | `versionsActive` 一度为空，约 60 秒后复测恢复正常，印证 KV 最终一致（ADR-0023）：核对报表前需留出同步窗口，读不到不等于写入失败 |
+| `POST /v1/collect`（白名单 `install`）后复测同日报表 | `totalInstalls=1`、`installsByVersion={"0.0.0":1}`、`newInstalls=1`、`active=2`、`versionsActive={"0.0.0":2}`：M5、M7、M8 打通，且两份装机的 HLL 去重与版本分组正确 |
+| KV 控制台 key 形态 | 测试心跳后出现 `h_act_20261113_04` 与 `h_ver_20261113_04` 两个 key，分片号由 `installId` 哈希决定、每日每维度只写中被命中的那一个分片，与固定 16 分片设计一致 |
 
 部署期发现并修复一个平台差异：EdgeOne 的 `context.request.body` 虽为 `ReadableStream`
 却恒为空，请求体只经 `request.text()` 暴露；按流读取会让所有合法上报返回
@@ -204,14 +208,21 @@ Cloudflare Worker + D1 路线部署不通后，服务端改为 EdgeOne Pages / M
 并在 `server/metrics/test/collect.test.mjs` 与 `server/metrics/README.md`
 「平台差异」一节留下记录（提交 `5845d8c`）。
 
-    同日按官方技能包 `edgeone-makers-tools`（Edge Functions / KV / frameworks / deploy）
-    复核：KV 全局绑定、`_` 前缀内部模块不参与路由、V8 运行时限制、KV key 字符集与容量
-    均与实现一致；两处表述偏差（「兼容 `context.env`」「`edgeone.json` 仅支持 headers」）
-    已更正，并给 `/api/report` 的 KV 读取加上分批并发。对照表见 `server/metrics/README.md`
-    「与官方 Makers 技能包的对照」。
+同日按官方技能包 `edgeone-makers-tools`（Edge Functions / KV / frameworks / deploy）
+复核：KV 全局绑定、`_` 前缀内部模块不参与路由、V8 运行时限制、KV key 字符集与容量
+均与实现一致；两处表述偏差（「兼容 `context.env`」「`edgeone.json` 仅支持 headers」）
+已更正，并给 `/api/report` 的 KV 读取加上分批并发。对照表见 `server/metrics/README.md`
+「与官方 Makers 技能包的对照」。
+
+HLL 草图无法删除单个元素，测试心跳会永久留在当日草图里。两次合成测试（心跳与
+`install`）各写一个分片：心跳写 `h_act_20261113_04`、`h_ver_20261113_04`；`install`
+写 `h_act_20261113_14`、`h_ver_20261113_14`、`h_new_20261113_14`、`h_total_14`、
+`h_install_ver_14`（两个测试 `installId` 的哈希分片分别为 04 与 14）。正式启用客户端
+上报前，在 KV 控制台删除这些测试 key 即可把统计归零。
 
 仍待人工核验：平台自动访问日志字段与保留期、KV 中心存储区域、WAF 配置（Q4）；
-带令牌的 `/api/report` M1～M8 输出；客户端侧验收（抓包、断网补报、开关、便携/安装版）。
+自定义域名的备案与加速区域（Q3）；`/api/report` 的月粒度（M2/M4/M6，线上尚未调用，
+目前仅由单元测试覆盖）；客户端侧验收（抓包、断网补报、开关、便携/安装版）。
 
 ## 非目标 / 边界
 
@@ -320,3 +331,4 @@ M7、M8 在两种粒度中都作为历史总量输出。所有响应带 `Cache-C
 | 2026-11-11 | 确认上报关闭将长期保持：`v1.0.0` 及后续版本继续不带客户端上报，待端点部署后再单独评估启用（不阻塞发版） |
 | 2026-11-13 | 端点部署到 EdgeOne Makers 并核验：路由、静态输出目录、`context.env` 注入、KV 全局绑定、`_lib/` 不暴露；修复平台 `request.body` 恒为空、请求体只在 `text()` 可见导致的 `400 invalid JSON` |
 | 2026-11-13 | 按官方技能包 `edgeone-makers-tools` 复核实现：更正「KV 兼容 `context.env`」与「`edgeone.json` 仅支持 headers」两处表述，`getKv` 改为全局变量优先并补 `test/runtime.test.mjs`；`/api/report` 的 KV 读取改为分批并发（366 天约 1.76 万次读不再串行） |
+| 2026-11-13 | 补记带令牌 `/api/report` 核对结果：M1/M3，以及 `install` 后的 M5/M7/M8 均与预期一致；确认写入后立即读取会因 60 秒最终一致读到空草图；记录测试 key 残留与复位方式 |

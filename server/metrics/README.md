@@ -120,6 +120,9 @@ EdgeOne Edge Functions 的 `context.request` 是标准 `Request`，但 `request.
 
 同时核验通过：`DISABLED` 与 `MAINTENANCE_TOKEN` 通过 `context.env` 注入；`public/` 作为
 输出目录时 `/robots.txt` 可访问，`/_lib/*.js` 与 `/edge-functions/*` 均返回 `404`。
+KV 写入后有一小段不可见期：线上出现过 `h_ver_*` 写入成功、报表首次读取却为空的
+情况，约一分钟后复测恢复，与 `consistency=eventual_60s` 一致；核对报表前留出同步窗口，
+读不到不要当成写入失败。
 
 ## 与官方 Makers 技能包的对照（2026-11-13）
 
