@@ -11,12 +11,14 @@ export function envOf(context) {
 }
 
 /**
- * Official examples expose bound KV namespaces as a global variable; tests and
- * some projects use context.env. Resolve all documented/tested forms without
- * ever exposing KV to the client.
+ * A console-bound namespace is a **global variable** named at binding time —
+ * it is not part of `context.env` (the platform guidance is explicitly
+ * "Do NOT use context.env.KV"). The global therefore comes first; `context.env`
+ * and `context` stay as fallbacks for the in-memory KV used by `node --test`
+ * and for other hosts. The value is only ever read server-side.
  */
 export function getKv(context, name = "METRICS_KV") {
-  const candidates = [context?.env?.[name], context?.[name], globalThis[name]];
+  const candidates = [globalThis[name], context?.[name], context?.env?.[name]];
   return (
     candidates.find(
       (candidate) => candidate && typeof candidate.get === "function",

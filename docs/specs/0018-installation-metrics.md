@@ -204,6 +204,12 @@ Cloudflare Worker + D1 路线部署不通后，服务端改为 EdgeOne Pages / M
 并在 `server/metrics/test/collect.test.mjs` 与 `server/metrics/README.md`
 「平台差异」一节留下记录（提交 `5845d8c`）。
 
+    同日按官方技能包 `edgeone-makers-tools`（Edge Functions / KV / frameworks / deploy）
+    复核：KV 全局绑定、`_` 前缀内部模块不参与路由、V8 运行时限制、KV key 字符集与容量
+    均与实现一致；两处表述偏差（「兼容 `context.env`」「`edgeone.json` 仅支持 headers」）
+    已更正，并给 `/api/report` 的 KV 读取加上分批并发。对照表见 `server/metrics/README.md`
+    「与官方 Makers 技能包的对照」。
+
 仍待人工核验：平台自动访问日志字段与保留期、KV 中心存储区域、WAF 配置（Q4）；
 带令牌的 `/api/report` M1～M8 输出；客户端侧验收（抓包、断网补报、开关、便携/安装版）。
 
@@ -237,8 +243,9 @@ Cloudflare Worker + D1 路线部署不通后，服务端改为 EdgeOne Pages / M
   3 小时预览链接，不能作为稳定端点。
 - 服务端（ADR-0023）：`server/metrics/` 的 Edge Functions、HLL 与报表代码；无旧 Worker 代码、
   D1 schema、SQL 报表、`wrangler.toml` 或每日清理 Cron。共享模块不导出 handler，路由使用
-  通用 `onRequest` 并在代码中限制 POST/GET；`edgeone.json` 仅保留直接上传模式支持的
-  `headers` 配置。
+  通用 `onRequest` 并在代码中限制 POST/GET；`edgeone.json` 当前只声明 `headers`，构建与
+  输出目录写在控制台（Git 推送构建）。文件本身还支持 `buildCommand` / `outputDirectory`，
+  但两者优先级未核验，暂不重复声明。
 
 ### KV 存储结构（ADR-0023）
 
@@ -297,9 +304,9 @@ M7、M8 在两种粒度中都作为历史总量输出。所有响应带 `Cache-C
 | Q2 | 报表形式 | 已定：维护令牌保护的 JSON/CSV；不再使用 SQL |
 | Q3 | 域名与区域 | 待确认：可绑定的自定义域名、是否备案、中国大陆/全球含大陆/全球不含大陆节点、WAF |
 | Q4 | 平台日志 | 待部署核验：自动访问日志是否含 IP、字段与保留期、KV 中心存储区域 |
-| Q5 | KV 绑定形式 | 已关：`context.env` 中无 `METRICS_KV`，实际为全局变量绑定（`POST /v1/collect` 返回 `204` 已验证写入成功） |
+| Q5 | KV 绑定形式 | 已关：官方技能包明确 KV 是控制台绑定的**全局变量**、不在 `context.env`；线上 `POST /v1/collect` 返回 `204` 与之一致。代码改为全局优先，`context.env` 仅作本机测试回退 |
 | Q6 | 容量归档 | 当前不清理；KV 用量达到免费额度 80% 时另立需求评估历史草图归档 |
-| Q7 | 共享模块路由 | 已关：`_lib/` 与 `edge-functions/` 下的文件在线上均返回 `404`，不会被映射为公共路由 |
+| Q7 | 共享模块路由 | 已关：官方约定 `_` 前缀文件为内部模块、不参与路由；线上 `/_lib/*` 与 `/edge-functions/*` 均返回 `404`，与约定一致 |
 
 ## 变更记录
 
@@ -312,3 +319,4 @@ M7、M8 在两种粒度中都作为历史总量输出。所有响应带 `Cache-C
 | 2026-11-07 | 服务端端点尚未部署，客户端上报增加构建期总开关并暂时关闭；暂停期间不发请求、不显示设置页统计卡片，部署完成后打开开关恢复 |
 | 2026-11-11 | 确认上报关闭将长期保持：`v1.0.0` 及后续版本继续不带客户端上报，待端点部署后再单独评估启用（不阻塞发版） |
 | 2026-11-13 | 端点部署到 EdgeOne Makers 并核验：路由、静态输出目录、`context.env` 注入、KV 全局绑定、`_lib/` 不暴露；修复平台 `request.body` 恒为空、请求体只在 `text()` 可见导致的 `400 invalid JSON` |
+| 2026-11-13 | 按官方技能包 `edgeone-makers-tools` 复核实现：更正「KV 兼容 `context.env`」与「`edgeone.json` 仅支持 headers」两处表述，`getKv` 改为全局变量优先并补 `test/runtime.test.mjs`；`/api/report` 的 KV 读取改为分批并发（366 天约 1.76 万次读不再串行） |

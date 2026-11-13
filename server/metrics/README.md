@@ -13,7 +13,7 @@ HyperLogLog 草图并输出 M1～M8 近似聚合；不保存逐装机明细、�
 | `edge-functions/_lib/*.js` | 不导出 handler 的共享模块：校验、HLL、键名、环境变量与写入/报表逻辑 |
 | `test/*.test.mjs` | `node --test`，无额外依赖；覆盖校验、HLL、写入、报表与隐私 |
 | `public/robots.txt` | 静态输出目录占位（禁止抓取）；不得放入任何源码 |
-| `edgeone.json` | 直接上传模式支持的响应头配置（仅 `headers` 字段） |
+| `edgeone.json` | 当前只含 `headers`（`Cache-Control` / `X-Content-Type-Options`）；平台还支持 `buildCommand`、`outputDirectory` 等字段 |
 | `.env.example` | 环境变量示例；真实值只在 EdgeOne 控制台配置 |
 
 ## 首次部署
@@ -26,16 +26,19 @@ HyperLogLog 草图并输出 M1～M8 近似聚合；不保存逐装机明细、�
      人工验收记录）。
    - 根目录：`server/metrics`。`edge-functions/` 与 `edgeone.json` 必须位于被部署目录的
      根层，否则路由前缀会变成 `/server/metrics/v1/collect`。
-   - 输出目录：`public`（其中只有 `robots.txt`）。**不得填 `.` 或 `edge-functions`**：
-     两者都会把 `_lib/` 共享模块当成静态资源公开出去。
+   - 输出目录：`public`（其中只有 `robots.txt`）。填 `.` 会把整个目录（`test/`、
+     `README.md`、`package.json`）当成静态资源上传；填 `edge-functions` 会让函数目录错位。
+     `_lib/` 的安全性不依赖输出目录：平台把 `_` 前缀文件视为内部模块、不参与路由。
    - 构建命令 / 安装命令：留空；平台强制必填时填 `echo skip`（无构建步骤、无运行时依赖）。
 
-   直接上传时，`edgeone.json` 只使用官方文档支持的 `headers` 字段；项目构建参数在控制台
-   配置，不写进该文件。
+   本项目由 Git 推送触发构建，构建参数以控制台字段为准；`edgeone.json` 同样支持
+   `buildCommand`、`outputDirectory`、`redirects`、`rewrites`、`devCommand`（官方技能包
+   记录），但控制台字段与该文件的优先级未核验，故不重复声明，避免改变已上线的行为。
 2. 开通 KV Storage 并创建 Namespace；在 `KV Storage → Bind Namespace` 绑定到该项目，
-   **变量名填 `METRICS_KV`**。官方 KV 示例以全局变量访问绑定的 Namespace；代码同时兼容
-   `context.env.METRICS_KV`、`context.METRICS_KV` 与全局 `METRICS_KV`，实际注入形式须在
-   部署后用一个测试请求核验。
+   **变量名填 `METRICS_KV`**。绑定后它是一个**全局变量**，并不在 `context.env` 里
+   （官方原文：`Do NOT use context.env.KV`）。`_lib/runtime.js` 先取全局 `METRICS_KV`，
+   `context.METRICS_KV` / `context.env.METRICS_KV` 只作为本机测试与其它运行时的回退；
+   线上已用测试心跳核验（`POST /v1/collect` 返回 `204`）。
 3. 设置项目环境变量：`DISABLED=0`、`MAINTENANCE_TOKEN=<随机强令牌>`。令牌只保存在
    平台环境变量或本地密钥管理器，不写入 Git。
 4. 绑定稳定的自定义 HTTPS 域名。平台默认项目域名在中国大陆需要 3 小时预览链接，
@@ -100,10 +103,11 @@ cd server/metrics
 npm test
 ```
 
-部署前还要在 EdgeOne 运行环境中核验：KV 绑定变量名、相对模块导入、`_lib/` 共享模块不会被
-平台暴露成可公开访问的有效路由，以及两个路由对工作方法之外请求返回 `405`。若平台会把
-`_lib/` 下的文件映射成公共路由，应把共享模块移到平台确认不参与路由映射的目录。测试使用
-内存 KV 模拟，不会替代平台上的联调。
+部署前还要在 EdgeOne 运行环境中核验：KV 绑定变量名为 `METRICS_KV`、相对模块导入可用，
+以及两个路由对工作方法之外的请求返回 `405`。`_lib/` 不需要额外防护：官方约定 `_` 前缀
+文件是内部模块、不参与路由，线上 `/_lib/collect.js` 已核验为 `404`。测试用内存 KV
+模拟（`context.env` 形式），全局绑定路径由 `test/runtime.test.mjs` 单独覆盖，两者都不
+替代平台上的联调。
 
 ## 平台差异（已在线上核验）
 
@@ -116,3 +120,20 @@ EdgeOne Edge Functions 的 `context.request` 是标准 `Request`，但 `request.
 
 同时核验通过：`DISABLED` 与 `MAINTENANCE_TOKEN` 通过 `context.env` 注入；`public/` 作为
 输出目录时 `/robots.txt` 可访问，`/_lib/*.js` 与 `/edge-functions/*` 均返回 `404`。
+
+## 与官方 Makers 技能包的对照（2026-11-13）
+
+按 [edgeone-makers-tools](https://github.com/TencentEdgeOne/edgeone-makers-tools) 的
+`makers-edge-functions` / `makers-storage` / `makers-frameworks` / `makers-deploy`
+逐条复核本目录的实现：
+
+| 结论 | 依据与本仓库现状 |
+| --- | --- |
+| KV 是控制台绑定的全局变量，不在 `context.env` | `makers-storage/references/kv.md`；`getKv` 已改为全局优先，环境变量只做回退 |
+| `_` 前缀文件是内部模块，不参与路由 | `makers-recipes/SKILL.md`；与线上 `404` 结果一致，不需要把 `_lib/` 藏到别处 |
+| Edge Functions 是 V8：无 npm / Node 内置模块，`Response.json()` 不可用 | `makers-edge-functions/SKILL.md`；本目录只用标准 Web API 与普通对象 headers |
+| 请求体 1 MB、单次 CPU 200 ms、代码包 5 MB | 同上；上报体上限 2 KB，单次写入 2～5 个 key，远低于限制 |
+| KV key 仅字母数字下划线、value ≤ 25 MB、`list` 单页 256 | `kv.md`；本目录不用 `list`，key 形如 `h_act_20261105_03` |
+| 批量读用 `Promise.all`，不要逐条 `await` | `kv.md` 最佳实践；`/api/report` 改为 7 天一批并发读取 |
+| `edgeone.json` 可声明 `buildCommand` / `outputDirectory` / `redirects` / `rewrites` | `makers-frameworks` / `makers-deploy`；见上文构建参数的取舍 |
+| CLI 流程（≥ 1.7.0、`PAGES_SOURCE=skills`、`.edgeone/project.json`） | 本项目由 Git 推送触发构建，不经过 CLI，相关要求不适用 |
