@@ -104,3 +104,15 @@ npm test
 平台暴露成可公开访问的有效路由，以及两个路由对工作方法之外请求返回 `405`。若平台会把
 `_lib/` 下的文件映射成公共路由，应把共享模块移到平台确认不参与路由映射的目录。测试使用
 内存 KV 模拟，不会替代平台上的联调。
+
+## 平台差异（已在线上核验）
+
+EdgeOne Edge Functions 的 `context.request` 是标准 `Request`，但 `request.body` 的
+`ReadableStream` **恒为空**：请求体只通过 `request.text()` / `request.json()` 暴露。
+曾按 Web Stream 读取，线上表现是所有合法上报都返回 `400 invalid JSON`
+（`SyntaxError: Unexpected end of JSON input`）。`_lib/collect.js` 因此优先调用 `text()`，
+流、字符串、Buffer、字节数组与已解析对象仅作回退；改动这段读取逻辑前请先读
+`test/collect.test.mjs` 里「prefers text() over an empty body stream」用例。
+
+同时核验通过：`DISABLED` 与 `MAINTENANCE_TOKEN` 通过 `context.env` 注入；`public/` 作为
+输出目录时 `/robots.txt` 可访问，`/_lib/*.js` 与 `/edge-functions/*` 均返回 `404`。

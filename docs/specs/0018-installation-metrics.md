@@ -184,6 +184,29 @@ Cloudflare Worker + D1 路线部署不通后，服务端改为 EdgeOne Pages / M
 7. 在 EdgeOne 控制台核验平台自动访问日志、WAF 配置、域名备案/加速区域、KV 实际绑定
    变量与区域；确认 `_lib/` 共享模块未暴露为可访问的公共路由，记录结论后方可完成人工验收。
 
+### 部署核验记录（2026-11-13）
+
+端点已部署到 EdgeOne Makers（项目 `breaktimer-new-metrics`，根目录 `server/metrics`，
+生产分支 `develop`，输出目录 `public`，加速区域不含中国大陆），自定义域名
+`https://metrics.hunhun.qd.je`。已验证：
+
+| 项 | 结论 |
+| --- | --- |
+| `GET /robots.txt` | `200`，静态输出目录 `public` 生效 |
+| `GET /v1/collect` | `405`，路由挂在域名根层而非 `server/metrics/...` |
+| `GET /api/report`（无令牌） | `401`，说明 `MAINTENANCE_TOKEN` 已通过 `context.env` 注入 |
+| `GET /_lib/collect.js`、`GET /edge-functions/_lib/hll.js` | `404`，共享模块未暴露（Q7 关闭） |
+| `POST /v1/collect`（白名单心跳） | `204`，KV `get`/`put` 全部成功，说明 `METRICS_KV` 绑定可用；`context.env` 的键里没有 `METRICS_KV`，绑定为全局变量形式（Q5 关闭） |
+
+部署期发现并修复一个平台差异：EdgeOne 的 `context.request.body` 虽为 `ReadableStream`
+却恒为空，请求体只经 `request.text()` 暴露；按流读取会让所有合法上报返回
+`400 invalid JSON`。`_lib/collect.js` 已改为优先 `text()`，其余形态保留为回退，
+并在 `server/metrics/test/collect.test.mjs` 与 `server/metrics/README.md`
+「平台差异」一节留下记录（提交 `5845d8c`）。
+
+仍待人工核验：平台自动访问日志字段与保留期、KV 中心存储区域、WAF 配置（Q4）；
+带令牌的 `/api/report` M1～M8 输出；客户端侧验收（抓包、断网补报、开关、便携/安装版）。
+
 ## 非目标 / 边界
 
 - 不做账号、登录、跨设备身份合并或设备指纹。
@@ -259,7 +282,8 @@ M7、M8 在两种粒度中都作为历史总量输出。所有响应带 `Cache-C
 - [x] i18n：中英文全部新增文案。
 - [x] 测试：字段白名单断言、日期校验、身份持久化与前端开关。
 - [x] 服务端：EdgeOne Edge Function、HLL 写入、M1～M8 聚合报表、CSV 导出与 Node 测试；
-      删除旧 Worker + D1 代码。平台部署联调仍待人工验收。
+      删除旧 Worker + D1 代码。端点已部署并完成路由、KV 绑定、请求体读取核验
+      （见「部署核验记录（2026-11-13）」）。
 - [x] 临时屏蔽：客户端上报总开关关闭，暂停请求与设置页统计卡片；待服务端部署后打开。
 - [ ] 人工验收：抓包、断网补报、关闭开关、便携版与安装版、重放、M1～M8 导出、
       平台日志/域名/区域/KV 绑定核验。
@@ -273,9 +297,9 @@ M7、M8 在两种粒度中都作为历史总量输出。所有响应带 `Cache-C
 | Q2 | 报表形式 | 已定：维护令牌保护的 JSON/CSV；不再使用 SQL |
 | Q3 | 域名与区域 | 待确认：可绑定的自定义域名、是否备案、中国大陆/全球含大陆/全球不含大陆节点、WAF |
 | Q4 | 平台日志 | 待部署核验：自动访问日志是否含 IP、字段与保留期、KV 中心存储区域 |
-| Q5 | KV 绑定形式 | 待部署核验：控制台变量名是否以全局 `METRICS_KV`、`context.env.METRICS_KV` 或其他形式注入 |
+| Q5 | KV 绑定形式 | 已关：`context.env` 中无 `METRICS_KV`，实际为全局变量绑定（`POST /v1/collect` 返回 `204` 已验证写入成功） |
 | Q6 | 容量归档 | 当前不清理；KV 用量达到免费额度 80% 时另立需求评估历史草图归档 |
-| Q7 | 共享模块路由 | 待部署核验：`_lib/` 不导出 handler 的文件是否会被平台映射为公共路由；若会则迁移到不参与路由映射的目录 |
+| Q7 | 共享模块路由 | 已关：`_lib/` 与 `edge-functions/` 下的文件在线上均返回 `404`，不会被映射为公共路由 |
 
 ## 变更记录
 
@@ -287,3 +311,4 @@ M7、M8 在两种粒度中都作为历史总量输出。所有响应带 `Cache-C
 | 2026-11-05 | Cloudflare 路线不通；按 ADR-0023 改用 EdgeOne Edge Functions + KV HLL 近似聚合。指标收窄为 M1～M8，删除逐装机事实键、随机分片、留存、安装形态占比与 SQL 报表；需求与验收重新确认 |
 | 2026-11-07 | 服务端端点尚未部署，客户端上报增加构建期总开关并暂时关闭；暂停期间不发请求、不显示设置页统计卡片，部署完成后打开开关恢复 |
 | 2026-11-11 | 确认上报关闭将长期保持：`v1.0.0` 及后续版本继续不带客户端上报，待端点部署后再单独评估启用（不阻塞发版） |
+| 2026-11-13 | 端点部署到 EdgeOne Makers 并核验：路由、静态输出目录、`context.env` 注入、KV 全局绑定、`_lib/` 不暴露；修复平台 `request.body` 恒为空、请求体只在 `text()` 可见导致的 `400 invalid JSON` |
