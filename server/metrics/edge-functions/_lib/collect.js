@@ -89,13 +89,19 @@ async function readStreamText(stream, limit) {
  * Reads at most `limit` bytes of the request body as UTF-8 text; `null` when the
  * body is larger than `limit`.
  *
- * Edge Functions do not all expose the body the same way: web `Request`
- * instances provide a `ReadableStream`, some runtimes hand over an already
- * buffered string/Buffer, and others only offer `text()`/`json()`. Reading the
- * body as a stream whenever possible keeps the size cap independent of
- * `Content-Length`.
+ * `text()` is tried first because EdgeOne buffers the payload for it while
+ * still exposing a `ReadableStream` in `body` that yields no bytes at all;
+ * reading that stream returns an empty string and looks like an empty request.
+ * Other runtimes only provide a stream, a buffered string/Buffer or `json()`,
+ * so every documented shape stays supported.
  */
 async function readLimitedText(request, limit) {
+  if (typeof request?.text === "function") {
+    const text = await request.text();
+    if (typeof text !== "string") return null;
+    return text.length > limit ? null : text;
+  }
+
   const body = request?.body;
 
   if (body && typeof body.getReader === "function") {
@@ -109,10 +115,6 @@ async function readLimitedText(request, limit) {
   // Already-parsed objects: nothing to consume, so re-serialise for validation.
   if (body && typeof body === "object") {
     const text = JSON.stringify(body);
-    return text.length > limit ? null : text;
-  }
-  if (typeof request?.text === "function") {
-    const text = await request.text();
     return text.length > limit ? null : text;
   }
   if (typeof request?.json === "function") {
@@ -157,8 +159,8 @@ export async function collectRequest(context, options = {}) {
     const text = await readLimitedText(request, MAX_BODY_BYTES);
     if (text === null) return response(413);
     payload = JSON.parse(text);
-  } catch (error) {
-    return response(400, `invalid JSON [diag ${error?.name}: ${error?.message}]`);
+  } catch {
+    return response(400, "invalid JSON");
   }
 
   const serverDay = options.serverDay || serverDayOf(now);

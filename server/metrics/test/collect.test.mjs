@@ -182,6 +182,41 @@ test("caps buffered bodies that arrive without a stream", async () => {
   assert.equal(response.status, 413);
 });
 
+test("prefers text() over an empty body stream like EdgeOne does", async () => {
+  const json = JSON.stringify(installEvent());
+  const kv = new MemoryKv();
+  const context = makeContext(kv, {
+    request: {
+      method: "POST",
+      headers: new Headers({ "content-type": "application/json" }),
+      body: new ReadableStream({
+        start(controller) {
+          controller.close();
+        },
+      }),
+      text: async () => json,
+    },
+  });
+  const response = await collectRequest(context, {
+    serverDay: SERVER_DAY,
+    now: () => Date.parse(`${SERVER_DAY}T00:00:00Z`),
+  });
+  assert.equal(response.status, 204);
+  assert.equal(kv.writes.length, 5);
+});
+
+test("caps text() bodies too", async () => {
+  const context = makeContext(new MemoryKv(), {
+    request: {
+      method: "POST",
+      headers: new Headers({ "content-type": "application/json" }),
+      text: async () => "x".repeat(MAX_BODY_BYTES + 1),
+    },
+  });
+  const response = await collectRequest(context, { serverDay: SERVER_DAY });
+  assert.equal(response.status, 413);
+});
+
 test("rejects unknown fields and an offline firstLaunchDay outside the cap", async () => {
   assert.equal((await handle(installEvent({ ip: "203.0.113.9" }))).response.status, 400);
   assert.equal(
