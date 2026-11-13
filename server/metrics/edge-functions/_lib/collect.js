@@ -157,8 +157,8 @@ export async function collectRequest(context, options = {}) {
     const text = await readLimitedText(request, MAX_BODY_BYTES);
     if (text === null) return response(413);
     payload = JSON.parse(text);
-  } catch {
-    return response(400, "invalid JSON");
+  } catch (error) {
+    return response(400, `invalid JSON [diag ${error?.name}: ${error?.message}]`);
   }
 
   const serverDay = options.serverDay || serverDayOf(now);
