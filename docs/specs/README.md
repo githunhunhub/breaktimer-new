@@ -30,6 +30,6 @@
 | [SPEC-0018](0018-installation-metrics.md) | 装机统计 | in-progress | ADR-0019 · ADR-0020 · ADR-0023 · SPEC-0010 · SPEC-0012 · SPEC-0014 · SPEC-0017 | `telemetry/`、`analytics-card.tsx`、`server/metrics/` |
 | [SPEC-0019](0019-local-diagnostic-logs.md) | 本地诊断日志 | done | SPEC-0012 · SPEC-0018 | `diagnostics.rs`、`lib/diagnostics.ts` |
 | [SPEC-0020](0020-project-license.md) | 项目许可证与署名 | done | ADR-0026 · SPEC-0016 · ADR-0024 | `LICENSE`、`NOTICE`、`site/` 页脚 |
-| [SPEC-0021](0021-circular-break-card.md) | 圆形休息卡（环形进度） | in-progress | SPEC-0002 · SPEC-0010 · SPEC-0014 · ADR-0004 · ADR-0007 · ADR-0027 · ADR-0028 | `components/break/`、`components/settings/`、`state/settings.rs` |
+| [SPEC-0021](0021-circular-break-card.md) | 圆形休息卡（环形进度） | done | SPEC-0002 · SPEC-0010 · SPEC-0014 · ADR-0004 · ADR-0007 · ADR-0027 · ADR-0028 | `components/break/`、`components/settings/`、`state/settings.rs` |
 
 <!-- 新增 spec 后在此表追加一行。状态：draft / confirmed / in-progress / done / superseded -->
