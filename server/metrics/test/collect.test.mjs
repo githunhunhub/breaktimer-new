@@ -117,6 +117,71 @@ test("rejects non-POST, malformed JSON and oversize content-length", async () =>
   );
 });
 
+test("accepts every request-body shape an EdgeOne isolate may expose", async () => {
+  const json = JSON.stringify(installEvent());
+  const shapes = {
+    "web stream": () =>
+      new Request("https://metrics.example.com/v1/collect", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: json,
+      }),
+    string: () => ({
+      method: "POST",
+      headers: new Headers({ "content-type": "application/json" }),
+      body: json,
+    }),
+    "node buffer": () => ({
+      method: "POST",
+      headers: new Headers({ "content-type": "application/json" }),
+      body: Buffer.from(json),
+    }),
+    "byte array": () => ({
+      method: "POST",
+      headers: new Headers({ "content-type": "application/json" }),
+      body: Array.from(Buffer.from(json)),
+    }),
+    "parsed object": () => ({
+      method: "POST",
+      headers: new Headers({ "content-type": "application/json" }),
+      body: installEvent(),
+    }),
+    "text() accessor": () => ({
+      method: "POST",
+      headers: new Headers({ "content-type": "application/json" }),
+      text: async () => json,
+    }),
+    "json() accessor": () => ({
+      method: "POST",
+      headers: new Headers({ "content-type": "application/json" }),
+      json: async () => installEvent(),
+    }),
+  };
+
+  for (const [name, build] of Object.entries(shapes)) {
+    const kv = new MemoryKv();
+    const context = makeContext(kv, { request: build() });
+    const response = await collectRequest(context, {
+      serverDay: SERVER_DAY,
+      now: () => Date.parse(`${SERVER_DAY}T00:00:00Z`),
+    });
+    assert.equal(response.status, 204, `${name} body should be accepted`);
+    assert.equal(kv.writes.length, 5, `${name} body should write sketches`);
+  }
+});
+
+test("caps buffered bodies that arrive without a stream", async () => {
+  const context = makeContext(new MemoryKv(), {
+    request: {
+      method: "POST",
+      headers: new Headers({ "content-type": "application/json" }),
+      body: "x".repeat(MAX_BODY_BYTES + 1),
+    },
+  });
+  const response = await collectRequest(context, { serverDay: SERVER_DAY });
+  assert.equal(response.status, 413);
+});
+
 test("rejects unknown fields and an offline firstLaunchDay outside the cap", async () => {
   assert.equal((await handle(installEvent({ ip: "203.0.113.9" }))).response.status, 400);
   assert.equal(
