@@ -144,7 +144,8 @@ EdgeOne 的 `URLSearchParams` 支持 `keys()` / `get()`，但不支持 `Array.fr
 错误 `no-store`。KV 为空不是错误：公开接口返回 `200` 和全零报表，看板展示空状态。
 公开接口会先用 `kv.list({ prefix: "h_", limit: 1 })` 探测指标 key；namespace 为空时
 直接返回全零报表，不执行 7/30/90 天逐分片草图读取。该探测只读取 key 名称，不输出 KV
-元数据，也不改变 HLL value 结构。
+元数据，也不改变 HLL value 结构。线上空页实际返回 `{ complete: true, cursor: "" }` 并
+省略 `keys`，只有存在条目时才带 `keys` 数组；空页缺省 `keys` 不是 KV 故障。
 公开报表按 30 天批读取 KV：7 天批能让 90 天请求串行等待 13 轮，线上会触发 EdgeOne
 `545`；公开接口固定最多 90 天，使用 30 天批把它压缩为 3 轮。私有 `/api/report` 最大
 366 天，继续保持 7 天批以限制单次内存与并发规模。
@@ -165,7 +166,7 @@ KV 写入后有一小段不可见期：线上出现过 `h_ver_*` 写入成功、
 | `_` 前缀文件是内部模块，不参与路由 | `makers-recipes/SKILL.md`；与线上 `404` 结果一致，不需要把 `_lib/` 藏到别处 |
 | Edge Functions 是 V8：无 npm / Node 内置模块，`Response.json()` 不可用 | `makers-edge-functions/SKILL.md`；本目录只用标准 Web API 与普通对象 headers |
 | 请求体 1 MB、单次 CPU 200 ms、代码包 5 MB | 同上；上报体上限 2 KB，单次写入 2～5 个 key，远低于限制 |
-| KV key 仅字母数字下划线、value ≤ 25 MB、`list` 单页 256 | `kv.md`；本目录不用 `list`，key 形如 `h_act_20261105_03` |
+| KV key 仅字母数字下划线、value ≤ 25 MB、`list` 单页 256 | `kv.md`；公开报表用 `list` 只探测 `h_` 前缀，key 形如 `h_act_20261105_03` |
 | 批量读用 `Promise.all`，不要逐条 `await` | `kv.md` 最佳实践；私有报表按 7 天批、公开报表按 30 天批并发读取 |
 | `edgeone.json` 可声明 `buildCommand` / `outputDirectory` / `redirects` / `rewrites` | `makers-frameworks` / `makers-deploy`；见上文构建参数的取舍 |
 | CLI 流程（≥ 1.7.0、`PAGES_SOURCE=skills`、`.edgeone/project.json`） | 本项目由 Git 推送触发构建，不经过 CLI，相关要求不适用 |

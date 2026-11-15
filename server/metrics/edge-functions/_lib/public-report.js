@@ -59,10 +59,11 @@ function validateQuery(url) {
 async function hasMetricKeys(kv) {
   if (typeof kv.list !== "function") return true;
   const result = await kv.list({ prefix: "h_", limit: 1 });
-  if (!result || !Array.isArray(result.keys)) {
-    throw new Error("invalid KV list response");
-  }
-  return result.keys.length > 0;
+  if (!result) throw new Error("invalid KV list response");
+  if (Array.isArray(result.keys)) return result.keys.length > 0;
+  // EdgeOne omits `keys` when the requested page contains no entries.
+  if (result.complete === true) return false;
+  throw new Error("invalid KV list response");
 }
 
 function buildRows(query, days, active, versions, newInstalls) {
