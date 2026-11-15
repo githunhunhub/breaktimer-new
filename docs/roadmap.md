@@ -27,4 +27,3 @@ macOS/Linux 不在当前范围。
 | [SPEC-0015 GitHub Tag 发布流水线](specs/0015-github-tag-release.md) | 版本校验、构建、`git-cliff` 变更日志与 Release；待下一次正式 Tag 端到端验收 |
 | [SPEC-0018 装机统计](specs/0018-installation-metrics.md) | EdgeOne Edge Functions + KV HLL 的 M1～M8 近似统计：端点已上线，M1/M3/M5/M7/M8 线上核对通过；余月粒度线上调用与 Q3/Q4 控制台核验（访问日志、KV 区域、WAF、域名备案/加速区域）。客户端上报按构建期开关长期关闭，启用需另开一轮评估与 Windows 人工验收 |
 | [SPEC-0021 圆形休息卡（环形进度）](specs/0021-circular-break-card.md) | 默认保持矩形，新增可选圆形、形状设置与环形进度渲染；形状从下一次休息生效，`pnpm verify` 通过，Windows 人工验收通过（2026-11-13） |
-| [SPEC-0022 公开装机统计看板](specs/0022-public-metrics-dashboard.md) | 统计域名下新增公开只读看板：固定 7/30/90 天日/月视图、M1～M8 聚合展示、60 秒缓存；实现与本地自动化/浏览器检查已完成，待部署到 `metrics` 域名并核验线上公开/受保护边界 |
