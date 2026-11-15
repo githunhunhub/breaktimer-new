@@ -47,7 +47,7 @@
 4. 绑定稳定的自定义 HTTPS 域名。平台默认项目域名在中国大陆需要 3 小时预览链接，
    不能作为客户端上报地址；中国大陆/全球含大陆节点可能要求域名备案，部署前确认加速区域、
    WAF 与访问日志配置。
-5. 部署后先验证 `/dashboard/`、`/api/public-report`、`/v1/collect` 与受保护的
+5. 部署后先验证 `/dashboard`、`/dashboard/`、`/api/public-report`、`/v1/collect` 与受保护的
    `/api/report`，再在发布流水线设置
    `BREAKTIMER_METRICS_URL=https://<metrics-domain>/v1/collect`。未设置该构建变量时，
    客户端统计能力整体关闭，fork 与本地构建不会发到维护者端点。
@@ -118,7 +118,7 @@ npm test
 （`context.env` 形式），全局绑定路径由 `test/runtime.test.mjs` 单独覆盖。
 
 部署前还要在 EdgeOne 运行环境中核验：KV 绑定变量名为 `METRICS_KV`、相对模块导入可用，
-`/dashboard/` 与本地资源可访问，`/api/public-report` 在无 Cookie/Authorization 时返回
+`/dashboard`、`/dashboard/` 与本地资源可访问，`/api/public-report` 在无 Cookie/Authorization 时返回
 `200`，`/api/report` 的鉴权和 `no-store` 边界未改变，以及三条函数路由对不支持的方法返回
 `405`。`_lib/` 不需要额外防护：官方约定 `_` 前缀文件是内部模块、不参与路由，线上
 `/_lib/collect.js` 已核验为 `404`。这些本地检查都不替代平台上的联调和缓存头核验。

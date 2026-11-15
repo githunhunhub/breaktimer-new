@@ -49,9 +49,9 @@ test("dashboard ships the required local page, styles, scripts and graphic", asy
   ]) {
     assert.match(html, new RegExp(`id="${id}"`), id);
   }
-  assert.match(html, /<script[^>]+src="\.\/dashboard\.js"[^>]*><\/script>/);
-  assert.match(html, /<link[^>]+href="\.\/dashboard\.css"/);
-  assert.match(html, /<img[^>]+src="\.\/mark\.svg"/);
+  assert.match(html, /<script[^>]+src="\/dashboard\/dashboard\.js"[^>]*><\/script>/);
+  assert.match(html, /<link[^>]+href="\/dashboard\/dashboard\.css"/);
+  assert.match(html, /<img[^>]+src="\/dashboard\/mark\.svg"/);
   assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)/i);
   assert.doesNotMatch(html, /<form\b/i);
   assert.doesNotMatch(html, /\bstyle\s*=/i);
@@ -76,14 +76,14 @@ test("dashboard ships the required local page, styles, scripts and graphic", asy
   assert.doesNotMatch(css, /url\(\s*['"]?(?:https?:)?\/\//i);
 
   for (const [file, resource] of [
-    ["index.html", "./dashboard.js"],
-    ["index.html", "./dashboard.css"],
-    ["index.html", "./mark.svg"],
+    ["index.html", "/dashboard/dashboard.js"],
+    ["index.html", "/dashboard/dashboard.css"],
+    ["index.html", "/dashboard/mark.svg"],
   ]) {
     const text = await readText(file);
     assert.equal(text.includes(resource), true, `${file} -> ${resource}`);
     assert.equal(
-      (await stat(path.join(DASHBOARD_ROOT, resource.replace("./", "")))).isFile(),
+      (await stat(path.join(DASHBOARD_ROOT, path.basename(resource)))).isFile(),
       true,
       resource,
     );
@@ -102,22 +102,24 @@ test("EdgeOne headers isolate dashboard security and cache policies", async () =
     );
   }
 
-  const dashboard = bySource.get("/dashboard/*");
-  assert.ok(dashboard, "missing /dashboard/* header rule");
-  const csp = dashboard.get("content-security-policy");
-  assert.match(csp, /default-src 'self'/);
-  assert.match(csp, /script-src 'self'/);
-  assert.match(csp, /style-src 'self'/);
-  assert.match(csp, /connect-src 'self'/);
-  assert.match(csp, /object-src 'none'/);
-  assert.match(csp, /frame-ancestors 'none'/);
-  assert.match(csp, /base-uri 'none'/);
-  assert.match(csp, /form-action 'none'/);
-  assert.equal(dashboard.get("referrer-policy"), "no-referrer");
-  assert.equal(dashboard.get("x-content-type-options"), "nosniff");
-  assert.equal(dashboard.get("x-frame-options"), "DENY");
-  assert.match(dashboard.get("permissions-policy"), /camera=\(\)/);
-  assert.match(dashboard.get("cache-control"), /max-age=60/);
+  for (const source of ["/dashboard", "/dashboard/*"]) {
+    const dashboard = bySource.get(source);
+    assert.ok(dashboard, `missing ${source} header rule`);
+    const csp = dashboard.get("content-security-policy");
+    assert.match(csp, /default-src 'self'/);
+    assert.match(csp, /script-src 'self'/);
+    assert.match(csp, /style-src 'self'/);
+    assert.match(csp, /connect-src 'self'/);
+    assert.match(csp, /object-src 'none'/);
+    assert.match(csp, /frame-ancestors 'none'/);
+    assert.match(csp, /base-uri 'none'/);
+    assert.match(csp, /form-action 'none'/);
+    assert.equal(dashboard.get("referrer-policy"), "no-referrer");
+    assert.equal(dashboard.get("x-content-type-options"), "nosniff");
+    assert.equal(dashboard.get("x-frame-options"), "DENY");
+    assert.match(dashboard.get("permissions-policy"), /camera=\(\)/);
+    assert.match(dashboard.get("cache-control"), /max-age=60/);
+  }
 
   const common = bySource.get("/*");
   assert.ok(common, "missing common header rule");
