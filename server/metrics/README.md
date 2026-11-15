@@ -134,6 +134,14 @@ EdgeOne Edge Functions 的 `context.request` 是标准 `Request`，但 `request.
 
 同时核验通过：`DISABLED` 与 `MAINTENANCE_TOKEN` 通过 `context.env` 注入；`public/` 作为
 输出目录时 `/robots.txt` 可访问，`/_lib/*.js` 与 `/edge-functions/*` 均返回 `404`。
+EdgeOne 的 `URLSearchParams` 支持 `keys()` / `get()`，但不支持 `Array.from()` 或展开运算符
+读取条目；曾因此让 `/api/public-report` 在任何业务读取前抛错并返回 `400`。公开报表解析
+必须使用 `keys()` / `get()`，改动参数校验时保留 `test/public-report.test.mjs` 中禁用条目
+迭代的回归用例。
+
+路由级 `Cache-Control` 会覆盖 Edge Function 返回的同名响应头。`/api/public-report` 因此
+不得在 `edgeone.json` 中配置 `Cache-Control`，由函数按结果分别返回成功 60 秒公开缓存与
+错误 `no-store`。KV 为空不是错误：公开接口返回 `200` 和全零报表，看板展示空状态。
 公开看板、公开接口及其路由级安全头、缓存策略尚待 SPEC-0022 部署后线上核验。
 KV 写入后有一小段不可见期：线上出现过 `h_ver_*` 写入成功、报表首次读取却为空的
 情况，约一分钟后复测恢复，与 `consistency=eventual_60s` 一致；核对报表前留出同步窗口，

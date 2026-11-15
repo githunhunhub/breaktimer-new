@@ -135,6 +135,28 @@ test("range and granularity are fixed to the public allowlist", async () => {
   }
 });
 
+test("parses query without URLSearchParams entry iteration", async () => {
+  const originalIterator = URLSearchParams.prototype[Symbol.iterator];
+  URLSearchParams.prototype[Symbol.iterator] = () => {
+    throw new TypeError("entry iteration unavailable");
+  };
+
+  try {
+    const { response, text } = await buildPublicReport(
+      new MemoryKv(),
+      "range=7d&granularity=day",
+    );
+    assert.equal(response.status, 200);
+    const report = JSON.parse(text);
+    assert.equal(report.range, "7d");
+    assert.equal(report.granularity, "day");
+    assert.equal(report.totalInstalls, 0);
+    assert.equal(report.summary.active, 0);
+  } finally {
+    URLSearchParams.prototype[Symbol.iterator] = originalIterator;
+  }
+});
+
 test("rejects methods and every unbounded or ambiguous query shape", async () => {
   const kv = await seededKv();
   for (const method of ["POST", "PUT", "DELETE", "OPTIONS", "HEAD"]) {

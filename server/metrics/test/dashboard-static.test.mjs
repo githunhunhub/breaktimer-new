@@ -131,7 +131,11 @@ test("EdgeOne headers isolate dashboard security and cache policies", async () =
     assert.ok(rule, `missing ${source} header rule`);
     assert.equal(rule.get("cache-control"), "no-store");
   }
-  assert.equal(bySource.has("/api/public-report"), true);
+  const publicReport = bySource.get("/api/public-report");
+  assert.ok(publicReport, "missing /api/public-report header rule");
+  assert.equal(publicReport.has("cache-control"), false);
+  assert.equal(publicReport.get("x-content-type-options"), "nosniff");
+  assert.equal(publicReport.get("referrer-policy"), "no-referrer");
 });
 
 test("dashboard script uses one same-origin API and renders states separately", async () => {

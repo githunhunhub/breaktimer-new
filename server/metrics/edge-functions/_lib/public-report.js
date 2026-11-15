@@ -39,8 +39,9 @@ function addDays(day, offset) {
 
 function validateQuery(url) {
   const seen = new Set();
-  for (const [key, value] of url.searchParams) {
-    if (!QUERY_FIELDS.has(key) || seen.has(key) || value === "") {
+  // EdgeOne supports keys()/get() but not entry iteration on URLSearchParams.
+  for (const key of url.searchParams.keys()) {
+    if (!QUERY_FIELDS.has(key) || seen.has(key) || url.searchParams.get(key) === "") {
       return { error: true };
     }
     seen.add(key);
