@@ -15,6 +15,18 @@ function safeUrlShape(value) {
     const url = new URL(value);
     shape.absoluteParse = true;
     shape.queryKeys = [...url.searchParams.keys()];
+    shape.range = url.searchParams.get("range");
+    shape.granularity = url.searchParams.get("granularity");
+    try {
+      shape.arrayFromEntries = Array.from(url.searchParams).map(([key]) => key);
+    } catch {
+      shape.arrayFromEntries = "error";
+    }
+    try {
+      shape.spreadEntries = [...url.searchParams].map(([key]) => key);
+    } catch {
+      shape.spreadEntries = "error";
+    }
   } catch {
     shape.absoluteParse = false;
   }
