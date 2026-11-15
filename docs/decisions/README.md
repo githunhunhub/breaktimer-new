@@ -34,5 +34,6 @@
 | [ADR-0026](0026-gpl-3-0-or-later-license.md) | 项目整体采用 GPL-3.0-or-later 并补齐许可证与署名 | 已接受 | SPEC-0020 · SPEC-0016 · 部分取代 ADR-0024 |
 | [ADR-0027](0027-break-card-shape-settings-and-live-refresh.md) | 休息卡形状设置与保存后即时刷新 | 部分被 ADR-0028 取代 | SPEC-0021 · SPEC-0002 · SPEC-0010 · SPEC-0014 · ADR-0004 · ADR-0007 |
 | [ADR-0028](0028-break-card-shape-applies-from-next-break.md) | 休息卡形状从下一次休息生效 | 已接受 | SPEC-0021 · SPEC-0002 · SPEC-0010 · SPEC-0014 · ADR-0007 · 部分取代 ADR-0027 |
+| [ADR-0029](0029-public-metrics-dashboard.md) | 公开装机统计看板与只读接口分流 | 已接受 | SPEC-0022 · SPEC-0018 · 部分取代 ADR-0023 |
 
 <!-- 新增 ADR 后在此表追加一行，并保持编号递增。 -->
