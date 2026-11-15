@@ -48,54 +48,54 @@
 
 ### 前端（`app/src/`）
 
-| 关注点 | 主要文件 | 相关文档 |
-| --- | --- | --- |
-| 入口与窗口分流（`break-*` → 休息窗，其余 → 设置窗） | `main.tsx`、`App.tsx` | SPEC-0010 |
-| 休息窗 UI、提示条与倒计时 | `components/break/break-window.tsx`、`utils.ts` | SPEC-0002 |
-| 激活休息卡（矩形 / 圆形环形进度） | `components/break/active-break-card.tsx` | SPEC-0021 · ADR-0027 · ADR-0028 |
-| 设置窗与四个页签 | `components/settings/settings-window.tsx` | SPEC-0010 |
+| 关注点                                                                                                | 主要文件                                                             | 相关文档                                                          |
+| ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 入口与窗口分流（`break-*` → 休息窗，其余 → 设置窗）                                                   | `main.tsx`、`App.tsx`                                                | SPEC-0010                                                         |
+| 休息窗 UI、提示条与倒计时                                                                             | `components/break/break-window.tsx`、`utils.ts`                      | SPEC-0002                                                         |
+| 激活休息卡（矩形 / 圆形环形进度）                                                                     | `components/break/active-break-card.tsx`                             | SPEC-0021 · ADR-0027 · ADR-0028                                   |
+| 设置窗与四个页签                                                                                      | `components/settings/settings-window.tsx`                            | SPEC-0010                                                         |
 | 设置卡片（时长 / 时段 / 跳过 / 推迟 / 提示音 / 遮罩 / 主题 / 休息卡形状 / 自启 / 语言 / 更新 / 统计） | `components/settings/*-card.tsx`、`durations.ts`、`working-hours.ts` | SPEC-0004 · 0007 · 0008 · 0009 · 0010 · 0014 · 0017 · 0018 · 0021 |
-| 表单基础组件（shadcn/ui） | `components/ui/` | — |
-| IPC 封装与事件订阅（`break-status` / `locale-changed` / `update-status`） | `lib/ipc.ts` | SPEC-0010 · SPEC-0014 · SPEC-0017 |
-| 翻译层 `t()` / `I18nProvider` | `lib/i18n.tsx` | SPEC-0014 · ADR-0012 |
-| 前端异常上报桥接 | `lib/diagnostics.ts` | SPEC-0019 |
-| 前后端共享类型 | `types/*.ts` | — |
-| 翻译资源（React 与 Rust 共用） | `app/locales/*.json` | SPEC-0014 · ADR-0012 |
+| 表单基础组件（shadcn/ui）                                                                             | `components/ui/`                                                     | —                                                                 |
+| IPC 封装与事件订阅（`break-status` / `locale-changed` / `update-status`）                             | `lib/ipc.ts`                                                         | SPEC-0010 · SPEC-0014 · SPEC-0017                                 |
+| 翻译层 `t()` / `I18nProvider`                                                                         | `lib/i18n.tsx`                                                       | SPEC-0014 · ADR-0012                                              |
+| 前端异常上报桥接                                                                                      | `lib/diagnostics.ts`                                                 | SPEC-0019                                                         |
+| 前后端共享类型                                                                                        | `types/*.ts`                                                         | —                                                                 |
+| 翻译资源（React 与 Rust 共用）                                                                        | `app/locales/*.json`                                                 | SPEC-0014 · ADR-0012                                              |
 
 ### 后端（`app/src-tauri/src/`）
 
-| 关注点 | 主要文件 | 相关文档 |
-| --- | --- | --- |
-| 入口、插件与状态装配 | `lib.rs`、`main.rs` | — |
-| Tauri command 面 | `commands.rs` | — |
-| 应用目录与便携版判定 | `app_paths.rs` | SPEC-0012 |
-| 设置模型、持久化与副作用 | `state/settings.rs`、`state/store.rs`、`state/migrations.rs`、`state/settings_effects.rs` | SPEC-0010 · SPEC-0021 |
-| 休息调度器（状态机） | `breaks/mod.rs` | SPEC-0003 · 0004 · 0005 |
-| 休息编排（窗口 / 声音 / 广播） | `flow.rs` | SPEC-0002 · 0008 |
-| 系统空闲与锁屏 | `system_state.rs` | ADR-0005 |
-| 覆盖窗与显示器枚举 | `windows/mod.rs` | SPEC-0002 · ADR-0004 · ADR-0007 |
-| 托盘菜单与标题 | `tray/mod.rs` | SPEC-0006 · ADR-0006 · ADR-0010 |
-| 系统通知 | `notifications/mod.rs` | SPEC-0008 |
-| 声音播放 | `sounds/mod.rs` | SPEC-0009 · ADR-0003 |
-| 自启动注册 | `autostart/mod.rs` | SPEC-0007 |
-| 后端翻译与系统语言解析 | `i18n/mod.rs` | SPEC-0014 · ADR-0012 |
-| 更新检查 | `updates/mod.rs` | SPEC-0017 · ADR-0018 |
-| 装机统计上报 | `telemetry/mod.rs` | SPEC-0018 · ADR-0019 · ADR-0023 |
-| 诊断日志 | `diagnostics.rs` | SPEC-0019 |
-| 错误类型 | `error.rs` | — |
+| 关注点                         | 主要文件                                                                                  | 相关文档                        |
+| ------------------------------ | ----------------------------------------------------------------------------------------- | ------------------------------- |
+| 入口、插件与状态装配           | `lib.rs`、`main.rs`                                                                       | —                               |
+| Tauri command 面               | `commands.rs`                                                                             | —                               |
+| 应用目录与便携版判定           | `app_paths.rs`                                                                            | SPEC-0012                       |
+| 设置模型、持久化与副作用       | `state/settings.rs`、`state/store.rs`、`state/migrations.rs`、`state/settings_effects.rs` | SPEC-0010 · SPEC-0021           |
+| 休息调度器（状态机）           | `breaks/mod.rs`                                                                           | SPEC-0003 · 0004 · 0005         |
+| 休息编排（窗口 / 声音 / 广播） | `flow.rs`                                                                                 | SPEC-0002 · 0008                |
+| 系统空闲与锁屏                 | `system_state.rs`                                                                         | ADR-0005                        |
+| 覆盖窗与显示器枚举             | `windows/mod.rs`                                                                          | SPEC-0002 · ADR-0004 · ADR-0007 |
+| 托盘菜单与标题                 | `tray/mod.rs`                                                                             | SPEC-0006 · ADR-0006 · ADR-0010 |
+| 系统通知                       | `notifications/mod.rs`                                                                    | SPEC-0008                       |
+| 声音播放                       | `sounds/mod.rs`                                                                           | SPEC-0009 · ADR-0003            |
+| 自启动注册                     | `autostart/mod.rs`                                                                        | SPEC-0007                       |
+| 后端翻译与系统语言解析         | `i18n/mod.rs`                                                                             | SPEC-0014 · ADR-0012            |
+| 更新检查                       | `updates/mod.rs`                                                                          | SPEC-0017 · ADR-0018            |
+| 装机统计上报                   | `telemetry/mod.rs`                                                                        | SPEC-0018 · ADR-0019 · ADR-0023 |
+| 诊断日志                       | `diagnostics.rs`                                                                          | SPEC-0019                       |
+| 错误类型                       | `error.rs`                                                                                | —                               |
 
 ### 仓库其他位置
 
-| 关注点 | 主要文件 | 相关文档 |
-| --- | --- | --- |
-| 打包、窗口与图标配置 | `app/src-tauri/tauri.conf.json` | SPEC-0011 · SPEC-0013 |
-| 便携 ZIP 打包 | `app/scripts/package-portable.ps1` | SPEC-0012 |
-| 发布流水线与版本脚本 | `.github/workflows/release.yml`、`app/scripts/release*.ps1`、`app/scripts/release-version.mjs` | SPEC-0015 · ADR-0013 |
-| 验证门禁脚本 | `app/scripts/verify.ps1` | `AGENTS.md` |
-| 装机统计服务（EdgeOne Edge Functions + KV HLL） | `server/metrics/` | SPEC-0018 · ADR-0019 · ADR-0023 |
-| 公开装机统计看板与只读报表 | `server/metrics/public/dashboard/`、`server/metrics/edge-functions/api/public-report.js` | SPEC-0022 · ADR-0029 |
-| 宣传页（纯静态，中英双语） | `site/`、`site/scripts/`、`.github/workflows/pages.yml` | SPEC-0016 · ADR-0024 |
-| 开源许可与署名 | `LICENSE`、`NOTICE`、`README.md` | SPEC-0020 · ADR-0026 |
+| 关注点                                          | 主要文件                                                                                       | 相关文档                        |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------- |
+| 打包、窗口与图标配置                            | `app/src-tauri/tauri.conf.json`                                                                | SPEC-0011 · SPEC-0013           |
+| 便携 ZIP 打包                                   | `app/scripts/package-portable.ps1`                                                             | SPEC-0012                       |
+| 发布流水线与版本脚本                            | `.github/workflows/release.yml`、`app/scripts/release*.ps1`、`app/scripts/release-version.mjs` | SPEC-0015 · ADR-0013            |
+| 验证门禁脚本                                    | `app/scripts/verify.ps1`                                                                       | `AGENTS.md`                     |
+| 装机统计服务（EdgeOne Edge Functions + KV HLL） | `server/metrics/`                                                                              | SPEC-0018 · ADR-0019 · ADR-0023 |
+| 公开装机统计看板与只读报表                      | `server/metrics/public/dashboard/`、`server/metrics/edge-functions/api/public-report.js`       | SPEC-0022 · ADR-0029            |
+| 宣传页（纯静态，中英双语）                      | `site/`、`site/scripts/`、`.github/workflows/pages.yml`                                        | SPEC-0016 · ADR-0024            |
+| 开源许可与署名                                  | `LICENSE`、`NOTICE`、`README.md`                                                               | SPEC-0020 · ADR-0026            |
 
 ### 宣传页（`site/`）
 
@@ -107,6 +107,9 @@
   `site/scripts/resolve-downloads.mjs` 读取最新 Release 正文的 `breaktimer-downloads`
   标记（百度 / 夸克网盘，与 SPEC-0017 同源），把链接与提取码写进副本，最后部署到
   GitHub Pages（ADR-0024、ADR-0025）。
+- Release 正文只展示变更日志；`.github/release-downloads.json` 仅转成隐藏的
+  `breaktimer-downloads` 标记，供应用与宣传页读取，不在 GitHub Release 页面显示可见网盘
+  入口（SPEC-0023、ADR-0030）。
 - 站点基址固定为 `https://githunhunhub.github.io/breaktimer-new/`；canonical、`hreflang`、
   OG、`sitemap.xml`、`robots.txt` 与 `404.html` 都依赖该基址，更换域名时必须同步修改。
 
@@ -124,8 +127,9 @@
 - 数据目录：安装版 `%APPDATA%\com.githunhunhub.breaktimernew`，便携版 `<程序目录>\data\`；
   设置、日志与 `installId` 都在其中（SPEC-0012）。
 - 开发构建（`debug_assertions`）跳过真实自启动注册、更新自动检查与装机统计上报；
-  装机统计另有构建期总开关 `REPORTING_SWITCH`，当前关闭，同时隐藏设置页统计卡片
-  （SPEC-0018）。
+  装机统计总开关 `REPORTING_SWITCH` 当前开启，发布构建还需配置
+  `BREAKTIMER_METRICS_URL`，未配置端点的构建不显示设置页统计卡片；启动后的首次上报在
+  90 秒基础上叠加 0～20 分钟随机抖动，以分散集中请求（SPEC-0018）。
 - 公开统计只通过同源 `/api/public-report` 读取固定 7/30/90 天范围与 `day` / `month`
   粒度，成功响应缓存 60 秒；维护者 `/api/report` 继续要求令牌、支持任意范围与 CSV，
   并使用 `no-store`。两者都不新增 CORS，公开前端不接触维护令牌（SPEC-0022、ADR-0029）。

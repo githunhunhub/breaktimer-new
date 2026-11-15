@@ -120,8 +120,11 @@ SPEC-0018 / ADR-0023）。首次部署与查询步骤见 `server/metrics/README.
 发布构建必须带上端点环境变量，否则统计能力整体关闭：
 
 ```powershell
-$env:BREAKTIMER_METRICS_URL = "https://<metrics-domain>/v1/collect"
+$env:BREAKTIMER_METRICS_URL = "https://metrics.hunhun.qd.je/v1/collect"
 ```
+
+GitHub Actions 从仓库变量 `BREAKTIMER_METRICS_URL` 读取该地址；当前仓库已配置为上述
+EdgeOne 端点。客户端总开关已开启，发布流水线缺少该变量时仍会保持统计能力关闭。
 
 本地运行全部服务端测试（含 HLL、写入、报表）：
 
@@ -199,9 +202,10 @@ Release 应包含：
 变更日志只作为 Release 正文，标题为 `## BreakTimer-new v<version>`，不会上传为 Assets。
 
 发布流水线还会读取仓库根目录的 [`.github/release-downloads.json`](.github/release-downloads.json)，
-在 Release 正文末尾追加「下载方式」段落和隐藏的 `breaktimer-downloads` 标记。发布前把夸克 /
-百度分享链接填入该文件；留空或 `null` 时对应按钮不会出现。应用显示顺序固定为
-「百度网盘、夸克网盘」；GitHub 仅用于检查版本，不作为下载入口（SPEC-0017）。
+在 Release 正文末尾追加隐藏的 `breaktimer-downloads` 标记，不再生成可见「下载方式」段落。
+发布前把夸克 / 百度分享链接填入该文件；留空或 `null` 时对应按钮不会出现。应用显示顺序固定为
+「百度网盘、夸克网盘」；GitHub Release 只展示版本历史与校验信息，不作为网盘下载入口
+（SPEC-0017、SPEC-0023）。
 
 下载安装包后可核对哈希：
 

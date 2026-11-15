@@ -65,7 +65,7 @@ export function validateDownloadLinks(value) {
 
 /**
  * Reads the hidden `<!-- breaktimer-downloads {...} -->` marker that
- * `app/scripts/release-downloads.mjs` appends to every release body.
+ * `app/scripts/release-downloads.mjs` appends to each release body.
  */
 export function parseDownloadMetadata(body) {
   const match = MARKER_PATTERN.exec(typeof body === "string" ? body : "");

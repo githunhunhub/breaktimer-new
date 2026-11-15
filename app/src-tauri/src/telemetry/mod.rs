@@ -29,12 +29,13 @@ const COLLECT_URL: &str = match option_env!("BREAKTIMER_METRICS_URL") {
     None => "",
 };
 
-/// Temporary build-time kill switch (SPEC-0018 requirement 13). Reporting stays
-/// paused until `server/metrics` is deployed; set this to `true` to resume.
-const REPORTING_SWITCH: bool = false;
+/// Build-time kill switch (SPEC-0018 requirement 13). Release reporting also
+/// requires a usable `BREAKTIMER_METRICS_URL`.
+const REPORTING_SWITCH: bool = true;
 
 const SCHEMA_VERSION: u32 = 1;
 const STARTUP_DELAY_SECONDS: u64 = 90;
+const STARTUP_JITTER_SECONDS: u64 = 20 * 60;
 const LOOP_INTERVAL_SECONDS: u64 = 60;
 /// While the machine is offline the loop must not hammer the endpoint.
 const RETRY_INTERVAL_SECONDS: u64 = 30 * 60;
@@ -91,6 +92,16 @@ pub fn reporting_enabled() -> bool {
 
 fn reporting_active(switch: bool, url: &str) -> bool {
     switch && endpoint_is_usable(url)
+}
+
+fn startup_delay_with_jitter(sample: u64) -> Duration {
+    let jitter = sample % (STARTUP_JITTER_SECONDS + 1);
+    Duration::from_secs(STARTUP_DELAY_SECONDS + jitter)
+}
+
+fn startup_delay() -> Duration {
+    // Reuse UUIDv4's OS-backed random source so no extra dependency is needed.
+    startup_delay_with_jitter(uuid::Uuid::new_v4().as_u128() as u64)
 }
 
 pub fn build_payload(
@@ -161,8 +172,8 @@ pub fn spawn(app: AppHandle) {
     }
 
     std::thread::spawn(move || {
-        // Stay out of the way of startup and the update check (30 s, 24 h).
-        std::thread::sleep(Duration::from_secs(STARTUP_DELAY_SECONDS));
+        // Stay out of the way of startup and spread simultaneous launches.
+        std::thread::sleep(startup_delay());
 
         let mut last_attempt: Option<std::time::Instant> = None;
         loop {
@@ -350,6 +361,30 @@ mod tests {
             true,
             "https://metrics.example.com/v1/collect"
         ));
+    }
+
+    #[test]
+    fn release_build_allows_reporting_when_an_endpoint_is_configured() {
+        assert!(reporting_active(
+            REPORTING_SWITCH,
+            "https://metrics.example.com/v1/collect"
+        ));
+    }
+
+    #[test]
+    fn startup_delay_adds_bounded_jitter_after_the_base_delay() {
+        assert_eq!(
+            startup_delay_with_jitter(0),
+            Duration::from_secs(STARTUP_DELAY_SECONDS)
+        );
+        assert_eq!(
+            startup_delay_with_jitter(STARTUP_JITTER_SECONDS),
+            Duration::from_secs(STARTUP_DELAY_SECONDS + STARTUP_JITTER_SECONDS)
+        );
+        assert_eq!(
+            startup_delay_with_jitter(STARTUP_JITTER_SECONDS + 1),
+            Duration::from_secs(STARTUP_DELAY_SECONDS)
+        );
     }
 
     #[test]

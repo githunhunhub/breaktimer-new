@@ -54,6 +54,9 @@
 
 ## 启用客户端上报
 
+客户端构建期总开关已经开启。发布或本地构建仍需配置 `BREAKTIMER_METRICS_URL`；
+未配置时统计能力整体关闭。
+
 ```powershell
 $env:BREAKTIMER_METRICS_URL = "https://<metrics-domain>/v1/collect"
 ```
