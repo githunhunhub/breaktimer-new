@@ -220,7 +220,7 @@ jobs:
           test -n "$RELEASE_BODY"
           test "$(find release-assets -maxdepth 1 -type f | wc -l)" -eq 3
 
-      - name: Append download links
+      - name: Append hidden download metadata
         shell: bash
         env:
           RELEASE_BODY: ${{ needs.changelog.outputs.release_body }}

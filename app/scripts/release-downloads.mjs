@@ -43,34 +43,26 @@ export function parseDownloads(value) {
   };
 }
 
-export function renderDownloadSection(config) {
+export function renderDownloadMetadata(config) {
   const links = parseDownloads(config);
   if (!links.baidu && !links.quark) {
     return "";
-  }
-
-  const lines = ["", "## 下载方式", ""];
-
-  if (links.baidu) {
-    const code = links.baiduCode ? `（提取码：${links.baiduCode}）` : "";
-    lines.push(`- [百度网盘](${links.baidu})${code}`);
-  }
-  if (links.quark) {
-    lines.push(`- [夸克网盘](${links.quark})`);
   }
 
   const marker = {};
   if (links.baidu) marker.baidu = links.baidu;
   if (links.quark) marker.quark = links.quark;
   if (links.baiduCode) marker.baiduCode = links.baiduCode;
-  lines.push("", `<!-- breaktimer-downloads ${JSON.stringify(marker)} -->`, "");
-
-  return lines.join("\n");
+  return [
+    "",
+    `<!-- breaktimer-downloads ${JSON.stringify(marker)} -->`,
+    "",
+  ].join("\n");
 }
 
-export function appendDownloadSection(body, config) {
-  const section = renderDownloadSection(config);
-  return section ? `${body.trimEnd()}\n${section}` : body;
+export function appendDownloadMetadata(body, config) {
+  const metadata = renderDownloadMetadata(config);
+  return metadata ? `${body.trimEnd()}\n${metadata}` : body;
 }
 
 async function readJsonIfPresent(file) {
@@ -92,7 +84,7 @@ async function main() {
 
   const body = await readFile(bodyFile, "utf8");
   const config = await readJsonIfPresent(configFile);
-  const next = appendDownloadSection(body, config);
+  const next = appendDownloadMetadata(body, config);
 
   if (outputFile) {
     await writeFile(outputFile, next, "utf8");

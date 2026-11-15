@@ -78,6 +78,8 @@ Cloudflare Worker + D1 路线部署不通后，服务端改为 EdgeOne Pages / M
    （`YYYY-MM-DD`）。
 7. 请求失败必须静默：单次重试、5 秒超时、不阻塞启动；离线时最多保留一条待发事件，
    下次启动或下一个心跳周期补报，且 `install` 事件的新增归日仍以 `firstLaunchDay` 为准。
+   启动后的首次检查在 90 秒基础延迟上叠加 0～20 分钟随机抖动，避免同时启动的客户端集中
+   写入。
 8. 同一天重复上报不得使 HLL 估计重复增长；服务端只按稳定哈希更新固定分片草图，
    不保存 `(installId, day)` 事实 key。
 9. 开发构建、测试与 CI 不上报（与更新检查的开发构建跳过策略一致）。
@@ -88,9 +90,10 @@ Cloudflare Worker + D1 路线部署不通后，服务端改为 EdgeOne Pages / M
     所有数值为近似估计，且不得输出逐装机列表。
 12. 下载量（分发量）作为对照指标：手工读取 GitHub Release 资产 `download_count` 与网盘
     后台数据，不写入 KV。
-13. 客户端上报另受一个构建期总开关控制。服务端端点部署完成前，开关保持关闭：应用不发出
-    任何统计请求，设置页不显示「帮助改进 BreakTimer-new」卡片；端点部署并核验完成后把
-    开关打开，恢复需求 3 的默认开启与卡片行为。开关不影响本地 `installId` 的生成。
+13. 客户端上报受构建期总开关与端点配置共同控制。当前总开关已开启，正式发布构建通过
+    仓库变量 `BREAKTIMER_METRICS_URL` 注入 EdgeOne 端点；未配置端点的本地构建或 fork
+    整体关闭统计能力，不发出请求，也不显示「帮助改进 BreakTimer-new」卡片。端点配置
+    不影响本地 `installId` 的生成。
 
 ## 上报字段白名单
 
@@ -165,15 +168,17 @@ Cloudflare Worker + D1 路线部署不通后，服务端改为 EdgeOne Pages / M
 - [ ] **I13** `README.md` 隐私段落与实现一致，文案中不出现「用户数」等不准确表述。
 - [ ] **I14** 统计请求只走 HTTPS，不跟随重定向，无 Cookie。
 - [ ] **I15** 关闭统计后，应用行为、休息调度、更新检查均不受影响。
-- [ ] **I16** 上报总开关关闭时不发出任何统计请求，设置页不显示「帮助改进 BreakTimer-new」
-      卡片；开关打开且配置了端点后恢复 I12 的行为。
+- [ ] **I16** 未配置统计端点的构建不发出任何统计请求，设置页不显示
+      「帮助改进 BreakTimer-new」卡片；配置端点后恢复 I12 的行为。
+- [ ] **I17** 启动后的首次上报延迟落在 90 秒～21 分 30 秒之间，并使用随机抖动错峰；
+      自动化测试覆盖边界换算，不依赖真实等待。
 
 ## 人工验收步骤
 
 1. 按 `server/metrics/README.md` 部署 EdgeOne Pages / Makers Edge Functions + KV，绑定
-   稳定的自定义 HTTPS 域名与变量名 `METRICS_KV`，在构建环境中设置
-   `BREAKTIMER_METRICS_URL=https://<metrics-domain>/v1/collect`，并把客户端上报总开关
-   `REPORTING_SWITCH` 打开后重新构建；记录控制台访问日志字段、保留期与 KV 区域。
+   稳定的自定义 HTTPS 域名与变量名 `METRICS_KV`，确认客户端总开关已开启，并在构建环境中
+   设置 `BREAKTIMER_METRICS_URL=https://<metrics-domain>/v1/collect`；记录控制台访问日志
+   字段、保留期与 KV 区域。
 2. 分别使用 NSIS 安装版与便携 ZIP 启动，抓包确认只发送白名单字段，且没有 IP、
    用户名、路径或内容字段。
 3. 首次启动断网，确认 UI 不阻塞；恢复网络后确认 `install` 补报且归日为
@@ -244,13 +249,13 @@ HLL 草图无法删除单个元素，测试心跳会永久留在当日草图里�
 - StoreData 新增：`installId`、`installFirstLaunchDay`、`telemetryLastPingDay`、
   `telemetryPendingInstall`；设置新增 `analyticsEnabled`（默认 `true`），旧设置缺字段时
   按默认值加载。
-- 上报时机：启动后延迟 60～120 秒（与更新检查的 30 秒错开）；之后每跨一个本地自然日
-  补一次心跳；UI 不等待结果。
+- 上报时机：启动后延迟 90 秒，再叠加 0～20 分钟随机抖动（与更新检查的 30 秒错开），
+  以分散集中上报；之后每跨一个本地自然日补一次心跳；UI 不等待结果。
 - 端点由构建期环境变量 `BREAKTIMER_METRICS_URL` 注入；未设置时统计能力整体关闭，
   保证 fork 与本地构建不会把数据发到维护者端点。
 - 客户端上报总开关 `REPORTING_SWITCH`（`app/src-tauri/src/telemetry/mod.rs`）当前为
-  `false`：服务端部署完成前彻底屏蔽上报，并通过 `get_app_info` 的
-  `analyticsReportingEnabled` 隐藏设置页统计卡片。只有开关打开且端点可用时才会上报。
+  `true`：正式发布构建通过仓库变量注入 EdgeOne 端点。未配置端点或非 HTTPS 端点时，
+  `get_app_info` 的 `analyticsReportingEnabled` 为 `false`，设置页隐藏统计卡片。
 - 客户端边界：`Tauri Rust reqwest → 自定义 HTTPS 域名 → Edge Function → METRICS_KV`。
   EdgeOne KV 仅由 Edge Functions 访问，客户端不能直连；平台默认项目域名在中国大陆需要
   3 小时预览链接，不能作为稳定端点。
@@ -305,6 +310,9 @@ M7、M8 在两种粒度中都作为历史总量输出。所有响应带 `Cache-C
       删除旧 Worker + D1 代码。端点已部署并完成路由、KV 绑定、请求体读取核验
       （见「部署核验记录（2026-11-13）」）。
 - [x] 临时屏蔽：客户端上报总开关关闭，暂停请求与设置页统计卡片；待服务端部署后打开。
+- [x] 正式启用：客户端总开关打开，GitHub Actions 仓库变量改用当前 EdgeOne 端点；
+      设置页统计卡片随配置恢复。
+- [x] 错峰上报：启动后的首次检查增加 0～20 分钟随机抖动，降低同时启动客户端的并发写入冲突。
 - [ ] 人工验收：抓包、断网补报、关闭开关、便携版与安装版、重放、M1～M8 导出、
       平台日志/域名/区域/KV 绑定核验。
 - [ ] 收尾：更新 spec 状态、`docs/specs/README.md` 与 `docs/roadmap.md`。
@@ -335,3 +343,5 @@ M7、M8 在两种粒度中都作为历史总量输出。所有响应带 `Cache-C
 | 2026-11-13 | 按官方技能包 `edgeone-makers-tools` 复核实现：更正「KV 兼容 `context.env`」与「`edgeone.json` 仅支持 headers」两处表述，`getKv` 改为全局变量优先并补 `test/runtime.test.mjs`；`/api/report` 的 KV 读取改为分批并发（366 天约 1.76 万次读不再串行） |
 | 2026-11-13 | 补记带令牌 `/api/report` 核对结果：M1/M3，以及 `install` 后的 M5/M7/M8 均与预期一致；确认写入后立即读取会因 60 秒最终一致读到空草图；记录测试 key 残留与复位方式 |
 | 2026-11-15 | 公开看板与公开只读报表拆分到 SPEC-0022 / ADR-0029；本 spec 的 `/api/report` 继续保留维护令牌、任意范围与 CSV，不再把公开数据页列为非目标 |
+| 2026-11-15 | 正式启用客户端上报：打开 `REPORTING_SWITCH`，发布仓库变量改用 EdgeOne 端点；人工验收项保持未完成 |
+| 2026-11-16 | 启动后的首次检查增加 0～20 分钟随机抖动，降低同时启动客户端的集中写入冲突；补 I17 自动化验收 |
