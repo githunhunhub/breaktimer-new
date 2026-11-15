@@ -20,6 +20,15 @@ class MemoryKv {
   async put(key, value) {
     this.values.set(key, value);
   }
+
+  async list({ prefix = "", limit = 256 } = {}) {
+    const keys = [...this.values.keys()]
+      .filter((key) => key.startsWith(prefix))
+      .sort()
+      .slice(0, limit)
+      .map((key) => ({ key }));
+    return { complete: keys.length < limit, cursor: null, keys };
+  }
 }
 
 function event(installId, overrides = {}) {
@@ -155,6 +164,49 @@ test("parses query without URLSearchParams entry iteration", async () => {
   } finally {
     URLSearchParams.prototype[Symbol.iterator] = originalIterator;
   }
+});
+
+test("empty KV returns a zero report without reading HLL keys", async () => {
+  let getCalls = 0;
+  let listCalls = 0;
+  const kv = {
+    async get() {
+      getCalls += 1;
+      throw new Error("empty namespace must not read sketches");
+    },
+    async list(options) {
+      listCalls += 1;
+      assert.deepEqual(options, { prefix: "h_", limit: 1 });
+      return { complete: true, cursor: null, keys: [] };
+    },
+  };
+
+  const { response, text } = await buildPublicReport(
+    kv,
+    "range=90d&granularity=day",
+  );
+  assert.equal(response.status, 200);
+  assert.equal(listCalls, 1);
+  assert.equal(getCalls, 0);
+
+  const report = JSON.parse(text);
+  assert.deepEqual(report.summary, {
+    active: 0,
+    newInstalls: 0,
+    versionsActive: {},
+  });
+  assert.equal(report.totalInstalls, 0);
+  assert.deepEqual(report.installsByVersion, {});
+  assert.equal(report.rows.length, 90);
+  assert.equal(
+    report.rows.every(
+      (row) =>
+        row.active === 0 &&
+        row.newInstalls === 0 &&
+        Object.keys(row.versionsActive).length === 0,
+    ),
+    true,
+  );
 });
 
 test("90-day report fans out KV reads in 30-day batches", async () => {

@@ -142,6 +142,9 @@ EdgeOne 的 `URLSearchParams` 支持 `keys()` / `get()`，但不支持 `Array.fr
 路由级 `Cache-Control` 会覆盖 Edge Function 返回的同名响应头。`/api/public-report` 因此
 不得在 `edgeone.json` 中配置 `Cache-Control`，由函数按结果分别返回成功 60 秒公开缓存与
 错误 `no-store`。KV 为空不是错误：公开接口返回 `200` 和全零报表，看板展示空状态。
+公开接口会先用 `kv.list({ prefix: "h_", limit: 1 })` 探测指标 key；namespace 为空时
+直接返回全零报表，不执行 7/30/90 天逐分片草图读取。该探测只读取 key 名称，不输出 KV
+元数据，也不改变 HLL value 结构。
 公开报表按 30 天批读取 KV：7 天批能让 90 天请求串行等待 13 轮，线上会触发 EdgeOne
 `545`；公开接口固定最多 90 天，使用 30 天批把它压缩为 3 轮。私有 `/api/report` 最大
 366 天，继续保持 7 天批以限制单次内存与并发规模。

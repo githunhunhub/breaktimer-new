@@ -56,13 +56,22 @@ function validateQuery(url) {
   return { range, granularity };
 }
 
+async function hasMetricKeys(kv) {
+  if (typeof kv.list !== "function") return true;
+  const result = await kv.list({ prefix: "h_", limit: 1 });
+  if (!result || !Array.isArray(result.keys)) {
+    throw new Error("invalid KV list response");
+  }
+  return result.keys.length > 0;
+}
+
 function buildRows(query, days, active, versions, newInstalls) {
   if (query.granularity === "day") {
     return days.map((day) => ({
       date: day,
-      active: cardinality(active.get(day)),
-      versionsActive: versionCardinalities(versions.get(day)),
-      newInstalls: cardinality(newInstalls.get(day)),
+      active: active.has(day) ? cardinality(active.get(day)) : 0,
+      versionsActive: versionCardinalities(versions.get(day) || {}),
+      newInstalls: newInstalls.has(day) ? cardinality(newInstalls.get(day)) : 0,
     }));
   }
 
@@ -134,6 +143,21 @@ export async function publicReportRequest(context, options = {}) {
   const days = eachDay(from, to);
 
   try {
+    if (!(await hasMetricKeys(kv))) {
+      return response(
+        200,
+        jsonReport(
+          query,
+          days,
+          new Map(),
+          new Map(),
+          new Map(),
+          { totalInstalls: 0, installsByVersion: {} },
+        ),
+        PUBLIC_CACHE,
+      );
+    }
+
     const [active, versions, newInstalls, global] = await Promise.all([
       readDimension(kv, activeKey, days, false, PUBLIC_DAY_BATCH),
       readDimension(kv, versionKey, days, true, PUBLIC_DAY_BATCH),
