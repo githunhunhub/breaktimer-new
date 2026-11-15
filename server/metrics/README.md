@@ -1,8 +1,9 @@
-# 装机统计端点（EdgeOne Pages / Makers Edge Functions + KV HLL）
+# 装机统计服务（EdgeOne Pages / Makers Edge Functions + KV HLL）
 
-对应 SPEC-0018 与 ADR-0023。只接收应用发出的匿名装机事件，把 `installId` 转换为
-HyperLogLog 草图并输出 M1～M8 近似聚合；不保存逐装机明细、明文 `installId`、IP、
-用户名、硬件信息或任何使用内容。
+对应 SPEC-0018、SPEC-0022、ADR-0023 与 ADR-0029。只接收应用发出的匿名装机事件，把
+`installId` 转换为 HyperLogLog 草图并输出 M1～M8 近似聚合；不保存逐装机明细、明文
+`installId`、IP、用户名、硬件信息或任何使用内容。统计域名同时提供无登录的公开聚合看板，
+维护者任意范围查询仍由维护令牌保护。
 
 ## 组成
 
@@ -10,10 +11,12 @@ HyperLogLog 草图并输出 M1～M8 近似聚合；不保存逐装机明细、�
 | --- | --- |
 | `edge-functions/v1/collect.js` | `/v1/collect` 路由：仅允许 POST，校验、HLL 合并、KV 写入 |
 | `edge-functions/api/report.js` | `/api/report` 路由：仅允许 GET，维护令牌鉴权、M1～M8 JSON/CSV 报表 |
+| `edge-functions/api/public-report.js` | `/api/public-report` 路由：仅允许 GET，固定 7/30/90 天范围的公开聚合报表 |
 | `edge-functions/_lib/*.js` | 不导出 handler 的共享模块：校验、HLL、键名、环境变量与写入/报表逻辑 |
-| `test/*.test.mjs` | `node --test`，无额外依赖；覆盖校验、HLL、写入、报表与隐私 |
-| `public/robots.txt` | 静态输出目录占位（禁止抓取）；不得放入任何源码 |
-| `edgeone.json` | 当前只含 `headers`（`Cache-Control` / `X-Content-Type-Options`）；平台还支持 `buildCommand`、`outputDirectory` 等字段 |
+| `test/*.test.mjs` | `node --test`，无额外依赖；覆盖校验、HLL、写入、公开/私有报表、看板静态约束与隐私 |
+| `public/dashboard/` | 公开看板 HTML、CSS、同源脚本、本地 SVG 与图形转换模块（SPEC-0022） |
+| `public/robots.txt` | 静态输出目录中的抓取限制；不得放入任何源码 |
+| `edgeone.json` | 按路由设置安全头与缓存策略；平台还支持 `buildCommand`、`outputDirectory` 等字段 |
 | `.env.example` | 环境变量示例；真实值只在 EdgeOne 控制台配置 |
 
 ## 首次部署
@@ -26,9 +29,9 @@ HyperLogLog 草图并输出 M1～M8 近似聚合；不保存逐装机明细、�
      人工验收记录）。
    - 根目录：`server/metrics`。`edge-functions/` 与 `edgeone.json` 必须位于被部署目录的
      根层，否则路由前缀会变成 `/server/metrics/v1/collect`。
-   - 输出目录：`public`（其中只有 `robots.txt`）。填 `.` 会把整个目录（`test/`、
-     `README.md`、`package.json`）当成静态资源上传；填 `edge-functions` 会让函数目录错位。
-     `_lib/` 的安全性不依赖输出目录：平台把 `_` 前缀文件视为内部模块、不参与路由。
+   - 输出目录：`public`（包含 `dashboard/` 与 `robots.txt`）。填 `.` 会把整个目录
+     （`test/`、`README.md`、`package.json`）当成静态资源上传；填 `edge-functions` 会让
+     函数目录错位。`_lib/` 的安全性不依赖输出目录：平台把 `_` 前缀文件视为内部模块、不参与路由。
    - 构建命令 / 安装命令：留空；平台强制必填时填 `echo skip`（无构建步骤、无运行时依赖）。
 
    本项目由 Git 推送触发构建，构建参数以控制台字段为准；`edgeone.json` 同样支持
@@ -44,7 +47,8 @@ HyperLogLog 草图并输出 M1～M8 近似聚合；不保存逐装机明细、�
 4. 绑定稳定的自定义 HTTPS 域名。平台默认项目域名在中国大陆需要 3 小时预览链接，
    不能作为客户端上报地址；中国大陆/全球含大陆节点可能要求域名备案，部署前确认加速区域、
    WAF 与访问日志配置。
-5. 部署后先用测试请求验证 `/v1/collect`，再在发布流水线设置
+5. 部署后先验证 `/dashboard/`、`/api/public-report`、`/v1/collect` 与受保护的
+   `/api/report`，再在发布流水线设置
    `BREAKTIMER_METRICS_URL=https://<metrics-domain>/v1/collect`。未设置该构建变量时，
    客户端统计能力整体关闭，fork 与本地构建不会发到维护者端点。
 
@@ -59,7 +63,13 @@ $env:BREAKTIMER_METRICS_URL = "https://<metrics-domain>/v1/collect"
 
 ## 查看数据
 
-报表需要维护令牌，返回匿名聚合，不返回逐装机列表。日期范围为客户端本地日
+公开看板位于 `https://<metrics-domain>/dashboard/`，不需要登录、Cookie 或
+`Authorization`。页面只请求同源 `GET /api/public-report`，支持最近 7/30/90 天与日/月
+粒度；接口拒绝任意日期、CSV、重复参数和未知参数。成功响应带 60 秒公开缓存，错误响应为
+`no-store`；看板与接口均不新增 CORS。公开响应只含匿名聚合、版本分布和统计元数据，
+不返回逐装机列表。
+
+维护者报表仍需要令牌，返回匿名聚合，不返回逐装机列表。日期范围为客户端本地日
 `YYYY-MM-DD`，最多 366 天。
 
 ```powershell
@@ -103,11 +113,15 @@ cd server/metrics
 npm test
 ```
 
+测试覆盖三条函数路由的方法限制、私有报表鉴权与格式回归、公开报表的固定参数、白名单
+字段、缓存与隐私边界，以及看板静态资源、CSP 和同源请求约束。测试用内存 KV 模拟
+（`context.env` 形式），全局绑定路径由 `test/runtime.test.mjs` 单独覆盖。
+
 部署前还要在 EdgeOne 运行环境中核验：KV 绑定变量名为 `METRICS_KV`、相对模块导入可用，
-以及两个路由对工作方法之外的请求返回 `405`。`_lib/` 不需要额外防护：官方约定 `_` 前缀
-文件是内部模块、不参与路由，线上 `/_lib/collect.js` 已核验为 `404`。测试用内存 KV
-模拟（`context.env` 形式），全局绑定路径由 `test/runtime.test.mjs` 单独覆盖，两者都不
-替代平台上的联调。
+`/dashboard/` 与本地资源可访问，`/api/public-report` 在无 Cookie/Authorization 时返回
+`200`，`/api/report` 的鉴权和 `no-store` 边界未改变，以及三条函数路由对不支持的方法返回
+`405`。`_lib/` 不需要额外防护：官方约定 `_` 前缀文件是内部模块、不参与路由，线上
+`/_lib/collect.js` 已核验为 `404`。这些本地检查都不替代平台上的联调和缓存头核验。
 
 ## 平台差异（已在线上核验）
 
@@ -120,6 +134,7 @@ EdgeOne Edge Functions 的 `context.request` 是标准 `Request`，但 `request.
 
 同时核验通过：`DISABLED` 与 `MAINTENANCE_TOKEN` 通过 `context.env` 注入；`public/` 作为
 输出目录时 `/robots.txt` 可访问，`/_lib/*.js` 与 `/edge-functions/*` 均返回 `404`。
+公开看板、公开接口及其路由级安全头、缓存策略尚待 SPEC-0022 部署后线上核验。
 KV 写入后有一小段不可见期：线上出现过 `h_ver_*` 写入成功、报表首次读取却为空的
 情况，约一分钟后复测恢复，与 `consistency=eventual_60s` 一致；核对报表前留出同步窗口，
 读不到不要当成写入失败。

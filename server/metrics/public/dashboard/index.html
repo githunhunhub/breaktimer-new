@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f3f5f2" />
+    <link rel="icon" href="./mark.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./dashboard.css" />
+    <title>BreakTimer-new 装机统计</title>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="page-header">
+        <a class="brand" href="/dashboard/" aria-label="BreakTimer-new 装机统计首页">
+          <img src="./mark.svg" width="40" height="40" alt="" />
+          <span>
+            <strong>BreakTimer-new</strong>
+            <small>公开装机统计</small>
+          </span>
+        </a>
+        <div class="header-copy">
+          <p class="eyebrow">METRICS / PUBLIC VIEW</p>
+          <h1>装机趋势看板</h1>
+          <p>仅展示匿名 HLL 聚合估计，不包含逐装机记录。</p>
+        </div>
+      </header>
+
+      <section class="control-bar" aria-label="报表筛选">
+        <div class="control-group">
+          <span class="control-label" id="range-label">统计范围</span>
+          <div class="segmented" role="group" aria-labelledby="range-label">
+            <button id="range-7d" type="button" data-range="7d" aria-pressed="false">
+              最近 7 天
+            </button>
+            <button id="range-30d" type="button" data-range="30d" aria-pressed="true">
+              最近 30 天
+            </button>
+            <button id="range-90d" type="button" data-range="90d" aria-pressed="false">
+              最近 90 天
+            </button>
+          </div>
+        </div>
+        <div class="control-group">
+          <span class="control-label" id="granularity-label">粒度</span>
+          <div class="segmented" role="group" aria-labelledby="granularity-label">
+            <button
+              id="granularity-day"
+              type="button"
+              data-granularity="day"
+              aria-pressed="true"
+            >
+              按日
+            </button>
+            <button
+              id="granularity-month"
+              type="button"
+              data-granularity="month"
+              aria-pressed="false"
+            >
+              按月
+            </button>
+          </div>
+        </div>
+        <button class="refresh-button" id="refresh-button" type="button">
+          刷新数据
+        </button>
+      </section>
+
+      <div class="status-line" aria-live="polite">
+        <span id="data-updated">尚未读取数据</span>
+        <span id="data-window"></span>
+      </div>
+
+      <section class="page-state" id="loading-state" aria-live="polite">
+        <span class="loading-indicator" aria-hidden="true"></span>
+        <div>
+          <strong>正在读取聚合报表</strong>
+          <p>请求当前固定范围，不发送任何凭据。</p>
+        </div>
+      </section>
+
+      <section class="page-state" id="empty-state" aria-live="polite" hidden>
+        <strong>当前范围暂无装机数据</strong>
+        <p>统计草图可能仍在同步。可以稍后刷新，图表不会用虚构的零值趋势代替空数据。</p>
+      </section>
+
+      <section class="page-state error-state" id="error-state" role="alert" hidden>
+        <div>
+          <strong>报表暂时无法加载</strong>
+          <p>请稍后重试。当前范围与粒度会保留。</p>
+        </div>
+        <button id="retry-button" type="button">重试</button>
+      </section>
+
+      <main id="dashboard-content" hidden>
+        <section class="metric-grid" aria-label="概览指标">
+          <article class="metric-card metric-primary">
+            <p>累计装机 <span>M7</span></p>
+            <strong id="metric-total">0</strong>
+            <small>历史 install 草图去重估计</small>
+          </article>
+          <article class="metric-card">
+            <p>范围活跃 <span>M1 / M2</span></p>
+            <strong id="metric-active">0</strong>
+            <small>范围内每日活跃 HLL 合并</small>
+          </article>
+          <article class="metric-card">
+            <p>范围新增 <span>M5 / M6</span></p>
+            <strong id="metric-new">0</strong>
+            <small>按首次启动日归集并去重</small>
+          </article>
+          <article class="metric-card">
+            <p>版本数量 <span>M8</span></p>
+            <strong id="metric-versions">0</strong>
+            <small>历史首次上报版本数</small>
+          </article>
+        </section>
+
+        <div class="dashboard-grid">
+          <section class="panel">
+            <header class="panel-header">
+              <div>
+                <p class="panel-kicker">ACTIVE INSTALLS</p>
+                <h2>活跃装机趋势</h2>
+              </div>
+              <span class="metric-tag" id="active-metric-tag">M1</span>
+            </header>
+            <div class="chart-legend">
+              <span class="legend-active">实线 · 活跃装机</span>
+            </div>
+            <div class="chart-frame" id="active-chart"></div>
+          </section>
+
+          <section class="panel">
+            <header class="panel-header">
+              <div>
+                <p class="panel-kicker">NEW INSTALLS</p>
+                <h2>新增装机趋势</h2>
+              </div>
+              <span class="metric-tag warm" id="new-metric-tag">M5</span>
+            </header>
+            <div class="chart-legend">
+              <span class="legend-new">虚线 · 新增装机</span>
+            </div>
+            <div class="chart-frame" id="new-chart"></div>
+          </section>
+
+          <section class="panel">
+            <header class="panel-header">
+              <div>
+                <p class="panel-kicker">VERSION ADOPTION</p>
+                <h2>版本分布</h2>
+              </div>
+              <span class="metric-tag neutral">M8 · M3 / M4</span>
+            </header>
+            <div class="table-wrap">
+              <table class="data-table version-table">
+                <thead>
+                  <tr>
+                    <th scope="col">版本</th>
+                    <th scope="col">累计装机</th>
+                    <th scope="col">范围活跃</th>
+                  </tr>
+                </thead>
+                <tbody id="version-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel">
+            <header class="panel-header">
+              <div>
+                <p class="panel-kicker">RANGE DETAIL</p>
+                <h2>范围明细</h2>
+              </div>
+              <span class="metric-tag neutral" id="detail-metric-tag">M1 · M3 · M5</span>
+            </header>
+            <div
+              class="table-wrap detail-table-wrap"
+              tabindex="0"
+              aria-label="范围明细，可滚动"
+            >
+              <table class="data-table detail-table">
+                <thead>
+                  <tr>
+                    <th scope="col" id="period-heading">日期</th>
+                    <th scope="col">活跃</th>
+                    <th scope="col">新增</th>
+                    <th scope="col">活跃版本</th>
+                  </tr>
+                </thead>
+                <tbody id="detail-table-body"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <section class="methodology" aria-labelledby="methodology-title">
+          <div>
+            <p class="panel-kicker">DATA NOTES</p>
+            <h2 id="methodology-title">口径与延迟</h2>
+          </div>
+          <ul>
+            <li>统计单位是“装机”，不是“用户”；一人多机或复制便携数据目录会影响估计。</li>
+            <li>数值由 HLL 近似计算，通常存在约 1～3% 的相对误差。</li>
+            <li>KV 最终一致最多延迟约 60 秒；公开响应还可复用最多 60 秒缓存，因此相对采集时间可能累计延迟约 2 分钟。</li>
+            <li>无法统计卸载，累计装机不是现存用户数。</li>
+            <li>同一装机升级后可能同时出现在多个版本的活跃数据中，版本值不应相加当作总活跃。</li>
+          </ul>
+        </section>
+      </main>
+
+      <footer class="page-footer">
+        <span>匿名聚合 · HLL p=14 · 固定查询范围</span>
+        <span>BreakTimer-new metrics</span>
+      </footer>
+    </div>
+
+    <script type="module" src="./dashboard.js"></script>
+  </body>
+</html>

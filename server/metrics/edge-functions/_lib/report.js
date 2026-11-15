@@ -28,7 +28,7 @@ const MAX_RANGE_DAYS = 366;
 // request does not serialise thousands of round trips.
 const DAY_BATCH = 7;
 
-function eachDay(from, to) {
+export function eachDay(from, to) {
   const result = [];
   const cursor = Date.parse(`${from}T00:00:00Z`);
   const end = Date.parse(`${to}T00:00:00Z`);
@@ -38,7 +38,7 @@ function eachDay(from, to) {
   return result;
 }
 
-function monthsFor(days) {
+export function monthsFor(days) {
   const result = new Map();
   for (const day of days) {
     const month = day.slice(0, 7);
@@ -60,7 +60,7 @@ async function readDay(kv, keyFactory, day) {
   );
 }
 
-async function readDimension(kv, keyFactory, days, versioned = false) {
+export async function readDimension(kv, keyFactory, days, versioned = false) {
   const result = new Map();
   for (let start = 0; start < days.length; start += DAY_BATCH) {
     const batch = days.slice(start, start + DAY_BATCH);
@@ -77,7 +77,7 @@ async function readDimension(kv, keyFactory, days, versioned = false) {
   return result;
 }
 
-async function readGlobal(kv) {
+export async function readGlobal(kv) {
   const shards = Array.from({ length: SHARD_COUNT }, (_, shard) => shard);
   const [totals, versionMaps] = await Promise.all([
     Promise.all(shards.map((shard) => readSketch(kv, totalKey(shard)))),
