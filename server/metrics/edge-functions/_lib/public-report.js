@@ -25,6 +25,7 @@ const RANGE_DAYS = new Map([
 ]);
 const GRANULARITIES = new Set(["day", "month"]);
 const QUERY_FIELDS = new Set(["range", "granularity"]);
+const PUBLIC_DAY_BATCH = 30;
 const NO_STORE = { "Cache-Control": "no-store" };
 const PUBLIC_CACHE = {
   "Cache-Control": "public, max-age=60, s-maxage=60",
@@ -134,9 +135,9 @@ export async function publicReportRequest(context, options = {}) {
 
   try {
     const [active, versions, newInstalls, global] = await Promise.all([
-      readDimension(kv, activeKey, days),
-      readDimension(kv, versionKey, days, true),
-      readDimension(kv, newKey, days),
+      readDimension(kv, activeKey, days, false, PUBLIC_DAY_BATCH),
+      readDimension(kv, versionKey, days, true, PUBLIC_DAY_BATCH),
+      readDimension(kv, newKey, days, false, PUBLIC_DAY_BATCH),
       readGlobal(kv),
     ]);
     return response(

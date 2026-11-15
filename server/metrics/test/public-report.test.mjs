@@ -157,6 +157,30 @@ test("parses query without URLSearchParams entry iteration", async () => {
   }
 });
 
+test("90-day report fans out KV reads in 30-day batches", async () => {
+  let inFlight = 0;
+  let maxInFlight = 0;
+  const kv = {
+    async get() {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setImmediate(resolve));
+      inFlight -= 1;
+      return null;
+    },
+  };
+
+  const { response } = await buildPublicReport(
+    kv,
+    "range=90d&granularity=month",
+  );
+  assert.equal(response.status, 200);
+  assert.ok(
+    maxInFlight >= 1000,
+    `expected at least 1000 concurrent KV reads, saw ${maxInFlight}`,
+  );
+});
+
 test("rejects methods and every unbounded or ambiguous query shape", async () => {
   const kv = await seededKv();
   for (const method of ["POST", "PUT", "DELETE", "OPTIONS", "HEAD"]) {

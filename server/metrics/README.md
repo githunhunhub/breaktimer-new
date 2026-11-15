@@ -142,6 +142,9 @@ EdgeOne 的 `URLSearchParams` 支持 `keys()` / `get()`，但不支持 `Array.fr
 路由级 `Cache-Control` 会覆盖 Edge Function 返回的同名响应头。`/api/public-report` 因此
 不得在 `edgeone.json` 中配置 `Cache-Control`，由函数按结果分别返回成功 60 秒公开缓存与
 错误 `no-store`。KV 为空不是错误：公开接口返回 `200` 和全零报表，看板展示空状态。
+公开报表按 30 天批读取 KV：7 天批能让 90 天请求串行等待 13 轮，线上会触发 EdgeOne
+`545`；公开接口固定最多 90 天，使用 30 天批把它压缩为 3 轮。私有 `/api/report` 最大
+366 天，继续保持 7 天批以限制单次内存与并发规模。
 公开看板、公开接口及其路由级安全头、缓存策略尚待 SPEC-0022 部署后线上核验。
 KV 写入后有一小段不可见期：线上出现过 `h_ver_*` 写入成功、报表首次读取却为空的
 情况，约一分钟后复测恢复，与 `consistency=eventual_60s` 一致；核对报表前留出同步窗口，
@@ -160,6 +163,6 @@ KV 写入后有一小段不可见期：线上出现过 `h_ver_*` 写入成功、
 | Edge Functions 是 V8：无 npm / Node 内置模块，`Response.json()` 不可用 | `makers-edge-functions/SKILL.md`；本目录只用标准 Web API 与普通对象 headers |
 | 请求体 1 MB、单次 CPU 200 ms、代码包 5 MB | 同上；上报体上限 2 KB，单次写入 2～5 个 key，远低于限制 |
 | KV key 仅字母数字下划线、value ≤ 25 MB、`list` 单页 256 | `kv.md`；本目录不用 `list`，key 形如 `h_act_20261105_03` |
-| 批量读用 `Promise.all`，不要逐条 `await` | `kv.md` 最佳实践；`/api/report` 改为 7 天一批并发读取 |
+| 批量读用 `Promise.all`，不要逐条 `await` | `kv.md` 最佳实践；私有报表按 7 天批、公开报表按 30 天批并发读取 |
 | `edgeone.json` 可声明 `buildCommand` / `outputDirectory` / `redirects` / `rewrites` | `makers-frameworks` / `makers-deploy`；见上文构建参数的取舍 |
 | CLI 流程（≥ 1.7.0、`PAGES_SOURCE=skills`、`.edgeone/project.json`） | 本项目由 Git 推送触发构建，不经过 CLI，相关要求不适用 |

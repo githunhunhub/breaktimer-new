@@ -60,10 +60,16 @@ async function readDay(kv, keyFactory, day) {
   );
 }
 
-export async function readDimension(kv, keyFactory, days, versioned = false) {
+export async function readDimension(
+  kv,
+  keyFactory,
+  days,
+  versioned = false,
+  batchSize = DAY_BATCH,
+) {
   const result = new Map();
-  for (let start = 0; start < days.length; start += DAY_BATCH) {
-    const batch = days.slice(start, start + DAY_BATCH);
+  for (let start = 0; start < days.length; start += batchSize) {
+    const batch = days.slice(start, start + batchSize);
     const fetched = await Promise.all(
       batch.map((day) => readDay(kv, keyFactory, day)),
     );
