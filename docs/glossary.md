@@ -7,6 +7,7 @@
 | 产品名         | Product name           | 用户可见的 `BreakTimer-new`；技术包名和可执行文件使用小写 `breaktimer-new`                    |
 | 应用标识       | Application identifier | Tauri/Windows 身份 `com.githunhunhub.breaktimernew`，决定独立的数据、单实例、自启动与卸载身份 |
 | 休息           | Break                  | 一次提醒或强制的休息                                                                          |
+| 休息卡         | Break card             | 激活 Popup 休息时位于覆盖层中央的矩形或圆形卡片，显示标题、文案、倒计时与进度（SPEC-0021）    |
 | 全屏遮挡层     | Backdrop               | 休息时铺满每个显示器的覆盖层；可显示半透明视觉遮罩，也可只显示居中休息卡                      |
 | 输入阻断覆盖层 | Input-blocking overlay | 覆盖完整显示器 bounds、置顶且可聚焦的应用窗口，使底层应用、任务栏和托盘不能接收鼠标输入       |
 | 视觉遮罩       | Visual backdrop        | 由 `showBackdrop` 和 `backdropOpacity` 控制的半透明视觉层，不影响覆盖窗几何与输入阻断         |

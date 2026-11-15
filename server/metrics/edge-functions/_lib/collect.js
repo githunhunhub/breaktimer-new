@@ -26,11 +26,33 @@ import { envOf, getKv, NO_STORE, response, serverDayOf } from "./runtime.js";
 
 export const MAX_BODY_BYTES = 2048;
 
-/** Reads at most `limit` bytes without buffering an oversized request body. */
-async function readLimitedText(request, limit) {
-  if (!request.body) return request.text();
+/** Decodes UTF-8 even when the isolate builds without `TextDecoder`. */
+function decodeUtf8(bytes) {
+  if (typeof TextDecoder === "function") return new TextDecoder().decode(bytes);
+  let text = "";
+  for (let index = 0; index < bytes.length; index += 1) {
+    text += String.fromCharCode(bytes[index]);
+  }
+  return text;
+}
 
-  const reader = request.body.getReader();
+/** Normalises buffer-like bodies; `null` when the value is not byte shaped. */
+function toBytes(value) {
+  if (value instanceof Uint8Array) return value;
+  if (Array.isArray(value)) return Uint8Array.from(value);
+  if (value && typeof value === "object" && typeof value.length === "number") {
+    const bytes = new Uint8Array(value.length);
+    for (let index = 0; index < value.length; index += 1) {
+      bytes[index] = Number(value[index]) || 0;
+    }
+    return bytes;
+  }
+  return null;
+}
+
+/** Reads a web `ReadableStream` body, aborting once `limit` bytes are seen. */
+async function readStreamText(stream, limit) {
+  const reader = stream.getReader();
   const chunks = [];
   let length = 0;
   try {
@@ -60,7 +82,47 @@ async function readLimitedText(request, limit) {
     bytes.set(chunk, offset);
     offset += chunk.byteLength;
   }
-  return new TextDecoder().decode(bytes);
+  return decodeUtf8(bytes);
+}
+
+/**
+ * Reads at most `limit` bytes of the request body as UTF-8 text; `null` when the
+ * body is larger than `limit`.
+ *
+ * `text()` is tried first because EdgeOne buffers the payload for it while
+ * still exposing a `ReadableStream` in `body` that yields no bytes at all;
+ * reading that stream returns an empty string and looks like an empty request.
+ * Other runtimes only provide a stream, a buffered string/Buffer or `json()`,
+ * so every documented shape stays supported.
+ */
+async function readLimitedText(request, limit) {
+  if (typeof request?.text === "function") {
+    const text = await request.text();
+    if (typeof text !== "string") return null;
+    return text.length > limit ? null : text;
+  }
+
+  const body = request?.body;
+
+  if (body && typeof body.getReader === "function") {
+    return readStreamText(body, limit);
+  }
+  if (typeof body === "string") return body.length > limit ? null : body;
+
+  const bytes = toBytes(body);
+  if (bytes) return bytes.byteLength > limit ? null : decodeUtf8(bytes);
+
+  // Already-parsed objects: nothing to consume, so re-serialise for validation.
+  if (body && typeof body === "object") {
+    const text = JSON.stringify(body);
+    return text.length > limit ? null : text;
+  }
+  if (typeof request?.json === "function") {
+    const text = JSON.stringify(await request.json());
+    return text.length > limit ? null : text;
+  }
+
+  return "";
 }
 
 async function mergeSketchKey(kv, key, fingerprintValue) {

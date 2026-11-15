@@ -7,12 +7,8 @@ import { ipc } from "@/lib/ipc";
 import type { BreakStatus } from "@/types/breaks";
 import type { Settings } from "@/types/settings";
 
-import {
-  createDarkerRgba,
-  formatCountdown,
-  formatTimeSinceLastBreak,
-  localizedBreakText,
-} from "./utils";
+import { ActiveBreakCard } from "./active-break-card";
+import { formatTimeSinceLastBreak } from "./utils";
 
 export interface BreakClient {
   getSettings: () => Promise<Settings>;
@@ -52,7 +48,7 @@ function useNow(active: boolean): number {
 }
 
 export function BreakWindow({ client = ipc }: BreakWindowProps) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [status, setStatus] = useState<BreakStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -262,90 +258,14 @@ export function BreakWindow({ client = ipc }: BreakWindowProps) {
     );
   }
 
-  const progress = breakProgress?.progress ?? 0;
-
   return (
-    <main
-      className="relative flex h-full w-full items-center justify-center overflow-hidden bg-transparent p-6"
-      style={
-        settings.showBackdrop
-          ? undefined
-          : { backgroundColor: "rgba(0, 0, 0, 0.001)" }
-      }
-    >
-      {settings.showBackdrop && (
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 transition-opacity duration-500"
-          style={{
-            backgroundColor: createDarkerRgba(settings.backgroundColor),
-            opacity: settings.backdropOpacity,
-          }}
-        />
-      )}
-
-      <section
-        className="relative flex min-h-[300px] w-full max-w-[500px] flex-col justify-center overflow-hidden rounded-lg p-6 shadow-xl"
-        style={{
-          backgroundColor: settings.backgroundColor,
-          color: settings.textColor,
-        }}
-      >
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-3xl font-semibold tracking-tight">
-            {localizedBreakText(
-              settings.breakTitle,
-              "break.defaultTitle",
-              locale,
-            )}
-          </h1>
-          {settings.endBreakEnabled && (
-            <Button
-              className="shrink-0 border border-current/20 bg-transparent hover:bg-black/10"
-              disabled={busy}
-              onClick={() => void runAction(client.endBreak)}
-              variant="outline"
-            >
-              {t("break.cancel")}
-            </Button>
-          )}
-        </div>
-
-        <p className="mt-6 whitespace-pre-line text-lg font-medium opacity-80">
-          {localizedBreakText(
-            settings.breakMessage,
-            "break.defaultMessage",
-            locale,
-          )}
-        </p>
-
-        <div className="mt-6 w-full">
-          <div className="mb-2 flex justify-end text-sm font-medium tabular-nums opacity-60">
-            {formatCountdown(breakProgress?.remainingMs ?? 0)}
-          </div>
-          <div
-            className="h-2 w-full overflow-hidden rounded-full"
-            style={{ backgroundColor: "rgba(255, 255, 255, 0.2)" }}
-          >
-            <div
-              className="h-full transition-[width] duration-100 ease-out"
-              style={{
-                backgroundColor: settings.textColor,
-                width: `${progress * 100}%`,
-              }}
-            />
-          </div>
-        </div>
-
-        {error && (
-          <p
-            role="alert"
-            className="mt-4 rounded bg-black/20 px-3 py-2 text-sm"
-          >
-            {error}
-          </p>
-        )}
-      </section>
-    </main>
+    <ActiveBreakCard
+      settings={settings}
+      progress={breakProgress?.progress ?? 0}
+      remainingMs={breakProgress?.remainingMs ?? 0}
+      busy={busy}
+      error={error}
+      onCancel={() => void runAction(client.endBreak)}
+    />
   );
 }

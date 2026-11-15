@@ -106,6 +106,13 @@
         "primaryColor": "Primary color",
         "textColor": "Text color"
       },
+      "breakCard": {
+        "title": "Break card",
+        "helper": "Choose the shape of the active break card. The pre-break reminder stays rectangular.",
+        "shapeLabel": "Shape",
+        "rectangle": "Rectangle",
+        "circle": "Circle"
+      },
       "audio": {
         "title": "Audio",
         "breakSound": "Break sound",
@@ -185,6 +192,7 @@
       "snooze": "Snooze",
       "skip": "Skip",
       "cancel": "Cancel Break",
+      "progressLabel": "Break progress",
       "defaultTitle": "Time for a break.",
       "defaultMessage": "Rest your eyes.\nStretch your legs.\nBreathe. Relax.",
       "timeSince": "{duration} since last break"

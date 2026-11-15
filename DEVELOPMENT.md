@@ -175,6 +175,10 @@ pnpm release 0.2.0
 就不能再通过该命令重新发布；若 Actions 或 Release 发布失败，不要移动该 Tag，应修复后使用
 下一个 patch 版本。
 
+`app/scripts/*.ps1` 必须保存为 **UTF-8 with BOM**：`pnpm release` 由 Windows PowerShell 5.1
+执行，缺少 BOM 时脚本内的中文（例如提交信息 `chore(release): 发布 X.Y.Z`）会被按 ANSI 解码成
+乱码。`pnpm test` 中的 `scripts/script-encoding.test.mjs` 负责守住这条规则。
+
 查看 Workflow：
 
 ```powershell

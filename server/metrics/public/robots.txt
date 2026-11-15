@@ -1,0 +1,4 @@
+# BreakTimer-new metrics endpoint (SPEC-0018). Nothing here is meant to be
+# crawled or indexed: this origin only serves the collect and report routes.
+User-agent: *
+Disallow: /

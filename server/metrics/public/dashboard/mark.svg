@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-label="BreakTimer-new">
+  <rect width="48" height="48" rx="9" fill="#17221f"/>
+  <circle cx="24" cy="24" r="13" fill="none" stroke="#d9eeea" stroke-width="3"/>
+  <path d="M24 15v9l6 4" fill="none" stroke="#f7e6cf" stroke-linecap="round" stroke-width="3"/>
+  <path d="M33 12l4 4" stroke="#0f766e" stroke-linecap="round" stroke-width="3"/>
+</svg>

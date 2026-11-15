@@ -23,8 +23,12 @@ import { dayDistance, isRealDay } from "./validate.js";
 import { envOf, getKv, NO_STORE, response } from "./runtime.js";
 
 const MAX_RANGE_DAYS = 366;
+// KV reads are batched instead of issued one by one: a 366-day report touches
+// 366 × 16 shards × 3 dimensions. Batches keep the fan-out bounded so the edge
+// request does not serialise thousands of round trips.
+const DAY_BATCH = 7;
 
-function eachDay(from, to) {
+export function eachDay(from, to) {
   const result = [];
   const cursor = Date.parse(`${from}T00:00:00Z`);
   const end = Date.parse(`${to}T00:00:00Z`);
@@ -34,7 +38,7 @@ function eachDay(from, to) {
   return result;
 }
 
-function monthsFor(days) {
+export function monthsFor(days) {
   const result = new Map();
   for (const day of days) {
     const month = day.slice(0, 7);
@@ -48,26 +52,47 @@ async function readSketch(kv, key) {
   return deserializeSketch(await kv.get(key));
 }
 
-async function readDimension(kv, keyFactory, days, versioned = false) {
+async function readDay(kv, keyFactory, day) {
+  return Promise.all(
+    Array.from({ length: SHARD_COUNT }, (_, shard) =>
+      kv.get(keyFactory(day, shard)),
+    ),
+  );
+}
+
+export async function readDimension(
+  kv,
+  keyFactory,
+  days,
+  versioned = false,
+  batchSize = DAY_BATCH,
+) {
   const result = new Map();
-  for (const day of days) {
-    const values = [];
-    for (let shard = 0; shard < SHARD_COUNT; shard += 1) {
-      const value = await kv.get(keyFactory(day, shard));
-      values.push(versioned ? deserializeVersionMap(value) : deserializeSketch(value));
-    }
-    result.set(day, versioned ? mergeVersionMaps(values) : mergeSketches(values));
+  for (let start = 0; start < days.length; start += batchSize) {
+    const batch = days.slice(start, start + batchSize);
+    const fetched = await Promise.all(
+      batch.map((day) => readDay(kv, keyFactory, day)),
+    );
+    batch.forEach((day, index) => {
+      const values = fetched[index].map((value) =>
+        versioned ? deserializeVersionMap(value) : deserializeSketch(value),
+      );
+      result.set(day, versioned ? mergeVersionMaps(values) : mergeSketches(values));
+    });
   }
   return result;
 }
 
-async function readGlobal(kv) {
-  const totals = [];
-  const versionMaps = [];
-  for (let shard = 0; shard < SHARD_COUNT; shard += 1) {
-    totals.push(await readSketch(kv, totalKey(shard)));
-    versionMaps.push(deserializeVersionMap(await kv.get(installVersionKey(shard))));
-  }
+export async function readGlobal(kv) {
+  const shards = Array.from({ length: SHARD_COUNT }, (_, shard) => shard);
+  const [totals, versionMaps] = await Promise.all([
+    Promise.all(shards.map((shard) => readSketch(kv, totalKey(shard)))),
+    Promise.all(
+      shards.map(async (shard) =>
+        deserializeVersionMap(await kv.get(installVersionKey(shard))),
+      ),
+    ),
+  ]);
   return {
     totalInstalls: cardinality(mergeSketches(totals)),
     installsByVersion: versionCardinalities(mergeVersionMaps(versionMaps)),
