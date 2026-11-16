@@ -33,5 +33,6 @@
 | [SPEC-0021](0021-circular-break-card.md)              | 圆形休息卡（环形进度）                       | done        | SPEC-0002 · SPEC-0010 · SPEC-0014 · ADR-0004 · ADR-0007 · ADR-0027 · ADR-0028  | `components/break/`、`components/settings/`、`state/settings.rs`         |
 | [SPEC-0022](0022-public-metrics-dashboard.md)         | 公开装机统计看板                             | done        | SPEC-0018 · SPEC-0016 · ADR-0023 · ADR-0029                                    | `server/metrics/public/dashboard/`、`server/metrics/edge-functions/api/` |
 | [SPEC-0023](0023-release-hidden-download-metadata.md) | GitHub Release 仅保留隐藏下载元数据          | done        | ADR-0018 · ADR-0025 · ADR-0030 · SPEC-0015 · SPEC-0016 · SPEC-0017             | `app/scripts/release-downloads.mjs`、`.github/workflows/release.yml`     |
+| [SPEC-0024](0024-nsis-installer-languages.md)         | NSIS 安装器多语言                            | in-progress | SPEC-0011 · SPEC-0014                                                          | `app/src-tauri/tauri.conf.json`                                          |
 
 <!-- 新增 spec 后在此表追加一行。状态：draft / confirmed / in-progress / done / superseded -->

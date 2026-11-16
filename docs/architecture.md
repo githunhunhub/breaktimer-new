@@ -88,7 +88,7 @@
 
 | 关注点                                          | 主要文件                                                                                       | 相关文档                        |
 | ----------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------- |
-| 打包、窗口与图标配置                            | `app/src-tauri/tauri.conf.json`                                                                | SPEC-0011 · SPEC-0013           |
+| 打包、窗口、图标与 NSIS 安装语言配置            | `app/src-tauri/tauri.conf.json`                                                                | SPEC-0011 · SPEC-0013 · SPEC-0024 |
 | 便携 ZIP 打包                                   | `app/scripts/package-portable.ps1`                                                             | SPEC-0012                       |
 | 发布流水线与版本脚本                            | `.github/workflows/release.yml`、`app/scripts/release*.ps1`、`app/scripts/release-version.mjs` | SPEC-0015 · ADR-0013            |
 | 验证门禁脚本                                    | `app/scripts/verify.ps1`                                                                       | `AGENTS.md`                     |
