@@ -200,7 +200,7 @@ async function listKeys(kv, prefix, stats) {
     keys.push(
       ...result.keys.map((entry) => {
         if (typeof entry === "string") return entry;
-        if (entry && typeof entry.name === "string") return entry.name;
+        if (entry && typeof entry.key === "string") return entry.key;
         throw new Error("invalid KV list response");
       }),
     );

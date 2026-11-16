@@ -177,6 +177,8 @@ EdgeOne 的 `URLSearchParams` 支持 `keys()` / `get()`，但不支持 `Array.fr
 省略 `keys`，只有存在条目时才带 `keys` 数组；空页缺省 `keys` 不是 KV 故障。
 非空页若返回 `complete=false`，后续列举必须携带返回的 `cursor` 继续读取，直到
 `complete=true`；未完成分页不是 KV 故障，不能直接返回 `503`。
+EdgeOne `kv.list` 的 `keys` 条目使用 `{ key: "..." }`，key 名必须从 `key` 字段读取；
+不得按非官方 `name` 字段解码，否则列表成功后仍会抛错并让公开报表返回 `503`。
 namespace 非空时，公开报表按范围内每天分别列举 `h_act_YYYYMMDD_`、`h_new_YYYYMMDD_`、
 `h_ver_YYYYMMDD_` 三个实际前缀，再列举 `h_total_` 与 `h_install_ver_`，只对列表中实际
 存在的 key 执行 `get`。列表按固定批并发，不扫描整个历史 `h_` namespace。成功响应通过

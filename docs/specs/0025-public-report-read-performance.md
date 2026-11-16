@@ -45,6 +45,8 @@
 11. 公开报表诊断日志记录 `listPrefixCount`、`listPageCount`、`listedKeyCount`、
     `readKeyCount`、`cache`、`emptyNamespace`、结果行数与汇总计数，用于区分数据为空、
     列举异常、KV 读取失败和缓存命中；日志不得输出具体 KV key、value 或敏感请求信息。
+12. EdgeOne `kv.list` 返回的 `keys` 条目按官方契约从 `key` 字段读取 key 名；不得依赖
+    非官方的 `name` 字段，否则列表成功后在解码阶段抛错并让公开报表返回 `503`。
 
 ## 验收标准（可测）
 
@@ -61,12 +63,12 @@
 - [x] **D6** 缓存超过 60 秒失效并重新计算；KV 失败不缓存，后续请求仍按失败语义处理。
 - [x] **D7** 日/月粒度、范围汇总、版本分布、空日期补零、方法限制、参数白名单、隐私字段
       和 60 秒响应头全部保持原有测试覆盖。
-- [x] **D8** `server/metrics` 的 `npm test`（89 项）与 `app/` 的 `pnpm verify` 通过。
+- [x] **D8** `server/metrics` 的 `npm test`（90 项）与 `app/` 的 `pnpm verify` 通过。
 - [ ] **D9** 部署到预览或线上环境后，`7d`、`30d`、`90d` 的公网 TTFB 明显下降；同一 URL
       在 60 秒内重复请求能够命中缓存。该线上验收需要单独授权部署后完成。
 - [x] **D10** SPEC 索引、ADR 索引、架构说明、路线图和 `server/metrics/README.md` 已同步。
 - [x] **D11** 非空 `kv.list` 返回分页结果时，公开报表跟随 `cursor` 读完所有页，并从后续
-      页面返回的实际 key 生成报表，不再返回 `503`。
+      页面返回的 `{ key }` 条目生成报表，不再返回 `503`。
 - [x] **D12** 稀疏数据成功日志中的 `listedKeyCount` 等于实际指标 key 数，
       `readKeyCount` 等于执行 get 的 key 数；分页时 `listPageCount` 随之增加；缓存命中时
       两类读取计数均为 0。
@@ -103,7 +105,7 @@
 - [x] 测试：替换高扇出契约，覆盖稀疏 key 读取、真实前缀、并发上限、空 KV 与 Cache API。
 - [x] 服务端：增加按前缀列举现有 key 的读取路径，并让公开报表只 get 实际 key。
 - [x] 缓存：增加规范化 Cache API 键、60 秒内部有效期和成功响应写入。
-- [x] 验证：`server/metrics/npm test` 89 项通过；`app/pnpm verify` 全部通过。
+- [x] 验证：`server/metrics/npm test` 90 项通过；`app/pnpm verify` 全部通过。
 - [x] 回归修复：覆盖非空 `kv.list` 分页响应并补齐 `cursor` 列举；线上接口验证由 D9
   在部署后完成。
 - [ ] 线上验收：经单独授权部署后复测 7/30/90 天延迟和缓存命中。
@@ -112,6 +114,7 @@
 
 | 日期 | 变更 |
 | --- | --- |
+| 2026-11-16 | 按 EdgeOne `ListKey` 官方契约修正列表条目字段：从 `key` 读取 key 名，修复列表完成后解码报错导致的 `503` |
 | 2026-11-16 | 增加公开报表列举/读取/缓存计数日志，便于快速区分空 namespace、分页列举、KV 失败、缓存命中与正常零值 |
 | 2026-11-16 | 补充非空 `kv.list` 分页契约：`complete=false` 时继续使用 `cursor` 列举，修复线上公开报表 `503` |
 | 2026-11-16 | 将定时预聚合快照候选拆分为 SPEC-0026（draft，暂缓实现）；本 SPEC 保持当前动态读取与 60 秒 Cache API 方案 |

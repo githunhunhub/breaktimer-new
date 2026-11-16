@@ -27,7 +27,7 @@ class MemoryKv {
       .filter((key) => key.startsWith(prefix))
       .sort()
       .slice(0, limit)
-      .map((name) => ({ name }));
+      .map((key) => ({ key }));
     return { complete: keys.length < limit, cursor: null, keys };
   }
 }
@@ -379,6 +379,22 @@ test("lists only the three daily metric prefixes and global prefixes in range", 
   assert.deepEqual([...new Set(prefixes)].sort(), [...new Set(expected)].sort());
 });
 
+test("reads EdgeOne KV list entries from the key field", async () => {
+  const kv = await seededKv();
+
+  const { response, text } = await buildPublicReport(
+    kv,
+    "range=7d&granularity=day",
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(JSON.parse(text).summary, {
+    active: 2,
+    newInstalls: 2,
+    versionsActive: { "0.1.1": 1, "0.1.2": 2 },
+  });
+});
+
 test("follows KV list cursors for non-empty metric pages", async () => {
   const kv = await seededKv();
   const prefix = "h_act_20261103_";
@@ -395,7 +411,7 @@ test("follows KV list cursors for non-empty metric pages", async () => {
       return {
         complete: false,
         cursor: "next-page",
-        keys: [{ name: `${prefix}99` }],
+        keys: [{ key: `${prefix}99` }],
       };
     }
     assert.equal(options.cursor, "next-page");
