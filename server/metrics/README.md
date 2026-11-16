@@ -149,9 +149,12 @@ EdgeOne 的 `URLSearchParams` 支持 `keys()` / `get()`，但不支持 `Array.fr
 直接返回全零报表，不执行 7/30/90 天逐分片草图读取。该探测只读取 key 名称，不输出 KV
 元数据，也不改变 HLL value 结构。线上空页实际返回 `{ complete: true, cursor: "" }` 并
 省略 `keys`，只有存在条目时才带 `keys` 数组；空页缺省 `keys` 不是 KV 故障。
-公开报表按 30 天批读取 KV：7 天批能让 90 天请求串行等待 13 轮，线上会触发 EdgeOne
-`545`；公开接口固定最多 90 天，使用 30 天批把它压缩为 3 轮。私有 `/api/report` 最大
-366 天，继续保持 7 天批以限制单次内存与并发规模。
+namespace 非空时，公开报表按范围内每天分别列举 `h_act_YYYYMMDD_`、`h_new_YYYYMMDD_`、
+`h_ver_YYYYMMDD_` 三个实际前缀，再列举 `h_total_` 与 `h_install_ver_`，只对列表中实际
+存在的 key 执行 `get`。列表按固定批并发，不扫描整个历史 `h_` namespace。成功响应通过
+Cache API 按规范化的范围/粒度 URL 复用最多 60 秒，缓存命中时不访问 KV；缓存只保存 200
+响应。宿主提供 `waitUntil` 时缓存写入在响应后完成，不增加首次成功响应的等待时间。私有
+`/api/report` 仍按固定分片盲读，保持 7 天批和 `no-store`。
 公开看板、公开接口及其路由级安全头、缓存策略已于 2026-11-15 线上核验：`/dashboard` 与
 `/dashboard/`、CSS、脚本、图形资源均返回 `200`；空 KV 下六种公开查询均返回全零 `200`
 报表和 60 秒公开缓存，私有接口保持 `401`/`403` 与 `no-store`；1440px/375px 浏览器检查

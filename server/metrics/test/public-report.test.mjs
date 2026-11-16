@@ -31,6 +31,21 @@ class MemoryKv {
   }
 }
 
+class MemoryCache {
+  constructor() {
+    this.entries = new Map();
+  }
+
+  async match(request) {
+    const response = this.entries.get(request.url);
+    return response ? response.clone() : undefined;
+  }
+
+  async put(request, response) {
+    this.entries.set(request.url, response.clone());
+  }
+}
+
 function event(installId, overrides = {}) {
   return {
     schema: 1,
@@ -87,8 +102,14 @@ async function buildPublicReport(kv, query = "", options = {}) {
     {
       request,
       env: options.env || { METRICS_KV: kv },
+      waitUntil: options.waitUntil,
     },
-    { now: () => Date.parse(`${options.nowDay || SERVER_DAY}T12:00:00Z`) },
+    {
+      cache: options.cache,
+      now: () =>
+        options.nowMs ??
+        Date.parse(`${options.nowDay || SERVER_DAY}T12:00:00Z`),
+    },
   );
   return { response, text: await response.text() };
 }
@@ -219,28 +240,239 @@ test("empty KV returns zero reports for every public query without reading HLL k
   }
 });
 
-test("90-day report fans out KV reads in 30-day batches", async () => {
-  let inFlight = 0;
-  let maxInFlight = 0;
-  const kv = {
-    async get() {
-      inFlight += 1;
-      maxInFlight = Math.max(maxInFlight, inFlight);
-      await new Promise((resolve) => setImmediate(resolve));
-      inFlight -= 1;
-      return null;
-    },
+test("sparse 90-day report reads only metric keys present in the range", async () => {
+  const kv = await seededKv();
+  const actualKeys = [...kv.values.keys()]
+    .filter((key) =>
+      /^h_(?:act|new|ver)_\d{8}_\d{2}$/.test(key) ||
+      /^h_(?:total|install_ver)_\d{2}$/.test(key),
+    )
+    .sort();
+  const readKeys = [];
+  const originalGet = kv.get.bind(kv);
+  kv.get = async (key) => {
+    readKeys.push(key);
+    return originalGet(key);
   };
 
   const { response } = await buildPublicReport(
     kv,
     "range=90d&granularity=month",
   );
+
   assert.equal(response.status, 200);
-  assert.ok(
-    maxInFlight >= 1000,
-    `expected at least 1000 concurrent KV reads, saw ${maxInFlight}`,
+  assert.deepEqual([...new Set(readKeys)].sort(), actualKeys);
+  assert.ok(readKeys.length < 100, `expected sparse reads, saw ${readKeys.length}`);
+});
+
+test("lists only the three daily metric prefixes and global prefixes in range", async () => {
+  const kv = await seededKv();
+  const prefixes = [];
+  const originalList = kv.list.bind(kv);
+  kv.list = async (options) => {
+    prefixes.push(options.prefix);
+    return originalList(options);
+  };
+
+  const { response } = await buildPublicReport(kv, "range=7d&granularity=day");
+
+  assert.equal(response.status, 200);
+  const days = [
+    "20261030",
+    "20261031",
+    "20261101",
+    "20261102",
+    "20261103",
+    "20261104",
+    "20261105",
+  ];
+  const expected = [
+    "h_",
+    ...days.flatMap((day) => [
+      `h_act_${day}_`,
+      `h_new_${day}_`,
+      `h_ver_${day}_`,
+    ]),
+    "h_install_ver_",
+    "h_total_",
+  ];
+  assert.deepEqual([...new Set(prefixes)].sort(), [...new Set(expected)].sort());
+});
+
+test("reuses a successful report from the normalized cache without KV access", async () => {
+  const kv = await seededKv();
+  const cache = new MemoryCache();
+  let kvCalls = 0;
+  for (const method of ["get", "list"]) {
+    const original = kv[method].bind(kv);
+    kv[method] = async (...args) => {
+      kvCalls += 1;
+      return original(...args);
+    };
+  }
+
+  const first = await buildPublicReport(
+    kv,
+    "granularity=day&range=30d",
+    { cache },
   );
+  assert.equal(first.response.status, 200);
+  assert.ok(kvCalls > 0);
+  const callsAfterFirst = kvCalls;
+
+  const second = await buildPublicReport(null, "", {
+    cache,
+    env: {},
+  });
+
+  assert.equal(second.response.status, 200);
+  assert.equal(second.text, first.text);
+  assert.equal(kvCalls, callsAfterFirst);
+  assert.match(second.response.headers.get("cache-control"), /max-age=60/);
+});
+
+test("expires a cached report after 60 seconds", async () => {
+  const kv = await seededKv();
+  const cache = new MemoryCache();
+  let kvCalls = 0;
+  for (const method of ["get", "list"]) {
+    const original = kv[method].bind(kv);
+    kv[method] = async (...args) => {
+      kvCalls += 1;
+      return original(...args);
+    };
+  }
+  const requestedAt = Date.parse(`${SERVER_DAY}T12:00:00Z`);
+
+  const first = await buildPublicReport(kv, "range=7d&granularity=day", {
+    cache,
+    nowMs: requestedAt,
+  });
+  assert.equal(first.response.status, 200);
+  const callsAfterFirst = kvCalls;
+
+  const stillFresh = await buildPublicReport(null, "range=7d&granularity=day", {
+    cache,
+    env: {},
+    nowMs: requestedAt + 59_999,
+  });
+  assert.equal(stillFresh.response.status, 200);
+  assert.equal(kvCalls, callsAfterFirst);
+
+  const expired = await buildPublicReport(kv, "range=7d&granularity=day", {
+    cache,
+    nowMs: requestedAt + 60_000,
+  });
+  assert.equal(expired.response.status, 200);
+  assert.ok(kvCalls > callsAfterFirst);
+});
+
+test("does not cache KV failures", async () => {
+  const cache = new MemoryCache();
+  const brokenKv = {
+    async list() {
+      throw new Error("KV unavailable");
+    },
+  };
+
+  const failed = await buildPublicReport(brokenKv, "range=7d&granularity=day", {
+    cache,
+  });
+  assert.equal(failed.response.status, 503);
+  assert.equal(failed.text, "service unavailable");
+
+  const kv = await seededKv();
+  const recovered = await buildPublicReport(
+    kv,
+    "range=7d&granularity=day",
+    { cache },
+  );
+  assert.equal(recovered.response.status, 200);
+
+  const cached = await buildPublicReport(null, "range=7d&granularity=day", {
+    cache,
+    env: {},
+  });
+  assert.equal(cached.response.status, 200);
+  assert.equal(cached.text, recovered.text);
+});
+
+test("cache API failures fall back to the live report", async () => {
+  const kv = await seededKv();
+  const cache = {
+    async match() {
+      throw new Error("cache read failed");
+    },
+    async put() {
+      throw new Error("cache write failed");
+    },
+  };
+
+  const { response, text } = await buildPublicReport(
+    kv,
+    "range=7d&granularity=day",
+    { cache },
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(JSON.parse(text).summary, {
+    active: 2,
+    newInstalls: 2,
+    versionsActive: { "0.1.1": 1, "0.1.2": 2 },
+  });
+});
+
+test("defers cache writes through waitUntil when the host provides it", async () => {
+  const kv = await seededKv();
+  const cache = new MemoryCache();
+  const pending = [];
+
+  const { response } = await buildPublicReport(
+    kv,
+    "range=7d&granularity=day",
+    {
+      cache,
+      waitUntil(promise) {
+        pending.push(promise);
+      },
+    },
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(pending.length, 1);
+  await Promise.all(pending);
+  assert.equal(cache.entries.size, 1);
+});
+
+test("caps public KV operations at eight in flight", async () => {
+  const kv = await seededKv();
+  let inFlight = 0;
+  let maxInFlight = 0;
+  let calls = 0;
+  for (const method of ["get", "list"]) {
+    const original = kv[method].bind(kv);
+    kv[method] = async (...args) => {
+      calls += 1;
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 1));
+        return await original(...args);
+      } finally {
+        inFlight -= 1;
+      }
+    };
+  }
+
+  const { response } = await buildPublicReport(
+    kv,
+    "range=90d&granularity=month",
+  );
+
+  assert.equal(response.status, 200);
+  assert.ok(calls > 100, `expected many bounded operations, saw ${calls}`);
+  assert.ok(maxInFlight > 1, "expected concurrent KV operations");
+  assert.ok(maxInFlight <= 8, `expected at most 8 in flight, saw ${maxInFlight}`);
 });
 
 test("rejects methods and every unbounded or ambiguous query shape", async () => {
