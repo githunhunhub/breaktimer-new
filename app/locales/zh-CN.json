@@ -174,7 +174,7 @@
         "portableStep4": "不要删除或覆盖 data\\ 文件夹；设置和运行数据保存在那里。",
         "portableStep5": "重新运行 breaktimer-new.exe。",
         "installedTitle": "安装版更新步骤",
-        "installedHint": "下载 NSIS 安装包，退出 BreakTimer-new 后运行安装包覆盖安装；设置会保留。",
+        "installedHint": "下载 exe 安装包，退出 BreakTimer-new 后运行安装包覆盖安装；设置会保留。",
         "errors": {
           "network": "网络不可用。",
           "timeout": "请求超时。",

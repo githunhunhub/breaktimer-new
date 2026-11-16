@@ -88,7 +88,7 @@
 
 | 关注点                                          | 主要文件                                                                                       | 相关文档                        |
 | ----------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------- |
-| 打包、窗口与图标配置                            | `app/src-tauri/tauri.conf.json`                                                                | SPEC-0011 · SPEC-0013           |
+| 打包、窗口、图标与 NSIS 安装语言配置            | `app/src-tauri/tauri.conf.json`                                                                | SPEC-0011 · SPEC-0013 · SPEC-0024 |
 | 便携 ZIP 打包                                   | `app/scripts/package-portable.ps1`                                                             | SPEC-0012                       |
 | 发布流水线与版本脚本                            | `.github/workflows/release.yml`、`app/scripts/release*.ps1`、`app/scripts/release-version.mjs` | SPEC-0015 · ADR-0013            |
 | 验证门禁脚本                                    | `app/scripts/verify.ps1`                                                                       | `AGENTS.md`                     |
@@ -133,8 +133,10 @@
 - 公开统计只通过同源 `/api/public-report` 读取固定 7/30/90 天范围与 `day` / `month`
   粒度，成功响应缓存 60 秒；维护者 `/api/report` 继续要求令牌、支持任意范围与 CSV，
   并使用 `no-store`。两者都不新增 CORS，公开前端不接触维护令牌（SPEC-0022、ADR-0029）。
-  公开报表先用指标 key 前缀做一次无数据探测；空 KV 直接返回全零报表，不扫描不存在的
-  HLL 草图（SPEC-0022 D16）。
+  公开报表先用指标 key 前缀做一次无数据探测；空 KV 直接返回全零报表。namespace 非空时，
+  按范围内每天三个维度前缀和两个全局前缀列举实际 key，只读取列表中存在的 HLL 草图；
+  成功响应通过 Cache API 复用 60 秒，命中时不访问 KV（SPEC-0022 D16、SPEC-0025、
+  ADR-0031、ADR-0032）。
 
 ## 落地状态（摘要）
 
