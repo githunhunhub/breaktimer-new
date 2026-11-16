@@ -7,11 +7,12 @@
 
 ## 从这里读起
 
-1. [`docs/overview.md`](docs/overview.md) —— 目标、范围、非目标
-2. [`docs/roadmap.md`](docs/roadmap.md) —— 开发计划
-3. [`docs/architecture.md`](docs/architecture.md) —— 现状与目标架构
-4. [`docs/decisions/README.md`](docs/decisions/README.md) —— 为什么这样决定（ADR 索引）
-5. [`AGENTS.md`](AGENTS.md) —— AI 协作约定（也定义了整个目录结构）
+1. [`AGENTS.md`](AGENTS.md) —— AI 协作入口、边界与完成定义
+2. [`docs/overview.md`](docs/overview.md) —— 目标、范围、非目标
+3. [`docs/roadmap.md`](docs/roadmap.md) —— 开发计划
+4. [`docs/architecture.md`](docs/architecture.md) —— 现状、目标架构与代码地图
+5. [`docs/decisions/README.md`](docs/decisions/README.md) —— 为什么这样决定（ADR 索引）
+6. [`docs/specs/README.md`](docs/specs/README.md) —— 需求规格索引；按当前任务打开相关 SPEC
 
 ## 目录结构
 
