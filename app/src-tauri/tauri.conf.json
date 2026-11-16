@@ -43,6 +43,10 @@
         "installerIcon": "icons/icon.ico",
         "uninstallerIcon": "icons/icon.ico",
         "languages": ["English", "SimpChinese"],
+        "customLanguageFiles": {
+          "English": "nsis/English.nsh",
+          "SimpChinese": "nsis/SimpChinese.nsh"
+        },
         "displayLanguageSelector": false
       }
     }
