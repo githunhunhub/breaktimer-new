@@ -12,6 +12,7 @@ import {
 
 const INSTALL_ID = "6f1f0d6a-1f5c-4c19-9a4e-0d2b6a4f9c11";
 const SERVER_DAY = "2026-11-05";
+const LOG_PREFIX = "breaktimer-metrics";
 
 function installEvent(overrides = {}) {
   return {
@@ -87,8 +88,16 @@ async function handle(payload, options = {}) {
   const response = await collectRequest(context, {
     serverDay: SERVER_DAY,
     now: () => Date.parse(`${SERVER_DAY}T00:00:00Z`),
+    logger: options.logger || (() => {}),
   });
   return { kv, request, response };
+}
+
+function parseLogs(lines) {
+  return lines.map((line) => {
+    assert.equal(line.startsWith(`${LOG_PREFIX} `), true);
+    return JSON.parse(line.slice(LOG_PREFIX.length + 1));
+  });
 }
 
 test("DISABLED returns 410 before reading the request", async () => {
@@ -164,6 +173,7 @@ test("accepts every request-body shape an EdgeOne isolate may expose", async () 
     const response = await collectRequest(context, {
       serverDay: SERVER_DAY,
       now: () => Date.parse(`${SERVER_DAY}T00:00:00Z`),
+      logger: () => {},
     });
     assert.equal(response.status, 204, `${name} body should be accepted`);
     assert.equal(kv.writes.length, 5, `${name} body should write sketches`);
@@ -178,7 +188,10 @@ test("caps buffered bodies that arrive without a stream", async () => {
       body: "x".repeat(MAX_BODY_BYTES + 1),
     },
   });
-  const response = await collectRequest(context, { serverDay: SERVER_DAY });
+  const response = await collectRequest(context, {
+    serverDay: SERVER_DAY,
+    logger: () => {},
+  });
   assert.equal(response.status, 413);
 });
 
@@ -200,6 +213,7 @@ test("prefers text() over an empty body stream like EdgeOne does", async () => {
   const response = await collectRequest(context, {
     serverDay: SERVER_DAY,
     now: () => Date.parse(`${SERVER_DAY}T00:00:00Z`),
+    logger: () => {},
   });
   assert.equal(response.status, 204);
   assert.equal(kv.writes.length, 5);
@@ -213,7 +227,10 @@ test("caps text() bodies too", async () => {
       text: async () => "x".repeat(MAX_BODY_BYTES + 1),
     },
   });
-  const response = await collectRequest(context, { serverDay: SERVER_DAY });
+  const response = await collectRequest(context, {
+    serverDay: SERVER_DAY,
+    logger: () => {},
+  });
   assert.equal(response.status, 413);
 });
 
@@ -284,13 +301,79 @@ test("KV write failure returns 500 so the client can retry", async () => {
   assert.equal(response.headers.get("cache-control"), "no-store");
 });
 
-test("collect has no IP/geo/body logging calls", async () => {
-  const { readFile } = await import("node:fs/promises");
-  const source = await readFile(
-    new URL("../edge-functions/_lib/collect.js", import.meta.url),
-    "utf8",
+test("logs successful collect with aggregate metadata and no identifiers", async () => {
+  const logs = [];
+  const { response } = await handle(installEvent(), {
+    logger: (line) => logs.push(line),
+  });
+
+  assert.equal(response.status, 204);
+  assert.equal(logs.length, 1);
+  const entry = parseLogs(logs)[0];
+  assert.equal(entry.service, "metrics");
+  assert.equal(entry.event, "collect");
+  assert.equal(entry.outcome, "ok");
+  assert.equal(entry.stage, "complete");
+  assert.equal(entry.status, 204);
+  assert.equal(entry.eventType, "install");
+  assert.equal(entry.version, "0.1.1");
+  assert.equal(entry.day, SERVER_DAY);
+  assert.equal(entry.firstLaunchDay, "2026-11-01");
+  assert.equal(entry.writeCount, 5);
+  assert.equal(typeof entry.durationMs, "number");
+  const output = JSON.stringify(entry);
+  assert.equal(output.includes(INSTALL_ID), false);
+  assert.equal(output.includes("203.0.113.9"), false);
+  assert.equal(output.toLowerCase().includes("installid"), false);
+});
+
+test("logger failures do not change a successful collect response", async () => {
+  const { response } = await handle(installEvent(), {
+    logger: () => {
+      throw new Error("logger unavailable");
+    },
+  });
+
+  assert.equal(response.status, 204);
+});
+
+test("logs collect rejection without request body content", async () => {
+  const logs = [];
+  const { response } = await handle(
+    installEvent({ ip: "203.0.113.9" }),
+    { logger: (line) => logs.push(line) },
   );
-  for (const banned of ["clientIp", "request.eo", "console.log", "JSON.stringify(payload)"]) {
-    assert.equal(source.includes(banned), false, `collect source contains ${banned}`);
-  }
+
+  assert.equal(response.status, 400);
+  assert.equal(logs.length, 1);
+  const entry = parseLogs(logs)[0];
+  assert.equal(entry.event, "collect");
+  assert.equal(entry.outcome, "rejected");
+  assert.equal(entry.stage, "validate");
+  assert.equal(entry.status, 400);
+  assert.equal(entry.error, "unexpected field: ip");
+  const output = JSON.stringify(entry);
+  assert.equal(output.includes(INSTALL_ID), false);
+  assert.equal(output.includes("203.0.113.9"), false);
+});
+
+test("logs collect KV failure stage and sanitized error", async () => {
+  const logs = [];
+  const kv = new MemoryKv();
+  kv.failPut = true;
+  const { response } = await handle(installEvent(), {
+    kv,
+    logger: (line) => logs.push(line),
+  });
+
+  assert.equal(response.status, 500);
+  assert.equal(logs.length, 1);
+  const entry = parseLogs(logs)[0];
+  assert.equal(entry.event, "collect");
+  assert.equal(entry.outcome, "error");
+  assert.equal(entry.stage, "kv_write");
+  assert.equal(entry.status, 500);
+  assert.equal(entry.writeCount, 0);
+  assert.equal(entry.error, "KV unavailable");
+  assert.equal(JSON.stringify(entry).includes(INSTALL_ID), false);
 });

@@ -65,6 +65,11 @@
     发布流程或客户端上报行为。
 13. 空 KV namespace 不得触发逐日、逐分片的 HLL 草图读取；公开接口应先做一次指标 key
     前缀存在性探测，无指标 key 时直接返回完整的 200 全零报表。
+14. `/api/public-report` 输出 `breaktimer-metrics` 单行 JSON 诊断日志，区分
+    `cache=hit|miss|bypass`、空 namespace、列举页数、实际读取 key 数、范围汇总计数、
+    行数、阶段、状态和耗时。Cache API 读写失败记录 warning 后继续现有 best-effort 行为。
+15. 公开报表日志不得读取或记录 `Authorization`、Cookie、IP/GEO、完整请求头、KV 原始
+    value 或维护令牌；错误摘要继续执行统一脱敏和截断。
 
 ## 验收标准（可测）
 
@@ -108,6 +113,10 @@
       2026-11-15 线上空 KV 核验六种组合全部返回 `200` 全零报表和
       `Cache-Control: public, max-age=60, s-maxage=60`；本地回归测试断言每种查询仅调用
       一次 `list` 且不调用 `get`。
+- [x] **D17** 公开报表成功日志含范围、粒度、缓存状态、空 namespace、列举/读取计数、
+      `summary.active`、`summary.newInstalls`、版本数和行数，且不含敏感字段。
+- [x] **D18** 缓存命中日志显示 `cache=hit` 且读取计数为 0；Cache API 读写失败产生
+      warning 日志但不改变成功响应；空 namespace 日志显示 `emptyNamespace=true`。
 
 ## 非目标 / 边界
 
@@ -173,6 +182,7 @@
 
 | 日期 | 变更 |
 | --- | --- |
+| 2026-11-16 | 增加公开报表结构化诊断日志：覆盖缓存命中/未命中/旁路、空 namespace、列举与读取计数、汇总计数及 Cache API 失败告警，并保持敏感字段隔离 |
 | 2026-11-16 | 非空稀疏数据的读取策略由 SPEC-0025、ADR-0031 与 ADR-0032 调整：保留空 KV 单次探测，改为按范围内每天三个实际维度前缀列举 key，并用 Cache API 复用 60 秒成功响应 |
 | 2026-11-15 | 完成线上部署核验：看板与本地资源、六种公开查询、公开缓存头、私有接口 `401`/`403` 边界及 1440px/375px 浏览器布局全部通过；D14、D16 完成，状态改为 `done` |
 | 2026-11-15 | 修复空 KV 快速路径仍返回 `503`：线上 `kv.list` 的空页返回 `{ complete: true, cursor: "" }` 并省略 `keys`，原实现误判为无效响应；回归测试改为覆盖 7/30/90 天与日/月六种组合 |

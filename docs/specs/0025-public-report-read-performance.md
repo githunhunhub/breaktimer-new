@@ -40,6 +40,11 @@
 8. 保持现有公开响应字段、日/月粒度合并语义、HLL 口径、隐私白名单、60 秒公开
    `Cache-Control` 和通用错误响应不变。
 9. 私有 `/api/report` 的鉴权、任意日期范围、JSON/CSV 输出与 `no-store` 行为不变。
+10. `kv.list` 返回 `complete=false` 时必须携带 `cursor` 继续列举，直到
+    `complete=true`；未完成分页不是 KV 错误，也不得因此让公开报表返回 `503`。
+11. 公开报表诊断日志记录 `listPrefixCount`、`listPageCount`、`listedKeyCount`、
+    `readKeyCount`、`cache`、`emptyNamespace`、结果行数与汇总计数，用于区分数据为空、
+    列举异常、KV 读取失败和缓存命中；日志不得输出具体 KV key、value 或敏感请求信息。
 
 ## 验收标准（可测）
 
@@ -56,10 +61,15 @@
 - [x] **D6** 缓存超过 60 秒失效并重新计算；KV 失败不缓存，后续请求仍按失败语义处理。
 - [x] **D7** 日/月粒度、范围汇总、版本分布、空日期补零、方法限制、参数白名单、隐私字段
       和 60 秒响应头全部保持原有测试覆盖。
-- [x] **D8** `server/metrics` 的 `npm test`（72 项）与 `app/` 的 `pnpm verify` 通过。
+- [x] **D8** `server/metrics` 的 `npm test`（89 项）与 `app/` 的 `pnpm verify` 通过。
 - [ ] **D9** 部署到预览或线上环境后，`7d`、`30d`、`90d` 的公网 TTFB 明显下降；同一 URL
       在 60 秒内重复请求能够命中缓存。该线上验收需要单独授权部署后完成。
 - [x] **D10** SPEC 索引、ADR 索引、架构说明、路线图和 `server/metrics/README.md` 已同步。
+- [x] **D11** 非空 `kv.list` 返回分页结果时，公开报表跟随 `cursor` 读完所有页，并从后续
+      页面返回的实际 key 生成报表，不再返回 `503`。
+- [x] **D12** 稀疏数据成功日志中的 `listedKeyCount` 等于实际指标 key 数，
+      `readKeyCount` 等于执行 get 的 key 数；分页时 `listPageCount` 随之增加；缓存命中时
+      两类读取计数均为 0。
 
 ## 非目标 / 边界
 
@@ -83,6 +93,8 @@
   仍是 best effort，不改变响应。
 - 缓存命中必须在获取 KV 绑定之前判断，使短期缓存不仅减少 KV 读取，也能在 KV 暂时不可用
   时继续提供尚未过期的成功快照。
+- 日志计数由实际列举、过滤和读取路径产生，不从理论分片数推算；这样线上出现空报表时，
+  可直接区分 `emptyNamespace=true`、列举结果被前缀过滤、KV 读取异常和正常零值。
 
 ## 实现计划
 
@@ -91,13 +103,17 @@
 - [x] 测试：替换高扇出契约，覆盖稀疏 key 读取、真实前缀、并发上限、空 KV 与 Cache API。
 - [x] 服务端：增加按前缀列举现有 key 的读取路径，并让公开报表只 get 实际 key。
 - [x] 缓存：增加规范化 Cache API 键、60 秒内部有效期和成功响应写入。
-- [x] 验证：`server/metrics/npm test` 72 项通过；`app/pnpm verify` 全部通过。
+- [x] 验证：`server/metrics/npm test` 89 项通过；`app/pnpm verify` 全部通过。
+- [x] 回归修复：覆盖非空 `kv.list` 分页响应并补齐 `cursor` 列举；线上接口验证由 D9
+  在部署后完成。
 - [ ] 线上验收：经单独授权部署后复测 7/30/90 天延迟和缓存命中。
 
 ## 变更记录
 
 | 日期 | 变更 |
 | --- | --- |
+| 2026-11-16 | 增加公开报表列举/读取/缓存计数日志，便于快速区分空 namespace、分页列举、KV 失败、缓存命中与正常零值 |
+| 2026-11-16 | 补充非空 `kv.list` 分页契约：`complete=false` 时继续使用 `cursor` 列举，修复线上公开报表 `503` |
 | 2026-11-16 | 将定时预聚合快照候选拆分为 SPEC-0026（draft，暂缓实现）；本 SPEC 保持当前动态读取与 60 秒 Cache API 方案 |
 | 2026-11-16 | 补充 `context.waitUntil` 后台写入 Cache API，避免首次成功响应等待缓存写入完成 |
 | 2026-11-16 | 本地实现与验证完成：真实日前缀列举、稀疏 key 读取、8 并发上限、60 秒 Cache API 命中/过期/失败回退及 `waitUntil` 后台写入均有测试；统计服务 72 项测试和 `app/pnpm verify` 通过，仅剩部署后的线上延迟验收 |

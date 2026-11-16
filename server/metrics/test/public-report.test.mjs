@@ -7,6 +7,7 @@ import { publicReportRequest } from "../edge-functions/_lib/public-report.js";
 const SERVER_DAY = "2026-11-05";
 const ID_A = "6f1f0d6a-1f5c-4c19-9a4e-0d2b6a4f9c11";
 const ID_B = "34a3e9cf-7701-4b8c-8c5d-5ed3f8154b4e";
+const LOG_PREFIX = "breaktimer-metrics";
 
 class MemoryKv {
   constructor(values = {}) {
@@ -83,7 +84,11 @@ async function seededKv() {
     });
     const response = await collectRequest(
       { request, env: { DISABLED: "0", METRICS_KV: kv } },
-      { serverDay: payload.day, now: () => Date.parse(`${payload.day}T00:00:00Z`) },
+      {
+        serverDay: payload.day,
+        now: () => Date.parse(`${payload.day}T00:00:00Z`),
+        logger: () => {},
+      },
     );
     assert.equal(response.status, 204);
   }
@@ -109,9 +114,17 @@ async function buildPublicReport(kv, query = "", options = {}) {
       now: () =>
         options.nowMs ??
         Date.parse(`${options.nowDay || SERVER_DAY}T12:00:00Z`),
+      logger: options.logger || (() => {}),
     },
   );
   return { response, text: await response.text() };
+}
+
+function parseLogs(lines) {
+  return lines.map((line) => {
+    assert.equal(line.startsWith(`${LOG_PREFIX} `), true);
+    return JSON.parse(line.slice(LOG_PREFIX.length + 1));
+  });
 }
 
 test("defaults to a public 30-day daily report without authentication", async () => {
@@ -265,6 +278,73 @@ test("sparse 90-day report reads only metric keys present in the range", async (
   assert.ok(readKeys.length < 100, `expected sparse reads, saw ${readKeys.length}`);
 });
 
+test("logs sparse report reads with actual list and read counts", async () => {
+  const kv = await seededKv();
+  const logs = [];
+
+  const { response } = await buildPublicReport(
+    kv,
+    "range=90d&granularity=month",
+    { logger: (line) => logs.push(line) },
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(logs.length, 1);
+  const entry = parseLogs(logs)[0];
+  assert.equal(entry.service, "metrics");
+  assert.equal(entry.event, "public_report");
+  assert.equal(entry.outcome, "ok");
+  assert.equal(entry.stage, "complete");
+  assert.equal(entry.status, 200);
+  assert.equal(entry.range, "90d");
+  assert.equal(entry.granularity, "month");
+  assert.equal(entry.cache, "bypass");
+  assert.equal(entry.emptyNamespace, false);
+  assert.equal(entry.listPrefixCount, 273);
+  assert.equal(entry.listPageCount, 273);
+  assert.equal(entry.listedKeyCount, 12);
+  assert.equal(entry.readKeyCount, 12);
+  assert.equal(entry.summaryActive, 2);
+  assert.equal(entry.summaryNewInstalls, 2);
+  assert.equal(entry.totalInstalls, 2);
+  assert.equal(entry.versionCount, 2);
+  assert.equal(entry.rowCount, 4);
+  assert.equal(typeof entry.durationMs, "number");
+});
+
+test("logs an empty namespace after the single probe", async () => {
+  const logs = [];
+  const kv = {
+    async get() {
+      throw new Error("empty namespace must not read sketches");
+    },
+    async list(options) {
+      assert.deepEqual(options, { prefix: "h_", limit: 1 });
+      return { complete: true, cursor: "" };
+    },
+  };
+
+  const { response } = await buildPublicReport(
+    kv,
+    "range=7d&granularity=day",
+    { logger: (line) => logs.push(line) },
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(logs.length, 1);
+  const entry = parseLogs(logs)[0];
+  assert.equal(entry.event, "public_report");
+  assert.equal(entry.cache, "bypass");
+  assert.equal(entry.emptyNamespace, true);
+  assert.equal(entry.listPrefixCount, 1);
+  assert.equal(entry.listPageCount, 1);
+  assert.equal(entry.listedKeyCount, 0);
+  assert.equal(entry.readKeyCount, 0);
+  assert.equal(entry.summaryActive, 0);
+  assert.equal(entry.summaryNewInstalls, 0);
+  assert.equal(entry.rowCount, 7);
+});
+
 test("lists only the three daily metric prefixes and global prefixes in range", async () => {
   const kv = await seededKv();
   const prefixes = [];
@@ -299,6 +379,57 @@ test("lists only the three daily metric prefixes and global prefixes in range", 
   assert.deepEqual([...new Set(prefixes)].sort(), [...new Set(expected)].sort());
 });
 
+test("follows KV list cursors for non-empty metric pages", async () => {
+  const kv = await seededKv();
+  const prefix = "h_act_20261103_";
+  const originalList = kv.list.bind(kv);
+  const allKeys = (await originalList({ prefix, limit: 256 })).keys;
+  assert.ok(allKeys.length > 0);
+  const listCalls = [];
+  const logs = [];
+
+  kv.list = async (options) => {
+    if (options.prefix !== prefix) return originalList(options);
+    listCalls.push(options);
+    if (!options.cursor) {
+      return {
+        complete: false,
+        cursor: "next-page",
+        keys: [{ name: `${prefix}99` }],
+      };
+    }
+    assert.equal(options.cursor, "next-page");
+    return {
+      complete: true,
+      cursor: "",
+      keys: allKeys,
+    };
+  };
+
+  const { response, text } = await buildPublicReport(
+    kv,
+    "range=7d&granularity=day",
+    { logger: (line) => logs.push(line) },
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(listCalls.length, 2);
+  const entry = parseLogs(logs)[0];
+  assert.equal(entry.listPrefixCount, 24);
+  assert.equal(entry.listPageCount, 25);
+  assert.equal(entry.listedKeyCount, 12);
+  assert.equal(entry.readKeyCount, 12);
+  assert.deepEqual(JSON.parse(text).summary, {
+    active: 2,
+    newInstalls: 2,
+    versionsActive: { "0.1.1": 1, "0.1.2": 2 },
+  });
+  assert.equal(
+    JSON.parse(text).rows.find((row) => row.date === "2026-11-03").active,
+    1,
+  );
+});
+
 test("reuses a successful report from the normalized cache without KV access", async () => {
   const kv = await seededKv();
   const cache = new MemoryCache();
@@ -329,6 +460,38 @@ test("reuses a successful report from the normalized cache without KV access", a
   assert.equal(second.text, first.text);
   assert.equal(kvCalls, callsAfterFirst);
   assert.match(second.response.headers.get("cache-control"), /max-age=60/);
+});
+
+test("logs a cache hit with zero list and read counts", async () => {
+  const kv = await seededKv();
+  const cache = new MemoryCache();
+  const first = await buildPublicReport(
+    kv,
+    "range=7d&granularity=day",
+    { cache },
+  );
+  assert.equal(first.response.status, 200);
+
+  const logs = [];
+  const cached = await buildPublicReport(null, "range=7d&granularity=day", {
+    cache,
+    env: {},
+    logger: (line) => logs.push(line),
+  });
+
+  assert.equal(cached.response.status, 200);
+  assert.equal(logs.length, 1);
+  const entry = parseLogs(logs)[0];
+  assert.equal(entry.event, "public_report");
+  assert.equal(entry.cache, "hit");
+  assert.equal(entry.emptyNamespace, null);
+  assert.equal(entry.listPrefixCount, 0);
+  assert.equal(entry.listPageCount, 0);
+  assert.equal(entry.listedKeyCount, 0);
+  assert.equal(entry.readKeyCount, 0);
+  assert.equal(entry.summaryActive, 2);
+  assert.equal(entry.summaryNewInstalls, 2);
+  assert.equal(entry.rowCount, 7);
 });
 
 test("expires a cached report after 60 seconds", async () => {
@@ -399,6 +562,7 @@ test("does not cache KV failures", async () => {
 
 test("cache API failures fall back to the live report", async () => {
   const kv = await seededKv();
+  const logs = [];
   const cache = {
     async match() {
       throw new Error("cache read failed");
@@ -411,10 +575,16 @@ test("cache API failures fall back to the live report", async () => {
   const { response, text } = await buildPublicReport(
     kv,
     "range=7d&granularity=day",
-    { cache },
+    { cache, logger: (line) => logs.push(line) },
   );
 
   assert.equal(response.status, 200);
+  const entries = parseLogs(logs);
+  const warningStages = entries
+    .filter((entry) => entry.outcome === "warning")
+    .map((entry) => entry.stage)
+    .sort();
+  assert.deepEqual(warningStages, ["cache_read", "cache_write"]);
   assert.deepEqual(JSON.parse(text).summary, {
     active: 2,
     newInstalls: 2,
@@ -501,6 +671,56 @@ test("rejects methods and every unbounded or ambiguous query shape", async () =>
     assert.equal(response.headers.get("cache-control"), "no-store");
     assert.equal(text, "invalid request");
   }
+});
+
+test("logs public method rejections with stage and status", async () => {
+  const logs = [];
+  const { response } = await buildPublicReport(null, "", {
+    method: "POST",
+    logger: (line) => logs.push(line),
+  });
+
+  assert.equal(response.status, 405);
+  assert.equal(logs.length, 1);
+  const entry = parseLogs(logs)[0];
+  assert.equal(entry.event, "public_report");
+  assert.equal(entry.outcome, "rejected");
+  assert.equal(entry.stage, "method");
+  assert.equal(entry.status, 405);
+  assert.equal(entry.method, "POST");
+});
+
+test("logs public query rejections with stage and status", async () => {
+  const logs = [];
+  const { response } = await buildPublicReport(null, "range=14d", {
+    logger: (line) => logs.push(line),
+  });
+
+  assert.equal(response.status, 400);
+  assert.equal(logs.length, 1);
+  const entry = parseLogs(logs)[0];
+  assert.equal(entry.event, "public_report");
+  assert.equal(entry.outcome, "rejected");
+  assert.equal(entry.stage, "validate");
+  assert.equal(entry.status, 400);
+});
+
+test("logs a missing public KV binding without exposing the environment", async () => {
+  const logs = [];
+  const { response } = await buildPublicReport(null, "", {
+    env: {},
+    logger: (line) => logs.push(line),
+  });
+
+  assert.equal(response.status, 503);
+  assert.equal(logs.length, 1);
+  const entry = parseLogs(logs)[0];
+  assert.equal(entry.event, "public_report");
+  assert.equal(entry.outcome, "error");
+  assert.equal(entry.stage, "kv_binding");
+  assert.equal(entry.status, 503);
+  assert.equal(entry.cache, "bypass");
+  assert.equal("environment" in entry, false);
 });
 
 test("month rows merge daily HLLs and summary deduplicates across the range", async () => {
@@ -590,6 +810,36 @@ test("public report returns generic no-store errors when KV is unavailable", asy
   assert.equal(broken.text, "service unavailable");
 });
 
+test("logs public KV failures without leaking internal values", async () => {
+  const logs = [];
+  const brokenKv = {
+    async get() {
+      throw new Error("KV get must not run");
+    },
+    async list() {
+      throw new Error(`KV unavailable for ${ID_A} from 203.0.113.9`);
+    },
+  };
+
+  const { response } = await buildPublicReport(
+    brokenKv,
+    "range=7d&granularity=day",
+    { logger: (line) => logs.push(line) },
+  );
+
+  assert.equal(response.status, 503);
+  assert.equal(logs.length, 1);
+  const entry = parseLogs(logs)[0];
+  assert.equal(entry.event, "public_report");
+  assert.equal(entry.outcome, "error");
+  assert.equal(entry.stage, "kv_list");
+  assert.equal(entry.status, 503);
+  assert.match(entry.error, /KV unavailable/);
+  const output = JSON.stringify(entry);
+  assert.equal(output.includes(ID_A), false);
+  assert.equal(output.includes("203.0.113.9"), false);
+});
+
 test("public source never reads authorization, cookies or request metadata", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(
@@ -601,7 +851,6 @@ test("public source never reads authorization, cookies or request metadata", asy
     "cookie",
     "clientIp",
     "request.eo",
-    "console.log",
     "MAINTENANCE_TOKEN",
   ]) {
     assert.equal(source.toLowerCase().includes(banned.toLowerCase()), false, banned);

@@ -13,6 +13,7 @@
 | `edge-functions/api/report.js` | `/api/report` 路由：仅允许 GET，维护令牌鉴权、M1～M8 JSON/CSV 报表 |
 | `edge-functions/api/public-report.js` | `/api/public-report` 路由：仅允许 GET，固定 7/30/90 天范围的公开聚合报表 |
 | `edge-functions/_lib/*.js` | 不导出 handler 的共享模块：校验、HLL、键名、环境变量与写入/报表逻辑 |
+| `edge-functions/_lib/log.js` | 单行结构化诊断日志、统一脱敏与截断；日志写入失败不影响业务响应 |
 | `test/*.test.mjs` | `node --test`，无额外依赖；覆盖校验、HLL、写入、公开/私有报表、看板静态约束与隐私 |
 | `public/dashboard/` | 公开看板 HTML、CSS、同源脚本、本地 SVG 与图形转换模块（SPEC-0022） |
 | `public/robots.txt` | 静态输出目录中的抓取限制；不得放入任何源码 |
@@ -109,6 +110,31 @@ M8 是首次上报版本近似值，升级后重放的 `install` 可能进入多
   并把结论写入 SPEC-0018 的人工验收记录。
 - 临时停用时把 `DISABLED` 改为 `1` 并重新部署，端点返回 `410`，客户端会静默失败。
 
+## 日志排查
+
+`/v1/collect`、`/api/report` 与 `/api/public-report` 会通过 EdgeOne 支持的
+`console.log` 输出自定义诊断日志。每行以固定前缀 `breaktimer-metrics` 开头，后面是单行
+JSON，便于平台关键词检索或复制到本地用 `jq` 过滤。日志只记录请求结果、处理阶段、耗时、
+查询元数据与聚合计数，不记录 `installId`、IP/GEO、Cookie、`Authorization`、完整请求头、
+请求体、维护令牌或 KV 原始 value。UUID、IP、Bearer 凭据和令牌参数在输出前统一脱敏。
+
+推荐检索词：
+
+| 排查目标 | 检索词示例 |
+| --- | --- |
+| 所有统计业务日志 | `breaktimer-metrics` |
+| 上报链路 | `"event":"collect"` |
+| 私有/公开报表 | `"event":"report"`、`"event":"public_report"` |
+| 失败与告警 | `"outcome":"error"`、`"outcome":"warning"` |
+| KV 写入阶段 | `"stage":"kv_write"` |
+| 空 namespace | `"emptyNamespace":true` |
+| 公开缓存 | `"cache":"hit"`、`"cache":"miss"`、`"cache":"bypass"` |
+
+EdgeOne 日志分析目前仍将 `edge-functions/` 来源标注为规划中，因此自定义函数日志暂时应在
+“全部日志”、运行时/部署日志中检索；平台访问日志可用于补核 HTTP 状态、时延和请求路径，
+但不能替代业务阶段日志。控制台开放 Edge Functions 来源后，无需修改代码即可按同一前缀
+检索。
+
 ## 测试
 
 ```powershell
@@ -149,6 +175,8 @@ EdgeOne 的 `URLSearchParams` 支持 `keys()` / `get()`，但不支持 `Array.fr
 直接返回全零报表，不执行 7/30/90 天逐分片草图读取。该探测只读取 key 名称，不输出 KV
 元数据，也不改变 HLL value 结构。线上空页实际返回 `{ complete: true, cursor: "" }` 并
 省略 `keys`，只有存在条目时才带 `keys` 数组；空页缺省 `keys` 不是 KV 故障。
+非空页若返回 `complete=false`，后续列举必须携带返回的 `cursor` 继续读取，直到
+`complete=true`；未完成分页不是 KV 故障，不能直接返回 `503`。
 namespace 非空时，公开报表按范围内每天分别列举 `h_act_YYYYMMDD_`、`h_new_YYYYMMDD_`、
 `h_ver_YYYYMMDD_` 三个实际前缀，再列举 `h_total_` 与 `h_install_ver_`，只对列表中实际
 存在的 key 执行 `get`。列表按固定批并发，不扫描整个历史 `h_` namespace。成功响应通过

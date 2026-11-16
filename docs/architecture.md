@@ -94,6 +94,7 @@
 | 验证门禁脚本                                    | `app/scripts/verify.ps1`                                                                       | `AGENTS.md`                     |
 | 装机统计服务（EdgeOne Edge Functions + KV HLL） | `server/metrics/`                                                                              | SPEC-0018 · ADR-0019 · ADR-0023 |
 | 公开装机统计看板与只读报表                      | `server/metrics/public/dashboard/`、`server/metrics/edge-functions/api/public-report.js`       | SPEC-0022 · ADR-0029            |
+| 统计服务结构化诊断日志                          | `server/metrics/edge-functions/_lib/log.js`                                                    | SPEC-0018 · SPEC-0022 · SPEC-0025 |
 | 宣传页（纯静态，中英双语）                      | `site/`、`site/scripts/`、`.github/workflows/pages.yml`                                        | SPEC-0016 · ADR-0024            |
 | 开源许可与署名                                  | `LICENSE`、`NOTICE`、`README.md`                                                               | SPEC-0020 · ADR-0026            |
 
@@ -137,6 +138,10 @@
   按范围内每天三个维度前缀和两个全局前缀列举实际 key，只读取列表中存在的 HLL 草图；
   成功响应通过 Cache API 复用 60 秒，命中时不访问 KV（SPEC-0022 D16、SPEC-0025、
   ADR-0031、ADR-0032）。
+- 统计服务三条入口统一通过 `_lib/log.js` 输出 `breaktimer-metrics` 单行 JSON 日志，记录
+  阶段、结果、状态、耗时和聚合计数；UUID、IP、Bearer 凭据与令牌参数统一脱敏，禁止记录
+  `installId`、请求体、请求头、维护令牌和 KV 原始值。日志写入失败不回滚业务响应
+  （SPEC-0018、SPEC-0022、SPEC-0025）。
 
 ## 落地状态（摘要）
 

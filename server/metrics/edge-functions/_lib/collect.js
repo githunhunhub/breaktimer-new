@@ -22,6 +22,7 @@ import {
   totalKey,
   versionKey,
 } from "./keys.js";
+import { elapsedMs, errorText, loggerOf, writeLog } from "./log.js";
 import { envOf, getKv, NO_STORE, response, serverDayOf } from "./runtime.js";
 
 export const MAX_BODY_BYTES = 2048;
@@ -144,54 +145,147 @@ export async function collectRequest(context, options = {}) {
   const request = context?.request;
   const env = envOf(context);
   const now = options.now || Date.now;
+  const startedAt = now();
+  const logger = loggerOf(options);
+  const log = (fields) =>
+    writeLog(
+      {
+        service: "metrics",
+        event: "collect",
+        durationMs: elapsedMs(startedAt, now),
+        ...fields,
+      },
+      logger,
+    );
 
   if (request.method !== "POST") {
+    log({ outcome: "rejected", stage: "method", status: 405 });
     return response(405, null, { ...NO_STORE, Allow: "POST" });
   }
-  if (env.DISABLED === "1") return response(410);
+  if (env.DISABLED === "1") {
+    log({ outcome: "rejected", stage: "disabled", status: 410 });
+    return response(410);
+  }
 
   const declaredLength = Number(request.headers.get("content-length") || 0);
-  if (declaredLength > MAX_BODY_BYTES) return response(413);
+  if (declaredLength > MAX_BODY_BYTES) {
+    log({ outcome: "rejected", stage: "body_limit", status: 413 });
+    return response(413);
+  }
+
+  let text;
+  try {
+    // Content-Length is client-controlled; cap the raw request stream too.
+    text = await readLimitedText(request, MAX_BODY_BYTES);
+  } catch (error) {
+    log({
+      outcome: "error",
+      stage: "body_read",
+      status: 400,
+      error: errorText(error),
+    });
+    return response(400, "invalid JSON");
+  }
+  if (text === null) {
+    log({ outcome: "rejected", stage: "body_limit", status: 413 });
+    return response(413);
+  }
 
   let payload;
   try {
-    // Content-Length is client-controlled; cap the raw request stream too.
-    const text = await readLimitedText(request, MAX_BODY_BYTES);
-    if (text === null) return response(413);
     payload = JSON.parse(text);
-  } catch {
+  } catch (error) {
+    log({
+      outcome: "rejected",
+      stage: "json_parse",
+      status: 400,
+      error: errorText(error),
+    });
     return response(400, "invalid JSON");
   }
 
   const serverDay = options.serverDay || serverDayOf(now);
   const invalid = validateEventWindow(payload, serverDay);
-  if (invalid) return response(400, invalid);
+  if (invalid) {
+    log({
+      outcome: "rejected",
+      stage: "validate",
+      status: 400,
+      error: invalid,
+    });
+    return response(400, invalid);
+  }
 
   const kv = getKv(context);
-  if (!kv) return response(500);
+  if (!kv) {
+    log({ outcome: "error", stage: "kv_binding", status: 500 });
+    return response(500);
+  }
 
-  const fp = await fingerprint(payload.installId);
+  let fp;
+  try {
+    fp = await fingerprint(payload.installId);
+  } catch (error) {
+    log({
+      outcome: "error",
+      stage: "fingerprint",
+      status: 500,
+      error: errorText(error),
+    });
+    return response(500);
+  }
   const shard = fp.shard;
   const day = payload.day;
+  let writeCount = 0;
+  let writeTarget = "active";
 
   try {
     await mergeSketchKey(kv, activeKey(day, shard), fp);
+    writeCount += 1;
+    writeTarget = "version";
     await mergeVersionKey(kv, versionKey(day, shard), payload.version, fp);
+    writeCount += 1;
 
     if (payload.event === "install") {
       const firstDay = payload.firstLaunchDay;
+      writeTarget = "new";
       await mergeSketchKey(kv, newKey(firstDay, shard), fp);
+      writeCount += 1;
+      writeTarget = "total";
       await mergeSketchKey(kv, totalKey(shard), fp);
+      writeCount += 1;
+      writeTarget = "install_version";
       await mergeVersionKey(
         kv,
         installVersionKey(shard),
         payload.version,
         fp,
       );
+      writeCount += 1;
     }
-  } catch {
+  } catch (error) {
+    log({
+      outcome: "error",
+      stage: "kv_write",
+      status: 500,
+      writeTarget,
+      writeCount,
+      error: errorText(error),
+    });
     return response(500);
   }
 
+  log({
+    outcome: "ok",
+    stage: "complete",
+    status: 204,
+    eventType: payload.event,
+    version: payload.version,
+    day,
+    ...(payload.event === "install"
+      ? { firstLaunchDay: payload.firstLaunchDay }
+      : {}),
+    writeCount,
+  });
   return response(204);
 }

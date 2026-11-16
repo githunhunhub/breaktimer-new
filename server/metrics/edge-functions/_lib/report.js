@@ -19,6 +19,7 @@ import {
   versionKey,
   SHARD_COUNT,
 } from "./keys.js";
+import { elapsedMs, errorText, loggerOf, writeLog } from "./log.js";
 import { dayDistance, isRealDay } from "./validate.js";
 import { envOf, getKv, NO_STORE, response } from "./runtime.js";
 
@@ -199,33 +200,93 @@ function csvReport(options, data) {
   return `${lines.join("\r\n")}\r\n`;
 }
 
+function reportLogFields(query, data) {
+  const active = mergeSketches(data.periods.map((period) => period.active));
+  const newInstalls = mergeSketches(
+    data.periods.map((period) => period.newInstalls),
+  );
+  return {
+    from: query.from,
+    to: query.to,
+    granularity: query.granularity,
+    format: query.format,
+    rowCount: data.periods.length,
+    activeInstalls: cardinality(active),
+    newInstalls: cardinality(newInstalls),
+    totalInstalls: data.totalInstalls,
+    versionCount: Object.keys(data.installsByVersion).length,
+  };
+}
+
 /** Pure-ish request handler; the Edge Function route only supplies context. */
 export async function reportRequest(context, options = {}) {
   const request = context?.request;
   const env = envOf(context);
   const now = options.now || Date.now;
+  const startedAt = now();
+  const logger = loggerOf(options);
+  const log = (fields) =>
+    writeLog(
+      {
+        service: "metrics",
+        event: "report",
+        durationMs: elapsedMs(startedAt, now),
+        ...fields,
+      },
+      logger,
+    );
   if (request.method !== "GET") {
+    log({ outcome: "rejected", stage: "method", status: 405 });
     return response(405, null, { ...NO_STORE, Allow: "GET" });
   }
   const token = request.headers.get("authorization");
   const expectedToken = env.MAINTENANCE_TOKEN;
-  if (!expectedToken) return response(503);
-  if (!token) return response(401);
-  if (token !== `Bearer ${expectedToken}`) return response(403);
+  if (!expectedToken) {
+    log({ outcome: "error", stage: "auth_config", status: 503 });
+    return response(503);
+  }
+  if (!token) {
+    log({ outcome: "rejected", stage: "auth_missing", status: 401 });
+    return response(401);
+  }
+  if (token !== `Bearer ${expectedToken}`) {
+    log({ outcome: "rejected", stage: "auth_invalid", status: 403 });
+    return response(403);
+  }
 
   const query = validateQuery(new URL(request.url), now);
-  if (query.error) return response(400, query.error);
+  if (query.error) {
+    log({ outcome: "rejected", stage: "validate", status: 400 });
+    return response(400, query.error);
+  }
 
   const kv = getKv(context);
-  if (!kv) return response(500);
+  if (!kv) {
+    log({ outcome: "error", stage: "kv_binding", status: 500 });
+    return response(500);
+  }
 
   const days = eachDay(query.from, query.to);
-  const [active, versions, newInstalls, global] = await Promise.all([
-    readDimension(kv, activeKey, days),
-    readDimension(kv, versionKey, days, true),
-    readDimension(kv, newKey, days),
-    readGlobal(kv),
-  ]);
+  let active;
+  let versions;
+  let newInstalls;
+  let global;
+  try {
+    [active, versions, newInstalls, global] = await Promise.all([
+      readDimension(kv, activeKey, days),
+      readDimension(kv, versionKey, days, true),
+      readDimension(kv, newKey, days),
+      readGlobal(kv),
+    ]);
+  } catch (error) {
+    log({
+      outcome: "error",
+      stage: "kv_read",
+      status: 500,
+      error: errorText(error),
+    });
+    return response(500);
+  }
 
   let periods;
   if (query.granularity === "day") {
@@ -244,6 +305,12 @@ export async function reportRequest(context, options = {}) {
     }));
   }
   const data = { periods, ...global };
+  log({
+    outcome: "ok",
+    stage: "complete",
+    status: 200,
+    ...reportLogFields(query, data),
+  });
 
   if (query.format === "csv") {
     return response(200, csvReport(query, data), {

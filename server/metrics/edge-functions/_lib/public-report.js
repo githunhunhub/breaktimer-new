@@ -22,6 +22,7 @@ import {
   totalKey,
   versionKeysForDay,
 } from "./keys.js";
+import { elapsedMs, errorText, loggerOf, writeLog } from "./log.js";
 import { eachDay, monthsFor } from "./report.js";
 import { getKv, response, serverDayOf } from "./runtime.js";
 
@@ -66,7 +67,7 @@ function validateQuery(url) {
   return { range, granularity };
 }
 
-async function resolveCache(options) {
+async function resolveCache(options, warn) {
   if (Object.prototype.hasOwnProperty.call(options, "cache")) {
     return options.cache || null;
   }
@@ -77,8 +78,8 @@ async function resolveCache(options) {
     if (typeof cacheStorage.open === "function") {
       return await cacheStorage.open(PUBLIC_CACHE_NAME);
     }
-  } catch {
-    // Cache is an optimization; a Cache API failure must not fail the report.
+  } catch (error) {
+    warn({ stage: "cache_open", status: 200, error: errorText(error) });
   }
   return null;
 }
@@ -91,7 +92,7 @@ function cacheKeyFor(request, query) {
   return new Request(url.toString(), { method: "GET" });
 }
 
-async function readCachedReport(cache, cacheKey, currentTime) {
+async function readCachedReport(cache, cacheKey, currentTime, warn) {
   if (!cache) return null;
   try {
     const cached = await cache.match(cacheKey);
@@ -107,12 +108,13 @@ async function readCachedReport(cache, cacheKey, currentTime) {
       return null;
     }
     return payload.body;
-  } catch {
+  } catch (error) {
+    warn({ stage: "cache_read", status: 200, error: errorText(error) });
     return null;
   }
 }
 
-async function writeCachedReport(cache, cacheKey, body, savedAt) {
+async function writeCachedReport(cache, cacheKey, body, savedAt, warn) {
   if (!cache) return;
   try {
     await cache.put(
@@ -121,13 +123,13 @@ async function writeCachedReport(cache, cacheKey, body, savedAt) {
         headers: { "Content-Type": "application/json; charset=utf-8" },
       }),
     );
-  } catch {
-    // Cache writes are best effort and never change the report response.
+  } catch (error) {
+    warn({ stage: "cache_write", status: 200, error: errorText(error) });
   }
 }
 
-function queueCachedReport(context, cache, cacheKey, body, savedAt) {
-  const write = writeCachedReport(cache, cacheKey, body, savedAt);
+function queueCachedReport(context, cache, cacheKey, body, savedAt, warn) {
+  const write = writeCachedReport(cache, cacheKey, body, savedAt, warn);
   if (typeof context?.waitUntil === "function") {
     try {
       context.waitUntil(write);
@@ -139,9 +141,27 @@ function queueCachedReport(context, cache, cacheKey, body, savedAt) {
   return write;
 }
 
-async function hasMetricKeys(kv) {
+function markKvStage(error, stage) {
+  if (error && typeof error === "object" && !error.logStage) {
+    try {
+      error.logStage = stage;
+    } catch {
+      // Primitive or frozen errors still propagate without the stage tag.
+    }
+  }
+  return error;
+}
+
+async function hasMetricKeys(kv, stats) {
   if (typeof kv.list !== "function") return true;
-  const result = await kv.list({ prefix: "h_", limit: 1 });
+  stats.listPrefixCount += 1;
+  stats.listPageCount += 1;
+  let result;
+  try {
+    result = await kv.list({ prefix: "h_", limit: 1 });
+  } catch (error) {
+    throw markKvStage(error, "kv_list");
+  }
   if (!result) throw new Error("invalid KV list response");
   if (Array.isArray(result.keys)) return result.keys.length > 0;
   // EdgeOne omits `keys` when the requested page contains no entries.
@@ -149,19 +169,51 @@ async function hasMetricKeys(kv) {
   throw new Error("invalid KV list response");
 }
 
-async function listKeys(kv, prefix) {
-  const result = await kv.list({ prefix, limit: LIST_LIMIT });
-  if (!result || result.complete !== true) {
-    throw new Error("invalid KV list response");
-  }
-  if (result.keys === undefined) return [];
-  if (!Array.isArray(result.keys)) throw new Error("invalid KV list response");
+async function listKeys(kv, prefix, stats) {
+  const keys = [];
+  let cursor;
+  stats.listPrefixCount += 1;
 
-  return result.keys.map((entry) => {
-    if (typeof entry === "string") return entry;
-    if (entry && typeof entry.name === "string") return entry.name;
-    throw new Error("invalid KV list response");
-  });
+  while (true) {
+    stats.listPageCount += 1;
+    let result;
+    try {
+      result = await kv.list({
+        prefix,
+        limit: LIST_LIMIT,
+        ...(cursor ? { cursor } : {}),
+      });
+    } catch (error) {
+      throw markKvStage(error, "kv_list");
+    }
+    if (!result || typeof result.complete !== "boolean") {
+      throw new Error("invalid KV list response");
+    }
+    if (result.keys === undefined) {
+      if (result.complete) return keys;
+      throw new Error("invalid KV list response");
+    }
+    if (!Array.isArray(result.keys)) {
+      throw new Error("invalid KV list response");
+    }
+
+    keys.push(
+      ...result.keys.map((entry) => {
+        if (typeof entry === "string") return entry;
+        if (entry && typeof entry.name === "string") return entry.name;
+        throw new Error("invalid KV list response");
+      }),
+    );
+
+    if (result.complete) return keys;
+    if (typeof result.cursor !== "string" || !result.cursor) {
+      throw new Error("invalid KV list response");
+    }
+    if (result.cursor === cursor) {
+      throw new Error("invalid KV list response");
+    }
+    cursor = result.cursor;
+  }
 }
 
 async function mapInBatches(items, batchSize, callback) {
@@ -188,7 +240,7 @@ function listingsForDay(day) {
   ];
 }
 
-async function listExistingMetricKeys(kv, days) {
+async function listExistingMetricKeys(kv, days, stats) {
   const listings = [
     ...days.flatMap(listingsForDay),
     { prefix: "h_total_", expected: shardedGlobalKeys(totalKey) },
@@ -201,9 +253,11 @@ async function listExistingMetricKeys(kv, days) {
     listings,
     PUBLIC_KV_BATCH,
     async ({ prefix, expected }) =>
-      (await listKeys(kv, prefix)).filter((key) => expected.has(key)),
+      (await listKeys(kv, prefix, stats)).filter((key) => expected.has(key)),
   );
-  return [...new Set(listed.flat())];
+  const uniqueKeys = [...new Set(listed.flat())];
+  stats.listedKeyCount += uniqueKeys.length;
+  return uniqueKeys;
 }
 
 function addToMap(map, key, value) {
@@ -229,9 +283,15 @@ function mergeDayVersions(valuesByDay) {
   );
 }
 
-async function readExistingMetrics(kv, days) {
-  const keys = await listExistingMetricKeys(kv, days);
-  const values = await mapInBatches(keys, PUBLIC_KV_BATCH, (key) => kv.get(key));
+async function readExistingMetrics(kv, days, stats) {
+  const keys = await listExistingMetricKeys(kv, days, stats);
+  stats.readKeyCount += keys.length;
+  let values;
+  try {
+    values = await mapInBatches(keys, PUBLIC_KV_BATCH, (key) => kv.get(key));
+  } catch (error) {
+    throw markKvStage(error, "kv_read");
+  }
   const activeValues = new Map();
   const versionValues = new Map();
   const newInstallValues = new Map();
@@ -324,10 +384,57 @@ function jsonReport(query, days, active, versions, newInstalls, global) {
   });
 }
 
+function reportLogFields(body) {
+  try {
+    const report = JSON.parse(body);
+    return {
+      from: report.from,
+      to: report.to,
+      range: report.range,
+      granularity: report.granularity,
+      format: "json",
+      rowCount: Array.isArray(report.rows) ? report.rows.length : 0,
+      summaryActive: report.summary?.active ?? 0,
+      summaryNewInstalls: report.summary?.newInstalls ?? 0,
+      totalInstalls: report.totalInstalls ?? 0,
+      versionCount: Object.keys(report.installsByVersion || {}).length,
+    };
+  } catch {
+    return {};
+  }
+}
+
 /** Edge Function request handler for GET /api/public-report. */
 export async function publicReportRequest(context, options = {}) {
   const request = context?.request;
+  const now = options.now || Date.now;
+  const startedAt = now();
+  const logger = loggerOf(options);
+  const log = (fields) =>
+    writeLog(
+      {
+        service: "metrics",
+        event: "public_report",
+        durationMs: elapsedMs(startedAt, now),
+        ...fields,
+      },
+      logger,
+    );
+  const warn = (fields) => log({ outcome: "warning", ...fields });
+  const stats = {
+    listPrefixCount: 0,
+    listPageCount: 0,
+    listedKeyCount: 0,
+    readKeyCount: 0,
+  };
+
   if (!request || request.method !== "GET") {
+    log({
+      outcome: "rejected",
+      stage: "method",
+      status: 405,
+      method: request?.method || "unknown",
+    });
     return response(405, null, { ...NO_STORE, Allow: "GET" });
   }
 
@@ -335,29 +442,66 @@ export async function publicReportRequest(context, options = {}) {
   try {
     query = validateQuery(new URL(request.url));
   } catch {
+    log({ outcome: "rejected", stage: "validate", status: 400 });
     return response(400, "invalid request", NO_STORE);
   }
-  if (query.error) return response(400, "invalid request", NO_STORE);
+  if (query.error) {
+    log({ outcome: "rejected", stage: "validate", status: 400 });
+    return response(400, "invalid request", NO_STORE);
+  }
 
-  const now = options.now || Date.now;
   const requestedAt = now();
-  const cache = await resolveCache(options);
+  const cache = await resolveCache(options, warn);
   const cacheKey = cache ? cacheKeyFor(request, query) : null;
-  const cachedBody = await readCachedReport(cache, cacheKey, requestedAt);
-  if (cachedBody !== null) return response(200, cachedBody, PUBLIC_CACHE);
+  const cachedBody = await readCachedReport(
+    cache,
+    cacheKey,
+    requestedAt,
+    warn,
+  );
+  const cacheState = cache ? (cachedBody !== null ? "hit" : "miss") : "bypass";
+  if (cachedBody !== null) {
+    log({
+      outcome: "ok",
+      stage: "complete",
+      status: 200,
+      cache: cacheState,
+      emptyNamespace: null,
+      ...stats,
+      ...reportLogFields(cachedBody),
+    });
+    return response(200, cachedBody, PUBLIC_CACHE);
+  }
 
   const kv = getKv(context);
-  if (!kv) return response(503, "service unavailable", NO_STORE);
+  if (!kv) {
+    log({
+      outcome: "error",
+      stage: "kv_binding",
+      status: 503,
+      cache: cacheState,
+      emptyNamespace: null,
+      ...stats,
+    });
+    return response(503, "service unavailable", NO_STORE);
+  }
 
   const generatedDay = serverDayOf(() => requestedAt);
   const to = generatedDay;
   const from = addDays(to, -(RANGE_DAYS.get(query.range) - 1));
   query = { ...query, from, to, generatedDay };
   const days = eachDay(from, to);
+  let emptyNamespace = null;
 
   try {
-    if (!(await hasMetricKeys(kv))) {
-      const body = jsonReport(
+    let body;
+    try {
+      emptyNamespace = !(await hasMetricKeys(kv, stats));
+    } catch (error) {
+      throw markKvStage(error, "kv_list");
+    }
+    if (emptyNamespace) {
+      body = jsonReport(
         query,
         days,
         new Map(),
@@ -365,33 +509,47 @@ export async function publicReportRequest(context, options = {}) {
         new Map(),
         { totalInstalls: 0, installsByVersion: {} },
       );
-      await queueCachedReport(context, cache, cacheKey, body, requestedAt);
-      return response(
-        200,
-        body,
-        PUBLIC_CACHE,
+    } else {
+      const { active, versions, newInstalls, global } =
+        await readExistingMetrics(kv, days, stats);
+      body = jsonReport(
+        query,
+        days,
+        active,
+        versions,
+        newInstalls,
+        global,
       );
     }
 
-    const { active, versions, newInstalls, global } = await readExistingMetrics(
-      kv,
-      days,
-    );
-    const body = jsonReport(
-      query,
-      days,
-      active,
-      versions,
-      newInstalls,
-      global,
-    );
-    await queueCachedReport(context, cache, cacheKey, body, requestedAt);
-    return response(
-      200,
+    await queueCachedReport(
+      context,
+      cache,
+      cacheKey,
       body,
-      PUBLIC_CACHE,
+      requestedAt,
+      warn,
     );
-  } catch {
+    log({
+      outcome: "ok",
+      stage: "complete",
+      status: 200,
+      cache: cacheState,
+      emptyNamespace,
+      ...stats,
+      ...reportLogFields(body),
+    });
+    return response(200, body, PUBLIC_CACHE);
+  } catch (error) {
+    log({
+      outcome: "error",
+      stage: error?.logStage || "kv_read",
+      status: 503,
+      cache: cacheState,
+      emptyNamespace,
+      ...stats,
+      error: errorText(error),
+    });
     return response(503, "service unavailable", NO_STORE);
   }
 }

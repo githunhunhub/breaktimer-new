@@ -19,6 +19,7 @@ import { reportRequest } from "../edge-functions/_lib/report.js";
 
 const SERVER_DAY = "2026-11-05";
 const TOKEN = "secret-token";
+const LOG_PREFIX = "breaktimer-metrics";
 const IDS = [
   "6f1f0d6a-1f5c-4c19-9a4e-0d2b6a4f9c11",
   "34a3e9cf-7701-4b8c-8c5d-5ed3f8154b4e",
@@ -86,7 +87,11 @@ async function seededKv() {
     });
     const response = await collectRequest(
       { request, env: { DISABLED: "0", METRICS_KV: kv } },
-      { serverDay: payload.day, now: () => Date.parse(`${payload.day}T00:00:00Z`) },
+      {
+        serverDay: payload.day,
+        now: () => Date.parse(`${payload.day}T00:00:00Z`),
+        logger: () => {},
+      },
     );
     assert.equal(response.status, 204);
   }
@@ -111,9 +116,19 @@ async function buildReport(kv, params, options = {}) {
       headers: options.token === null ? {} : { authorization: `Bearer ${options.token || TOKEN}` },
       env: options.env,
     }),
-    { now: () => Date.parse(`${options.nowDay || SERVER_DAY}T00:00:00Z`) },
+    {
+      now: () => Date.parse(`${options.nowDay || SERVER_DAY}T00:00:00Z`),
+      logger: options.logger || (() => {}),
+    },
   );
   return { response, text: await response.text() };
+}
+
+function parseLogs(lines) {
+  return lines.map((line) => {
+    assert.equal(line.startsWith(`${LOG_PREFIX} `), true);
+    return JSON.parse(line.slice(LOG_PREFIX.length + 1));
+  });
 }
 
 test("rejects missing or incorrect maintenance tokens", async () => {
@@ -249,13 +264,114 @@ test("report reads only fixed keys and does not list arbitrary KV entries", asyn
   assert.equal(readKeys.some((key) => key.includes(IDS[0])), false);
 });
 
-test("report source has no IP/geo/body logging calls", async () => {
+test("logs successful report queries with aggregate counts and no credentials", async () => {
+  const kv = await seededKv();
+  const logs = [];
+  const { response } = await buildReport(
+    kv,
+    {
+      from: "2026-11-01",
+      to: "2026-11-05",
+      granularity: "day",
+      format: "json",
+    },
+    { logger: (line) => logs.push(line) },
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(logs.length, 1);
+  const entry = parseLogs(logs)[0];
+  assert.equal(entry.service, "metrics");
+  assert.equal(entry.event, "report");
+  assert.equal(entry.outcome, "ok");
+  assert.equal(entry.stage, "complete");
+  assert.equal(entry.status, 200);
+  assert.equal(entry.from, "2026-11-01");
+  assert.equal(entry.to, "2026-11-05");
+  assert.equal(entry.granularity, "day");
+  assert.equal(entry.format, "json");
+  assert.equal(entry.rowCount, 5);
+  assert.equal(entry.activeInstalls, 2);
+  assert.equal(entry.newInstalls, 2);
+  assert.equal(entry.totalInstalls, 3);
+  assert.equal(entry.versionCount, 2);
+  assert.equal(typeof entry.durationMs, "number");
+  assert.equal(JSON.stringify(entry).includes(TOKEN), false);
+  assert.equal(JSON.stringify(entry).includes("Bearer"), false);
+});
+
+test("logs authentication failures without maintenance credentials", async () => {
+  const kv = new MemoryKv();
+  const params = {
+    from: "2026-11-01",
+    to: "2026-11-30",
+    granularity: "day",
+    format: "json",
+  };
+  const logs = [];
+
+  const missing = await buildReport(kv, params, {
+    token: null,
+    logger: (line) => logs.push(line),
+  });
+  const invalid = await buildReport(kv, params, {
+    token: "wrong-secret",
+    logger: (line) => logs.push(line),
+  });
+
+  assert.equal(missing.response.status, 401);
+  assert.equal(invalid.response.status, 403);
+  assert.equal(logs.length, 2);
+  const [missingEntry, invalidEntry] = parseLogs(logs);
+  assert.equal(missingEntry.stage, "auth_missing");
+  assert.equal(missingEntry.status, 401);
+  assert.equal(invalidEntry.stage, "auth_invalid");
+  assert.equal(invalidEntry.status, 403);
+  const output = JSON.stringify([missingEntry, invalidEntry]);
+  assert.equal(output.includes(TOKEN), false);
+  assert.equal(output.includes("wrong-secret"), false);
+  assert.equal(output.includes("Bearer"), false);
+  assert.equal(output.includes("authorization"), false);
+});
+
+test("logs KV read failures with a sanitized error and returns 500", async () => {
+  const kv = new MemoryKv();
+  kv.get = async () => {
+    throw new Error(`KV unavailable for ${IDS[0]} from 203.0.113.9`);
+  };
+  const logs = [];
+
+  const { response } = await buildReport(
+    kv,
+    {
+      from: "2026-11-01",
+      to: "2026-11-05",
+      granularity: "day",
+      format: "json",
+    },
+    { logger: (line) => logs.push(line) },
+  );
+
+  assert.equal(response.status, 500);
+  assert.equal(logs.length, 1);
+  const entry = parseLogs(logs)[0];
+  assert.equal(entry.event, "report");
+  assert.equal(entry.outcome, "error");
+  assert.equal(entry.stage, "kv_read");
+  assert.equal(entry.status, 500);
+  assert.match(entry.error, /KV unavailable/);
+  const output = JSON.stringify(entry);
+  assert.equal(output.includes(IDS[0]), false);
+  assert.equal(output.includes("203.0.113.9"), false);
+});
+
+test("report source does not read IP, geo or raw request bodies", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(
     new URL("../edge-functions/_lib/report.js", import.meta.url),
     "utf8",
   );
-  for (const banned of ["clientIp", "request.eo", "console.log", ".list("]) {
+  for (const banned of ["clientIp", "request.eo", ".list("]) {
     assert.equal(source.includes(banned), false, `report source contains ${banned}`);
   }
 });
