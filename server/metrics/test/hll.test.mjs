@@ -6,11 +6,16 @@ import {
   cardinality,
   createSketch,
   decodeSketch,
+  deserializeDimensions,
   encodeSketch,
   fingerprint,
   installShard,
+  mergeDimensions,
   mergeInto,
   mergeSketches,
+  serializeDimensions,
+  serializeSketch,
+  versionDimensionCardinalities,
 } from "../edge-functions/_lib/hll.js";
 import { SHARD_COUNT } from "../edge-functions/_lib/keys.js";
 
@@ -80,4 +85,51 @@ test("estimates 1000 synthetic installs within HLL tolerance", async () => {
   }
   const estimate = cardinality(sketch);
   assert.ok(estimate >= 900 && estimate <= 1100, `estimate was ${estimate}`);
+});
+
+test("serializes and merges the version, channel and OS dimensions", async () => {
+  const version = createSketch();
+  const channel = createSketch();
+  const os = createSketch();
+  mergeInto(version, await fingerprint(ID_A));
+  mergeInto(channel, await fingerprint(ID_A));
+  mergeInto(os, await fingerprint(ID_B));
+  const encoded = serializeDimensions({
+    versions: { "0.1.2": version },
+    channels: { installer: channel },
+    os: { "windows-11": os },
+  });
+  const decoded = deserializeDimensions(encoded);
+  assert.deepEqual(Object.keys(decoded).sort(), ["channels", "os", "versions"]);
+  assert.deepEqual(versionDimensionCardinalities(decoded), {
+    versions: { "0.1.2": 1 },
+    channels: { installer: 1 },
+    os: { "windows-11": 1 },
+  });
+
+  const merged = mergeDimensions([
+    decoded,
+    {
+      versions: { "0.1.2": version },
+      channels: { portable: os },
+      os: {},
+    },
+  ]);
+  assert.deepEqual(versionDimensionCardinalities(merged), {
+    versions: { "0.1.2": 1 },
+    channels: { installer: 1, portable: 1 },
+    os: { "windows-11": 1 },
+  });
+});
+
+test("reads a legacy bare version map as the versions dimension", async () => {
+  const sketch = createSketch();
+  mergeInto(sketch, await fingerprint(ID_A));
+  const legacy = JSON.stringify({ "0.1.1": JSON.parse(serializeSketch(sketch)) });
+  const decoded = deserializeDimensions(legacy);
+  assert.deepEqual(versionDimensionCardinalities(decoded), {
+    versions: { "0.1.1": 1 },
+    channels: {},
+    os: {},
+  });
 });

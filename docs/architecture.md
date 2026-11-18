@@ -80,7 +80,7 @@
 | 自启动注册                     | `autostart/mod.rs`                                                                        | SPEC-0007                       |
 | 后端翻译与系统语言解析         | `i18n/mod.rs`                                                                             | SPEC-0014 · ADR-0012            |
 | 更新检查                       | `updates/mod.rs`                                                                          | SPEC-0017 · ADR-0018            |
-| 装机统计上报                   | `telemetry/mod.rs`                                                                        | SPEC-0018 · ADR-0019 · ADR-0023 |
+| 客户端统计上报                 | `telemetry/mod.rs`                                                                        | SPEC-0018 · ADR-0019 · ADR-0023 · ADR-0033 |
 | 诊断日志                       | `diagnostics.rs`                                                                          | SPEC-0019                       |
 | 错误类型                       | `error.rs`                                                                                | —                               |
 
@@ -92,8 +92,9 @@
 | 便携 ZIP 打包                                   | `app/scripts/package-portable.ps1`                                                             | SPEC-0012                       |
 | 发布流水线与版本脚本                            | `.github/workflows/release.yml`、`app/scripts/release*.ps1`、`app/scripts/release-version.mjs` | SPEC-0015 · ADR-0013            |
 | 验证门禁脚本                                    | `app/scripts/verify.ps1`                                                                       | `AGENTS.md`                     |
-| 装机统计服务（EdgeOne Edge Functions + KV HLL） | `server/metrics/`                                                                              | SPEC-0018 · ADR-0019 · ADR-0023 |
-| 公开装机统计看板与只读报表                      | `server/metrics/public/dashboard/`、`server/metrics/edge-functions/api/public-report.js`       | SPEC-0022 · ADR-0029            |
+| 客户端统计服务（EdgeOne Edge Functions + KV HLL） | `server/metrics/`                                                                              | SPEC-0018 · ADR-0023 · ADR-0033 |
+| 客户端统计服务存储与算法说明（外部评审）        | [docs/client-metrics-server-review.md](client-metrics-server-review.md)                        | SPEC-0018 · SPEC-0022 · SPEC-0025 · ADR-0023 · ADR-0029 · ADR-0033 |
+| 公开客户端统计看板与只读报表                    | `server/metrics/public/dashboard/`、`server/metrics/edge-functions/api/public-report.js`       | SPEC-0022 · ADR-0029 · ADR-0033 |
 | 统计服务结构化诊断日志                          | `server/metrics/edge-functions/_lib/log.js`                                                    | SPEC-0018 · SPEC-0022 · SPEC-0025 |
 | 宣传页（纯静态，中英双语）                      | `site/`、`site/scripts/`、`.github/workflows/pages.yml`                                        | SPEC-0016 · ADR-0024            |
 | 开源许可与署名                                  | `LICENSE`、`NOTICE`、`README.md`                                                               | SPEC-0020 · ADR-0026            |
@@ -127,17 +128,17 @@
   动态项显隐（ADR-0010）。临时禁用写入 `disableEndTime`，由 1 秒 tick 到期自动恢复。
 - 数据目录：安装版 `%APPDATA%\com.githunhunhub.breaktimernew`，便携版 `<程序目录>\data\`；
   设置、日志与 `installId` 都在其中（SPEC-0012）。
-- 开发构建（`debug_assertions`）跳过真实自启动注册、更新自动检查与装机统计上报；
-  装机统计总开关 `REPORTING_SWITCH` 当前开启，发布构建还需配置
+- 开发构建（`debug_assertions`）跳过真实自启动注册、更新自动检查与客户端统计上报；
+  客户端统计总开关 `REPORTING_SWITCH` 当前开启，发布构建还需配置
   `BREAKTIMER_METRICS_URL`，未配置端点的构建不显示设置页统计卡片；启动后的首次上报在
   90 秒基础上叠加 0～20 分钟随机抖动，以分散集中请求（SPEC-0018）。
-- 公开统计只通过同源 `/api/public-report` 读取固定 7/30/90 天范围与 `day` / `month`
-  粒度，成功响应缓存 60 秒；维护者 `/api/report` 继续要求令牌、支持任意范围与 CSV，
+- 公开客户端统计只通过同源 `/api/public-report` 读取固定 7/30/90 天日粒度，成功响应
+  缓存 60 秒；维护者 `/api/report` 继续要求令牌、支持任意范围与 CSV，
   并使用 `no-store`。两者都不新增 CORS，公开前端不接触维护令牌（SPEC-0022、ADR-0029）。
-  公开报表先用指标 key 前缀做一次无数据探测；空 KV 直接返回全零报表。namespace 非空时，
-  按范围内每天三个维度前缀和两个全局前缀列举实际 key，只读取列表中存在的 HLL 草图；
-  成功响应通过 Cache API 复用 60 秒，命中时不访问 KV（SPEC-0022 D16、SPEC-0025、
-  ADR-0031、ADR-0032）。
+  公开报表先用 `h_act_` 前缀做一次无数据探测；空 KV 直接返回全零日报表。namespace 非空时，
+  只为范围内每天列举 `h_act_`、`h_ver_`、`h_newch_` 三个实际前缀，只读取列表中存在的
+  HLL 草图；成功响应通过 `public-report-v2` Cache API 复用 60 秒，命中时不访问 KV
+  （SPEC-0022、SPEC-0025、ADR-0031、ADR-0032、ADR-0033）。
 - 统计服务三条入口统一通过 `_lib/log.js` 输出 `breaktimer-metrics` 单行 JSON 日志，记录
   阶段、结果、状态、耗时和聚合计数；UUID、IP、Bearer 凭据与令牌参数统一脱敏，禁止记录
   `installId`、请求体、请求头、维护令牌和 KV 原始值。日志写入失败不回滚业务响应

@@ -2,11 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { collectRequest } from "../edge-functions/_lib/collect.js";
+import {
+  fingerprint,
+  createSketch,
+  mergeInto,
+} from "../edge-functions/_lib/hll.js";
 import { publicReportRequest } from "../edge-functions/_lib/public-report.js";
 
 const SERVER_DAY = "2026-11-05";
 const ID_A = "6f1f0d6a-1f5c-4c19-9a4e-0d2b6a4f9c11";
 const ID_B = "34a3e9cf-7701-4b8c-8c5d-5ed3f8154b4e";
+const ID_C = "aeb1f0a5-c3cf-4b54-8b52-4ca0e2e1fc30";
 const LOG_PREFIX = "breaktimer-metrics";
 
 class MemoryKv {
@@ -22,13 +28,18 @@ class MemoryKv {
     this.values.set(key, value);
   }
 
-  async list({ prefix = "", limit = 256 } = {}) {
-    const keys = [...this.values.keys()]
+  async list({ prefix = "", limit = 256, cursor } = {}) {
+    const all = [...this.values.keys()]
       .filter((key) => key.startsWith(prefix))
-      .sort()
-      .slice(0, limit)
-      .map((key) => ({ key }));
-    return { complete: keys.length < limit, cursor: null, keys };
+      .sort();
+    const start = cursor ? Number(cursor) : 0;
+    const page = all.slice(start, start + limit);
+    const complete = start + limit >= all.length;
+    return {
+      complete,
+      cursor: complete ? "" : String(start + limit),
+      keys: page.map((key) => ({ key })),
+    };
   }
 }
 
@@ -63,35 +74,66 @@ function event(installId, overrides = {}) {
   };
 }
 
+async function seed(kv, payload) {
+  if (payload.event === "heartbeat") delete payload.firstLaunchDay;
+  const request = new Request("https://metrics.example.com/v1/collect", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const response = await collectRequest(
+    { request, env: { DISABLED: "0", METRICS_KV: kv } },
+    {
+      serverDay: payload.day,
+      now: () => Date.parse(`${payload.day}T00:00:00Z`),
+      logger: () => {},
+    },
+  );
+  assert.equal(response.status, 204);
+}
+
 async function seededKv() {
   const kv = new MemoryKv();
   const events = [
-    event(ID_A, { day: "2026-11-01", firstLaunchDay: "2026-11-01", version: "0.1.1" }),
+    event(ID_A, {
+      day: "2026-11-01",
+      firstLaunchDay: "2026-11-01",
+      version: "0.1.1",
+      channel: "installer",
+    }),
+    event(ID_A, {
+      day: "2026-11-02",
+      firstLaunchDay: "2026-11-01",
+      version: "0.1.2",
+      channel: "portable",
+    }),
+    event(ID_B, {
+      day: "2026-11-01",
+      firstLaunchDay: "2026-11-01",
+      version: "0.1.2",
+      os: "windows-10",
+      channel: "portable",
+    }),
     event(ID_A, {
       event: "heartbeat",
       day: "2026-11-03",
-      firstLaunchDay: undefined,
       version: "0.1.2",
+      channel: "portable",
     }),
-    event(ID_B, { day: "2026-11-05", firstLaunchDay: "2026-11-05" }),
+    event(ID_C, {
+      day: "2026-11-05",
+      firstLaunchDay: "2026-11-05",
+      version: "0.1.2",
+      channel: "installer",
+    }),
+    event(ID_C, {
+      event: "heartbeat",
+      day: "2026-11-05",
+      version: "0.1.2",
+      channel: "installer",
+    }),
   ];
-  for (const payload of events) {
-    if (payload.event === "heartbeat") delete payload.firstLaunchDay;
-    const request = new Request("https://metrics.example.com/v1/collect", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const response = await collectRequest(
-      { request, env: { DISABLED: "0", METRICS_KV: kv } },
-      {
-        serverDay: payload.day,
-        now: () => Date.parse(`${payload.day}T00:00:00Z`),
-        logger: () => {},
-      },
-    );
-    assert.equal(response.status, 204);
-  }
+  for (const payload of events) await seed(kv, payload);
   return kv;
 }
 
@@ -103,19 +145,22 @@ async function buildPublicReport(kv, query = "", options = {}) {
       headers: options.headers || {},
     },
   );
+  const handlerOptions = {
+    now: () =>
+      options.nowMs ??
+      Date.parse(`${options.nowDay || SERVER_DAY}T12:00:00Z`),
+    logger: options.logger || (() => {}),
+  };
+  if (Object.prototype.hasOwnProperty.call(options, "cache")) {
+    handlerOptions.cache = options.cache;
+  }
   const response = await publicReportRequest(
     {
       request,
       env: options.env || { METRICS_KV: kv },
       waitUntil: options.waitUntil,
     },
-    {
-      cache: options.cache,
-      now: () =>
-        options.nowMs ??
-        Date.parse(`${options.nowDay || SERVER_DAY}T12:00:00Z`),
-      logger: options.logger || (() => {}),
-    },
+    handlerOptions,
   );
   return { response, text: await response.text() };
 }
@@ -127,7 +172,13 @@ function parseLogs(lines) {
   });
 }
 
-test("defaults to a public 30-day daily report without authentication", async () => {
+function actualV2Keys(kv) {
+  return [...kv.values.keys()]
+    .filter((key) => /^h_(?:act|ver|newch)_\d{8}_\d{2}$/.test(key))
+    .sort();
+}
+
+test("defaults to a public 30-day V2 daily report without authentication", async () => {
   const kv = await seededKv();
   const { response, text } = await buildPublicReport(kv, "", {
     headers: {
@@ -152,29 +203,33 @@ test("defaults to a public 30-day daily report without authentication", async ()
   assert.equal(report.from, "2026-10-07");
   assert.equal(report.to, SERVER_DAY);
   assert.equal(report.generatedDay, SERVER_DAY);
-  assert.deepEqual(report.metrics, ["M1", "M3", "M5", "M7", "M8"]);
   assert.deepEqual(report.summary, {
-    active: 2,
-    newInstalls: 2,
-    versionsActive: { "0.1.1": 1, "0.1.2": 2 },
+    activeAverage: 0.2,
+    activePeak: 2,
+    newClients: 3,
   });
+  assert.equal(report.rows.length, 30);
+  assert.equal("metrics" in report, false);
+  assert.equal("totalInstalls" in report, false);
+  assert.equal("installsByVersion" in report, false);
 });
 
-test("range and granularity are fixed to the public allowlist", async () => {
+test("range is fixed to 7/30/90 days and month granularity is rejected", async () => {
   const kv = await seededKv();
+  for (const range of ["7d", "30d", "90d"]) {
+    const { response, text } = await buildPublicReport(kv, `range=${range}`);
+    assert.equal(response.status, 200, range);
+    const report = JSON.parse(text);
+    assert.equal(report.range, range);
+    assert.equal(report.granularity, "day");
+  }
   for (const query of [
-    "range=7d&granularity=day",
-    "range=90d&granularity=day",
     "range=30d&granularity=month",
+    "range=7d&granularity=week",
   ]) {
     const { response, text } = await buildPublicReport(kv, query);
-    assert.equal(response.status, 200, query);
-    const report = JSON.parse(text);
-    assert.equal(`range=${report.range}`, `range=${query.match(/range=([^&]+)/)[1]}`);
-    assert.equal(
-      `granularity=${report.granularity}`,
-      `granularity=${query.match(/granularity=([^&]+)/)[1]}`,
-    );
+    assert.equal(response.status, 400, query);
+    assert.equal(text, "invalid request");
   }
 });
 
@@ -187,80 +242,70 @@ test("parses query without URLSearchParams entry iteration", async () => {
   try {
     const { response, text } = await buildPublicReport(
       new MemoryKv(),
-      "range=7d&granularity=day",
+      "range=7d",
     );
     assert.equal(response.status, 200);
     const report = JSON.parse(text);
     assert.equal(report.range, "7d");
     assert.equal(report.granularity, "day");
-    assert.equal(report.totalInstalls, 0);
-    assert.equal(report.summary.active, 0);
+    assert.deepEqual(report.summary, {
+      activeAverage: 0,
+      activePeak: 0,
+      newClients: 0,
+    });
   } finally {
     URLSearchParams.prototype[Symbol.iterator] = originalIterator;
   }
 });
 
-test("empty KV returns zero reports for every public query without reading HLL keys", async () => {
-  const expectedRows = {
-    "7d": { day: 7, month: 2 },
-    "30d": { day: 30, month: 2 },
-    "90d": { day: 90, month: 4 },
-  };
+test("empty KV returns V2 zero reports without reading HLL keys", async () => {
+  const expectedRows = { "7d": 7, "30d": 30, "90d": 90 };
 
   for (const range of ["7d", "30d", "90d"]) {
-    for (const granularity of ["day", "month"]) {
-      let getCalls = 0;
-      let listCalls = 0;
-      const kv = {
-        async get() {
-          getCalls += 1;
-          throw new Error("empty namespace must not read sketches");
-        },
-        async list(options) {
-          listCalls += 1;
-          assert.deepEqual(options, { prefix: "h_", limit: 1 });
-          // EdgeOne omits `keys` when the requested page has no entries.
-          return { complete: true, cursor: "" };
-        },
-      };
+    let getCalls = 0;
+    let listCalls = 0;
+    const kv = {
+      async get() {
+        getCalls += 1;
+        throw new Error("empty namespace must not read sketches");
+      },
+      async list(options) {
+        listCalls += 1;
+        assert.deepEqual(options, { prefix: "h_act_", limit: 1 });
+        return { complete: true, cursor: "" };
+      },
+    };
 
-      const query = `range=${range}&granularity=${granularity}`;
-      const { response, text } = await buildPublicReport(kv, query);
-      assert.equal(response.status, 200, query);
-      assert.equal(listCalls, 1, query);
-      assert.equal(getCalls, 0, query);
+    const { response, text } = await buildPublicReport(kv, `range=${range}`);
+    assert.equal(response.status, 200, range);
+    assert.equal(listCalls, 1, range);
+    assert.equal(getCalls, 0, range);
 
-      const report = JSON.parse(text);
-      assert.deepEqual(report.summary, {
-        active: 0,
-        newInstalls: 0,
-        versionsActive: {},
-      });
-      assert.equal(report.totalInstalls, 0);
-      assert.deepEqual(report.installsByVersion, {});
-      assert.equal(report.rows.length, expectedRows[range][granularity], query);
-      assert.equal(
-        report.rows.every(
-          (row) =>
-            row.active === 0 &&
-            row.newInstalls === 0 &&
-            Object.keys(row.versionsActive).length === 0,
-        ),
-        true,
-        query,
-      );
-    }
+    const report = JSON.parse(text);
+    assert.deepEqual(report.summary, {
+      activeAverage: 0,
+      activePeak: 0,
+      newClients: 0,
+    });
+    assert.equal(report.rows.length, expectedRows[range], range);
+    assert.equal(
+      report.rows.every(
+        (row) =>
+          row.active === 0 &&
+          Object.keys(row.versionsActive).length === 0 &&
+          Object.keys(row.channelsActive).length === 0 &&
+          Object.keys(row.osActive).length === 0 &&
+          Object.keys(row.newClientsByChannel).length === 0,
+      ),
+      true,
+      range,
+    );
   }
 });
 
-test("sparse 90-day report reads only metric keys present in the range", async () => {
+test("sparse 90-day report reads only actual V2 keys in the range", async () => {
   const kv = await seededKv();
-  const actualKeys = [...kv.values.keys()]
-    .filter((key) =>
-      /^h_(?:act|new|ver)_\d{8}_\d{2}$/.test(key) ||
-      /^h_(?:total|install_ver)_\d{2}$/.test(key),
-    )
-    .sort();
+  const actualKeys = actualV2Keys(kv);
   const readKeys = [];
   const originalGet = kv.get.bind(kv);
   kv.get = async (key) => {
@@ -268,28 +313,24 @@ test("sparse 90-day report reads only metric keys present in the range", async (
     return originalGet(key);
   };
 
-  const { response } = await buildPublicReport(
-    kv,
-    "range=90d&granularity=month",
-  );
+  const { response } = await buildPublicReport(kv, "range=90d");
 
   assert.equal(response.status, 200);
   assert.deepEqual([...new Set(readKeys)].sort(), actualKeys);
-  assert.ok(readKeys.length < 100, `expected sparse reads, saw ${readKeys.length}`);
+  assert.ok(readKeys.length < 64, `expected sparse reads, saw ${readKeys.length}`);
+  assert.equal(readKeys.some((key) => key.startsWith("h_total_")), false);
+  assert.equal(readKeys.some((key) => key.startsWith("h_install_ver_")), false);
+  assert.equal(readKeys.some((key) => /^h_new_/.test(key)), false);
 });
 
-test("logs sparse report reads with actual list and read counts", async () => {
+test("logs sparse V2 report reads with actual list and read counts", async () => {
   const kv = await seededKv();
   const logs = [];
-
-  const { response } = await buildPublicReport(
-    kv,
-    "range=90d&granularity=month",
-    { logger: (line) => logs.push(line) },
-  );
+  const { response } = await buildPublicReport(kv, "range=90d", {
+    logger: (line) => logs.push(line),
+  });
 
   assert.equal(response.status, 200);
-  assert.equal(logs.length, 1);
   const entry = parseLogs(logs)[0];
   assert.equal(entry.service, "metrics");
   assert.equal(entry.event, "public_report");
@@ -297,41 +338,37 @@ test("logs sparse report reads with actual list and read counts", async () => {
   assert.equal(entry.stage, "complete");
   assert.equal(entry.status, 200);
   assert.equal(entry.range, "90d");
-  assert.equal(entry.granularity, "month");
+  assert.equal(entry.granularity, "day");
   assert.equal(entry.cache, "bypass");
   assert.equal(entry.emptyNamespace, false);
-  assert.equal(entry.listPrefixCount, 273);
-  assert.equal(entry.listPageCount, 273);
-  assert.equal(entry.listedKeyCount, 12);
-  assert.equal(entry.readKeyCount, 12);
-  assert.equal(entry.summaryActive, 2);
-  assert.equal(entry.summaryNewInstalls, 2);
-  assert.equal(entry.totalInstalls, 2);
-  assert.equal(entry.versionCount, 2);
-  assert.equal(entry.rowCount, 4);
+  assert.equal(entry.listPrefixCount, 271);
+  assert.equal(entry.listPageCount, 271);
+  assert.equal(entry.listedKeyCount, actualV2Keys(kv).length);
+  assert.equal(entry.readKeyCount, actualV2Keys(kv).length);
+  assert.equal(entry.activeAverage, 0.1);
+  assert.equal(entry.activePeak, 2);
+  assert.equal(entry.newClients, 3);
+  assert.equal(entry.rowCount, 90);
   assert.equal(typeof entry.durationMs, "number");
 });
 
-test("logs an empty namespace after the single probe", async () => {
+test("logs an empty namespace after the single h_act_ probe", async () => {
   const logs = [];
   const kv = {
     async get() {
       throw new Error("empty namespace must not read sketches");
     },
     async list(options) {
-      assert.deepEqual(options, { prefix: "h_", limit: 1 });
+      assert.deepEqual(options, { prefix: "h_act_", limit: 1 });
       return { complete: true, cursor: "" };
     },
   };
 
-  const { response } = await buildPublicReport(
-    kv,
-    "range=7d&granularity=day",
-    { logger: (line) => logs.push(line) },
-  );
+  const { response } = await buildPublicReport(kv, "range=7d", {
+    logger: (line) => logs.push(line),
+  });
 
   assert.equal(response.status, 200);
-  assert.equal(logs.length, 1);
   const entry = parseLogs(logs)[0];
   assert.equal(entry.event, "public_report");
   assert.equal(entry.cache, "bypass");
@@ -340,12 +377,13 @@ test("logs an empty namespace after the single probe", async () => {
   assert.equal(entry.listPageCount, 1);
   assert.equal(entry.listedKeyCount, 0);
   assert.equal(entry.readKeyCount, 0);
-  assert.equal(entry.summaryActive, 0);
-  assert.equal(entry.summaryNewInstalls, 0);
+  assert.equal(entry.activeAverage, 0);
+  assert.equal(entry.activePeak, 0);
+  assert.equal(entry.newClients, 0);
   assert.equal(entry.rowCount, 7);
 });
 
-test("lists only the three daily metric prefixes and global prefixes in range", async () => {
+test("lists only the three V2 daily prefixes in range", async () => {
   const kv = await seededKv();
   const prefixes = [];
   const originalList = kv.list.bind(kv);
@@ -354,7 +392,7 @@ test("lists only the three daily metric prefixes and global prefixes in range", 
     return originalList(options);
   };
 
-  const { response } = await buildPublicReport(kv, "range=7d&granularity=day");
+  const { response } = await buildPublicReport(kv, "range=7d");
 
   assert.equal(response.status, 200);
   const days = [
@@ -367,31 +405,27 @@ test("lists only the three daily metric prefixes and global prefixes in range", 
     "20261105",
   ];
   const expected = [
-    "h_",
+    "h_act_",
     ...days.flatMap((day) => [
       `h_act_${day}_`,
-      `h_new_${day}_`,
       `h_ver_${day}_`,
+      `h_newch_${day}_`,
     ]),
-    "h_install_ver_",
-    "h_total_",
   ];
   assert.deepEqual([...new Set(prefixes)].sort(), [...new Set(expected)].sort());
+  assert.equal(prefixes.some((prefix) => prefix.startsWith("h_new_")), false);
+  assert.equal(prefixes.some((prefix) => prefix.startsWith("h_total_")), false);
 });
 
 test("reads EdgeOne KV list entries from the key field", async () => {
   const kv = await seededKv();
-
-  const { response, text } = await buildPublicReport(
-    kv,
-    "range=7d&granularity=day",
-  );
+  const { response, text } = await buildPublicReport(kv, "range=7d");
 
   assert.equal(response.status, 200);
   assert.deepEqual(JSON.parse(text).summary, {
-    active: 2,
-    newInstalls: 2,
-    versionsActive: { "0.1.1": 1, "0.1.2": 2 },
+    activeAverage: 0.7,
+    activePeak: 2,
+    newClients: 3,
   });
 });
 
@@ -422,31 +456,40 @@ test("follows KV list cursors for non-empty metric pages", async () => {
     };
   };
 
-  const { response, text } = await buildPublicReport(
-    kv,
-    "range=7d&granularity=day",
-    { logger: (line) => logs.push(line) },
-  );
+  const { response } = await buildPublicReport(kv, "range=7d", {
+    logger: (line) => logs.push(line),
+  });
 
   assert.equal(response.status, 200);
   assert.equal(listCalls.length, 2);
   const entry = parseLogs(logs)[0];
-  assert.equal(entry.listPrefixCount, 24);
-  assert.equal(entry.listPageCount, 25);
-  assert.equal(entry.listedKeyCount, 12);
-  assert.equal(entry.readKeyCount, 12);
-  assert.deepEqual(JSON.parse(text).summary, {
-    active: 2,
-    newInstalls: 2,
-    versionsActive: { "0.1.1": 1, "0.1.2": 2 },
-  });
-  assert.equal(
-    JSON.parse(text).rows.find((row) => row.date === "2026-11-03").active,
-    1,
-  );
+  assert.equal(entry.listPrefixCount, 22);
+  assert.equal(entry.listPageCount, 23);
+  assert.equal(entry.listedKeyCount, actualV2Keys(kv).length);
+  assert.equal(entry.readKeyCount, actualV2Keys(kv).length);
 });
 
-test("reuses a successful report from the normalized cache without KV access", async () => {
+test("opts into the public-report-v2 Cache API namespace", async () => {
+  const kv = await seededKv();
+  const opened = [];
+  const originalCaches = globalThis.caches;
+  globalThis.caches = {
+    async open(name) {
+      opened.push(name);
+      return new MemoryCache();
+    },
+  };
+
+  try {
+    const { response } = await buildPublicReport(kv, "range=7d");
+    assert.equal(response.status, 200);
+    assert.deepEqual(opened, ["public-report-v2"]);
+  } finally {
+    globalThis.caches = originalCaches;
+  }
+});
+
+test("reuses a successful V2 report from the normalized cache without KV access", async () => {
   const kv = await seededKv();
   const cache = new MemoryCache();
   let kvCalls = 0;
@@ -458,20 +501,12 @@ test("reuses a successful report from the normalized cache without KV access", a
     };
   }
 
-  const first = await buildPublicReport(
-    kv,
-    "granularity=day&range=30d",
-    { cache },
-  );
+  const first = await buildPublicReport(kv, "range=30d", { cache });
   assert.equal(first.response.status, 200);
   assert.ok(kvCalls > 0);
   const callsAfterFirst = kvCalls;
 
-  const second = await buildPublicReport(null, "", {
-    cache,
-    env: {},
-  });
-
+  const second = await buildPublicReport(null, "", { cache, env: {} });
   assert.equal(second.response.status, 200);
   assert.equal(second.text, first.text);
   assert.equal(kvCalls, callsAfterFirst);
@@ -481,22 +516,17 @@ test("reuses a successful report from the normalized cache without KV access", a
 test("logs a cache hit with zero list and read counts", async () => {
   const kv = await seededKv();
   const cache = new MemoryCache();
-  const first = await buildPublicReport(
-    kv,
-    "range=7d&granularity=day",
-    { cache },
-  );
+  const first = await buildPublicReport(kv, "range=7d", { cache });
   assert.equal(first.response.status, 200);
 
   const logs = [];
-  const cached = await buildPublicReport(null, "range=7d&granularity=day", {
+  const cached = await buildPublicReport(null, "range=7d", {
     cache,
     env: {},
     logger: (line) => logs.push(line),
   });
 
   assert.equal(cached.response.status, 200);
-  assert.equal(logs.length, 1);
   const entry = parseLogs(logs)[0];
   assert.equal(entry.event, "public_report");
   assert.equal(entry.cache, "hit");
@@ -505,8 +535,9 @@ test("logs a cache hit with zero list and read counts", async () => {
   assert.equal(entry.listPageCount, 0);
   assert.equal(entry.listedKeyCount, 0);
   assert.equal(entry.readKeyCount, 0);
-  assert.equal(entry.summaryActive, 2);
-  assert.equal(entry.summaryNewInstalls, 2);
+  assert.equal(entry.activeAverage, 0.7);
+  assert.equal(entry.activePeak, 2);
+  assert.equal(entry.newClients, 3);
   assert.equal(entry.rowCount, 7);
 });
 
@@ -523,14 +554,14 @@ test("expires a cached report after 60 seconds", async () => {
   }
   const requestedAt = Date.parse(`${SERVER_DAY}T12:00:00Z`);
 
-  const first = await buildPublicReport(kv, "range=7d&granularity=day", {
+  const first = await buildPublicReport(kv, "range=7d", {
     cache,
     nowMs: requestedAt,
   });
   assert.equal(first.response.status, 200);
   const callsAfterFirst = kvCalls;
 
-  const stillFresh = await buildPublicReport(null, "range=7d&granularity=day", {
+  const stillFresh = await buildPublicReport(null, "range=7d", {
     cache,
     env: {},
     nowMs: requestedAt + 59_999,
@@ -538,7 +569,7 @@ test("expires a cached report after 60 seconds", async () => {
   assert.equal(stillFresh.response.status, 200);
   assert.equal(kvCalls, callsAfterFirst);
 
-  const expired = await buildPublicReport(kv, "range=7d&granularity=day", {
+  const expired = await buildPublicReport(kv, "range=7d", {
     cache,
     nowMs: requestedAt + 60_000,
   });
@@ -554,21 +585,15 @@ test("does not cache KV failures", async () => {
     },
   };
 
-  const failed = await buildPublicReport(brokenKv, "range=7d&granularity=day", {
-    cache,
-  });
+  const failed = await buildPublicReport(brokenKv, "range=7d", { cache });
   assert.equal(failed.response.status, 503);
   assert.equal(failed.text, "service unavailable");
 
   const kv = await seededKv();
-  const recovered = await buildPublicReport(
-    kv,
-    "range=7d&granularity=day",
-    { cache },
-  );
+  const recovered = await buildPublicReport(kv, "range=7d", { cache });
   assert.equal(recovered.response.status, 200);
 
-  const cached = await buildPublicReport(null, "range=7d&granularity=day", {
+  const cached = await buildPublicReport(null, "range=7d", {
     cache,
     env: {},
   });
@@ -588,23 +613,21 @@ test("cache API failures fall back to the live report", async () => {
     },
   };
 
-  const { response, text } = await buildPublicReport(
-    kv,
-    "range=7d&granularity=day",
-    { cache, logger: (line) => logs.push(line) },
-  );
+  const { response, text } = await buildPublicReport(kv, "range=7d", {
+    cache,
+    logger: (line) => logs.push(line),
+  });
 
   assert.equal(response.status, 200);
-  const entries = parseLogs(logs);
-  const warningStages = entries
+  const warningStages = parseLogs(logs)
     .filter((entry) => entry.outcome === "warning")
     .map((entry) => entry.stage)
     .sort();
   assert.deepEqual(warningStages, ["cache_read", "cache_write"]);
   assert.deepEqual(JSON.parse(text).summary, {
-    active: 2,
-    newInstalls: 2,
-    versionsActive: { "0.1.1": 1, "0.1.2": 2 },
+    activeAverage: 0.7,
+    activePeak: 2,
+    newClients: 3,
   });
 });
 
@@ -613,16 +636,12 @@ test("defers cache writes through waitUntil when the host provides it", async ()
   const cache = new MemoryCache();
   const pending = [];
 
-  const { response } = await buildPublicReport(
-    kv,
-    "range=7d&granularity=day",
-    {
-      cache,
-      waitUntil(promise) {
-        pending.push(promise);
-      },
+  const { response } = await buildPublicReport(kv, "range=7d", {
+    cache,
+    waitUntil(promise) {
+      pending.push(promise);
     },
-  );
+  });
 
   assert.equal(response.status, 200);
   assert.equal(pending.length, 1);
@@ -650,10 +669,7 @@ test("caps public KV operations at eight in flight", async () => {
     };
   }
 
-  const { response } = await buildPublicReport(
-    kv,
-    "range=90d&granularity=month",
-  );
+  const { response } = await buildPublicReport(kv, "range=90d");
 
   assert.equal(response.status, 200);
   assert.ok(calls > 100, `expected many bounded operations, saw ${calls}`);
@@ -674,8 +690,8 @@ test("rejects methods and every unbounded or ambiguous query shape", async () =>
     "range=14d",
     "range=",
     "range=7d&range=30d",
-    "granularity=week",
-    "granularity=day&granularity=month",
+    "granularity=day&granularity=day",
+    "granularity=month",
     "from=2026-11-01&to=2026-11-05",
     "format=json",
     "format=csv",
@@ -689,80 +705,36 @@ test("rejects methods and every unbounded or ambiguous query shape", async () =>
   }
 });
 
-test("logs public method rejections with stage and status", async () => {
-  const logs = [];
-  const { response } = await buildPublicReport(null, "", {
+test("logs public method, query and missing-binding failures", async () => {
+  const methodLogs = [];
+  const method = await buildPublicReport(null, "", {
     method: "POST",
-    logger: (line) => logs.push(line),
+    logger: (line) => methodLogs.push(line),
   });
+  assert.equal(method.response.status, 405);
+  assert.equal(parseLogs(methodLogs)[0].stage, "method");
 
-  assert.equal(response.status, 405);
-  assert.equal(logs.length, 1);
-  const entry = parseLogs(logs)[0];
-  assert.equal(entry.event, "public_report");
-  assert.equal(entry.outcome, "rejected");
-  assert.equal(entry.stage, "method");
-  assert.equal(entry.status, 405);
-  assert.equal(entry.method, "POST");
-});
-
-test("logs public query rejections with stage and status", async () => {
-  const logs = [];
-  const { response } = await buildPublicReport(null, "range=14d", {
-    logger: (line) => logs.push(line),
+  const queryLogs = [];
+  const query = await buildPublicReport(null, "range=14d", {
+    logger: (line) => queryLogs.push(line),
   });
+  assert.equal(query.response.status, 400);
+  assert.equal(parseLogs(queryLogs)[0].stage, "validate");
 
-  assert.equal(response.status, 400);
-  assert.equal(logs.length, 1);
-  const entry = parseLogs(logs)[0];
-  assert.equal(entry.event, "public_report");
-  assert.equal(entry.outcome, "rejected");
-  assert.equal(entry.stage, "validate");
-  assert.equal(entry.status, 400);
-});
-
-test("logs a missing public KV binding without exposing the environment", async () => {
-  const logs = [];
-  const { response } = await buildPublicReport(null, "", {
+  const bindingLogs = [];
+  const binding = await buildPublicReport(null, "", {
     env: {},
-    logger: (line) => logs.push(line),
+    logger: (line) => bindingLogs.push(line),
   });
-
-  assert.equal(response.status, 503);
-  assert.equal(logs.length, 1);
-  const entry = parseLogs(logs)[0];
-  assert.equal(entry.event, "public_report");
-  assert.equal(entry.outcome, "error");
-  assert.equal(entry.stage, "kv_binding");
-  assert.equal(entry.status, 503);
-  assert.equal(entry.cache, "bypass");
-  assert.equal("environment" in entry, false);
+  assert.equal(binding.response.status, 503);
+  const bindingEntry = parseLogs(bindingLogs)[0];
+  assert.equal(bindingEntry.stage, "kv_binding");
+  assert.equal(bindingEntry.cache, "bypass");
 });
 
-test("month rows merge daily HLLs and summary deduplicates across the range", async () => {
+test("public response is an aggregate-only V2 whitelist", async () => {
   const kv = await seededKv();
-  const { response, text } = await buildPublicReport(
-    kv,
-    "range=30d&granularity=month",
-  );
-  assert.equal(response.status, 200);
-  const report = JSON.parse(text);
-  assert.deepEqual(report.metrics, ["M2", "M4", "M6", "M7", "M8"]);
-  assert.deepEqual(report.summary, {
-    active: 2,
-    newInstalls: 2,
-    versionsActive: { "0.1.1": 1, "0.1.2": 2 },
-  });
-  assert.equal(report.rows.length, 2);
-  const november = report.rows.find((row) => row.month === "2026-11");
-  assert.equal(november.active, 2);
-  assert.equal(november.newInstalls, 2);
-  assert.deepEqual(november.versionsActive, { "0.1.1": 1, "0.1.2": 2 });
-});
-
-test("public response is an aggregate-only whitelist", async () => {
-  const kv = await seededKv();
-  const { response, text } = await buildPublicReport(kv, "range=7d&granularity=day");
+  const { response, text } = await buildPublicReport(kv, "range=7d");
   assert.equal(response.status, 200);
   const report = JSON.parse(text);
 
@@ -772,25 +744,24 @@ test("public response is an aggregate-only whitelist", async () => {
     "from",
     "generatedDay",
     "granularity",
-    "installsByVersion",
     "method",
-    "metrics",
     "range",
     "rows",
     "summary",
     "to",
-    "totalInstalls",
   ]);
   assert.deepEqual(Object.keys(report.summary).sort(), [
-    "active",
-    "newInstalls",
-    "versionsActive",
+    "activeAverage",
+    "activePeak",
+    "newClients",
   ]);
   for (const row of report.rows) {
     assert.deepEqual(Object.keys(row).sort(), [
       "active",
+      "channelsActive",
       "date",
-      "newInstalls",
+      "newClientsByChannel",
+      "osActive",
       "versionsActive",
     ]);
   }
@@ -804,9 +775,36 @@ test("public response is an aggregate-only whitelist", async () => {
     "rawEvents",
     "environment",
     "maintenanceToken",
+    "totalInstalls",
+    "installsByVersion",
   ]) {
     assert.equal(text.toLowerCase().includes(banned.toLowerCase()), false, banned);
   }
+});
+
+test("range new clients use a union rather than summing channel estimates", async () => {
+  const kv = new MemoryKv();
+  await seed(
+    kv,
+    event(ID_A, {
+      day: "2026-11-05",
+      firstLaunchDay: "2026-11-05",
+      channel: "installer",
+    }),
+  );
+  await seed(
+    kv,
+    event(ID_A, {
+      day: "2026-11-05",
+      firstLaunchDay: "2026-11-05",
+      channel: "portable",
+    }),
+  );
+  const { text } = await buildPublicReport(kv, "range=7d");
+  const report = JSON.parse(text);
+  const day = report.rows.find((row) => row.date === "2026-11-05");
+  assert.deepEqual(day.newClientsByChannel, { installer: 1, portable: 1 });
+  assert.equal(report.summary.newClients, 1);
 });
 
 test("public report returns generic no-store errors when KV is unavailable", async () => {
@@ -816,7 +814,7 @@ test("public report returns generic no-store errors when KV is unavailable", asy
   assert.equal(missing.text, "service unavailable");
 
   const brokenKv = {
-    get: async () => {
+    list: async () => {
       throw new Error("internal KV detail must not leak");
     },
   };
@@ -837,26 +835,22 @@ test("logs public KV failures without leaking internal values", async () => {
     },
   };
 
-  const { response } = await buildPublicReport(
-    brokenKv,
-    "range=7d&granularity=day",
-    { logger: (line) => logs.push(line) },
-  );
+  const { response } = await buildPublicReport(brokenKv, "range=7d", {
+    logger: (line) => logs.push(line),
+  });
 
   assert.equal(response.status, 503);
-  assert.equal(logs.length, 1);
   const entry = parseLogs(logs)[0];
   assert.equal(entry.event, "public_report");
   assert.equal(entry.outcome, "error");
   assert.equal(entry.stage, "kv_list");
   assert.equal(entry.status, 503);
   assert.match(entry.error, /KV unavailable/);
-  const output = JSON.stringify(entry);
-  assert.equal(output.includes(ID_A), false);
-  assert.equal(output.includes("203.0.113.9"), false);
+  assert.equal(JSON.stringify(entry).includes(ID_A), false);
+  assert.equal(JSON.stringify(entry).includes("203.0.113.9"), false);
 });
 
-test("public source never reads authorization, cookies or request metadata", async () => {
+test("public source never reads authorization, cookies, request metadata or globals", async () => {
   const { readFile } = await import("node:fs/promises");
   const source = await readFile(
     new URL("../edge-functions/_lib/public-report.js", import.meta.url),
@@ -868,6 +862,10 @@ test("public source never reads authorization, cookies or request metadata", asy
     "clientIp",
     "request.eo",
     "MAINTENANCE_TOKEN",
+    "h_total_",
+    "h_install_ver_",
+    "public-report-v1",
+    "monthsFor",
   ]) {
     assert.equal(source.toLowerCase().includes(banned.toLowerCase()), false, banned);
   }

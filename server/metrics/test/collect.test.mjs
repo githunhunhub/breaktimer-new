@@ -176,7 +176,7 @@ test("accepts every request-body shape an EdgeOne isolate may expose", async () 
       logger: () => {},
     });
     assert.equal(response.status, 204, `${name} body should be accepted`);
-    assert.equal(kv.writes.length, 5, `${name} body should write sketches`);
+    assert.equal(kv.writes.length, 3, `${name} body should write sketches`);
   }
 });
 
@@ -216,7 +216,7 @@ test("prefers text() over an empty body stream like EdgeOne does", async () => {
     logger: () => {},
   });
   assert.equal(response.status, 204);
-  assert.equal(kv.writes.length, 5);
+  assert.equal(kv.writes.length, 3);
 });
 
 test("caps text() bodies too", async () => {
@@ -242,40 +242,54 @@ test("rejects unknown fields and an offline firstLaunchDay outside the cap", asy
   );
 });
 
-test("install writes active, version, new, total and install-version sketches", async () => {
+test("install writes active, three-dimensional version, and new-channel sketches", async () => {
   const { kv, response } = await handle(installEvent());
   assert.equal(response.status, 204);
-  assert.equal(kv.writes.length, 5);
+  assert.equal(kv.writes.length, 3);
   assert.ok(kv.writes.some((key) => key.startsWith("h_act_20261105_")));
   assert.ok(kv.writes.some((key) => key.startsWith("h_ver_20261105_")));
-  assert.ok(kv.writes.some((key) => key.startsWith("h_new_20261101_")));
-  assert.ok(kv.writes.some((key) => key.startsWith("h_total_")));
-  assert.ok(kv.writes.some((key) => key.startsWith("h_install_ver_")));
+  assert.ok(kv.writes.some((key) => key.startsWith("h_newch_20261101_")));
+  assert.equal(kv.writes.some((key) => /^h_new_/.test(key)), false);
+  assert.equal(kv.writes.some((key) => key.startsWith("h_total_")), false);
+  assert.equal(kv.writes.some((key) => key.startsWith("h_install_ver_")), false);
 
   for (const key of kv.writes) {
     assert.equal(kv.values.get(key).includes(INSTALL_ID), false);
     assert.equal(kv.values.get(key).includes("203.0.113.9"), false);
   }
   const versionKey = kv.writes.find((key) => key.startsWith("h_ver_"));
-  assert.deepEqual(Object.keys(JSON.parse(kv.values.get(versionKey))), ["0.1.1"]);
+  const dimensions = JSON.parse(kv.values.get(versionKey));
+  assert.deepEqual(Object.keys(dimensions).sort(), ["channels", "os", "versions"]);
+  assert.deepEqual(Object.keys(dimensions.versions), ["0.1.1"]);
+  assert.deepEqual(Object.keys(dimensions.channels), ["installer"]);
+  assert.deepEqual(Object.keys(dimensions.os), ["windows-11"]);
+  const newChannelKey = kv.writes.find((key) => key.startsWith("h_newch_"));
+  assert.deepEqual(Object.keys(JSON.parse(kv.values.get(newChannelKey))), ["installer"]);
 });
 
-test("heartbeat writes only active and version sketches", async () => {
+test("heartbeat writes active and three-dimensional distribution sketches", async () => {
   const { kv, response } = await handle(heartbeatEvent());
   assert.equal(response.status, 204);
   assert.equal(kv.writes.length, 2);
   for (const key of kv.writes) {
     assert.ok(key.startsWith("h_act_") || key.startsWith("h_ver_"));
   }
+  const versionKey = kv.writes.find((key) => key.startsWith("h_ver_"));
+  const dimensions = JSON.parse(kv.values.get(versionKey));
+  assert.deepEqual(Object.keys(dimensions.versions), ["0.1.1"]);
+  assert.deepEqual(Object.keys(dimensions.channels), ["installer"]);
+  assert.deepEqual(Object.keys(dimensions.os), ["windows-11"]);
 });
 
 test("replaying the same event does not increase the sketch estimate", async () => {
   const kv = new MemoryKv();
   await handle(installEvent(), { kv });
-  const key = kv.writes.find((entry) => entry.startsWith("h_total_"));
+  const key = kv.writes.find((entry) => entry.startsWith("h_act_"));
   const before = kv.values.get(key);
   await handle(installEvent(), { kv });
   assert.equal(kv.values.get(key), before);
+  const newChannel = kv.writes.find((entry) => entry.startsWith("h_newch_"));
+  assert.equal(JSON.stringify(kv.values.get(newChannel)).includes(INSTALL_ID), false);
 });
 
 test("writes from an old sketch value are merged instead of overwritten", async () => {
@@ -283,7 +297,7 @@ test("writes from an old sketch value are merged instead of overwritten", async 
     await import("../edge-functions/_lib/hll.js");
   const fingerprintValue = await fingerprint(INSTALL_ID);
   const shard = String(installShard(fingerprintValue)).padStart(2, "0");
-  const key = `h_total_${shard}`;
+  const key = `h_act_20261105_${shard}`;
   const existing = createSketch();
   mergeInto(existing, await fingerprint("another-install-id"));
   const kv = new MemoryKv({ [key]: JSON.stringify({ p: 14, data: encodeSketch(existing) }) });
@@ -319,7 +333,7 @@ test("logs successful collect with aggregate metadata and no identifiers", async
   assert.equal(entry.version, "0.1.1");
   assert.equal(entry.day, SERVER_DAY);
   assert.equal(entry.firstLaunchDay, "2026-11-01");
-  assert.equal(entry.writeCount, 5);
+  assert.equal(entry.writeCount, 3);
   assert.equal(typeof entry.durationMs, "number");
   const output = JSON.stringify(entry);
   assert.equal(output.includes(INSTALL_ID), false);

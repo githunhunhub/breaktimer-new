@@ -45,37 +45,22 @@ export function activeKey(day, shard) {
   return `h_act_${compactDay(day)}_${shardSuffix(shard)}`;
 }
 
-export function newKey(day, shard) {
-  return `h_new_${compactDay(day)}_${shardSuffix(shard)}`;
+export function newChannelKey(day, shard) {
+  return `h_newch_${compactDay(day)}_${shardSuffix(shard)}`;
 }
 
 export function versionKey(day, shard) {
   return `h_ver_${compactDay(day)}_${shardSuffix(shard)}`;
 }
 
-export function totalKey(shard) {
-  return `h_total_${shardSuffix(shard)}`;
-}
-
-export function installVersionKey(shard) {
-  return `h_install_ver_${shardSuffix(shard)}`;
-}
-
 export function activeKeysForDay(day) {
   return shardedKeys("h_act_", day);
 }
 
-export function newKeysForDay(day) {
-  return shardedKeys("h_new_", day);
+export function newChannelKeysForDay(day) {
+  return shardedKeys("h_newch_", day);
 }
 
 export function versionKeysForDay(day) {
   return shardedKeys("h_ver_", day);
-}
-
-export function globalKeys() {
-  return [
-    ...shardedKeys("h_total_"),
-    ...shardedKeys("h_install_ver_"),
-  ];
 }

@@ -29,21 +29,21 @@ test("dashboard ships the required local page, styles, scripts and graphic", asy
     "range-7d",
     "range-30d",
     "range-90d",
-    "granularity-day",
-    "granularity-month",
     "refresh-button",
     "loading-state",
     "empty-state",
     "error-state",
     "retry-button",
     "dashboard-content",
-    "metric-total",
-    "metric-active",
+    "metric-average",
+    "metric-peak",
     "metric-new",
-    "metric-versions",
     "active-chart",
     "new-chart",
     "version-table-body",
+    "channel-table-body",
+    "os-table-body",
+    "new-channel-table-body",
     "detail-table-body",
     "data-updated",
   ]) {
@@ -55,6 +55,9 @@ test("dashboard ships the required local page, styles, scripts and graphic", asy
   assert.doesNotMatch(html, /<script(?![^>]*\bsrc=)/i);
   assert.doesNotMatch(html, /<form\b/i);
   assert.doesNotMatch(html, /\bstyle\s*=/i);
+  assert.match(html, /客户端统计/);
+  assert.doesNotMatch(html, /装机统计|data-granularity|granularity-month/i);
+  assert.doesNotMatch(html, /\bM[1-8]\b/);
 
   for (const file of files.filter((name) => /\.(?:html|css|js|svg)$/.test(name))) {
     const text = await readText(file);
@@ -142,6 +145,16 @@ test("dashboard script uses one same-origin API and renders states separately", 
   const script = await readText("dashboard.js");
   const core = await readText("dashboard-core.js");
   assert.match(`${script}\n${core}`, /\/api\/public-report/);
+  assert.match(`${script}\n${core}`, /activeAverage/);
+  assert.match(`${script}\n${core}`, /activePeak/);
+  assert.match(`${script}\n${core}`, /versionsActive/);
+  assert.match(`${script}\n${core}`, /channelsActive/);
+  assert.match(`${script}\n${core}`, /osActive/);
+  assert.match(`${script}\n${core}`, /newClientsByChannel/);
+  assert.doesNotMatch(
+    `${script}\n${core}`,
+    /data-granularity|granularity=month|monthly|\bM[1-8]\b/,
+  );
   assert.doesNotMatch(script, /fetch\([^)]*https?:/i);
   assert.match(script, /AbortController/);
   assert.match(script, /loading-state/);

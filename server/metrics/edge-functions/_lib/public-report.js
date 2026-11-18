@@ -1,29 +1,29 @@
-// Public, fixed-range aggregate report for the dashboard (SPEC-0022, ADR-0029).
+// Public, fixed-range client aggregate report (SPEC-0022, ADR-0029, ADR-0033).
 //
-// This route deliberately has no maintenance-token path and never exposes
-// request metadata. It lists the fixed metric prefixes and reads only the keys
-// that exist in the requested range.
+// This route has no private-token path and never exposes request metadata. It
+// lists only the three V2 daily prefixes and reads the keys that actually exist
+// in the requested range.
 
 import {
   cardinality,
+  deserializeDimensions,
   deserializeSketch,
   deserializeVersionMap,
+  mergeDimensions,
   mergeSketches,
   mergeVersionMaps,
   versionCardinalities,
+  versionDimensionCardinalities,
 } from "./hll.js";
 import {
   activeKeysForDay,
   compactDay,
-  installVersionKey,
   keyDay,
-  newKeysForDay,
-  SHARD_COUNT,
-  totalKey,
+  newChannelKeysForDay,
   versionKeysForDay,
 } from "./keys.js";
 import { elapsedMs, errorText, loggerOf, writeLog } from "./log.js";
-import { eachDay, monthsFor } from "./report.js";
+import { eachDay } from "./report.js";
 import { getKv, response, serverDayOf } from "./runtime.js";
 
 const RANGE_DAYS = new Map([
@@ -31,11 +31,10 @@ const RANGE_DAYS = new Map([
   ["30d", 30],
   ["90d", 90],
 ]);
-const GRANULARITIES = new Set(["day", "month"]);
 const QUERY_FIELDS = new Set(["range", "granularity"]);
 const PUBLIC_KV_BATCH = 8;
 const LIST_LIMIT = 256;
-const PUBLIC_CACHE_NAME = "public-report-v1";
+const PUBLIC_CACHE_NAME = "public-report-v2";
 const PUBLIC_CACHE_TTL_MS = 60_000;
 const NO_STORE = { "Cache-Control": "no-store" };
 const PUBLIC_CACHE = {
@@ -61,10 +60,10 @@ function validateQuery(url) {
 
   const range = url.searchParams.get("range") || "30d";
   const granularity = url.searchParams.get("granularity") || "day";
-  if (!RANGE_DAYS.has(range) || !GRANULARITIES.has(granularity)) {
+  if (!RANGE_DAYS.has(range) || granularity !== "day") {
     return { error: true };
   }
-  return { range, granularity };
+  return { range, granularity: "day" };
 }
 
 async function resolveCache(options, warn) {
@@ -88,7 +87,7 @@ function cacheKeyFor(request, query) {
   const url = new URL(request.url);
   url.search = "";
   url.searchParams.set("range", query.range);
-  url.searchParams.set("granularity", query.granularity);
+  url.searchParams.set("granularity", "day");
   return new Request(url.toString(), { method: "GET" });
 }
 
@@ -158,7 +157,7 @@ async function hasMetricKeys(kv, stats) {
   stats.listPageCount += 1;
   let result;
   try {
-    result = await kv.list({ prefix: "h_", limit: 1 });
+    result = await kv.list({ prefix: "h_act_", limit: 1 });
   } catch (error) {
     throw markKvStage(error, "kv_list");
   }
@@ -225,30 +224,20 @@ async function mapInBatches(items, batchSize, callback) {
   return result;
 }
 
-function shardedGlobalKeys(keyFactory) {
-  return new Set(
-    Array.from({ length: SHARD_COUNT }, (_, shard) => keyFactory(shard)),
-  );
-}
-
 function listingsForDay(day) {
   const compact = compactDay(day);
   return [
     { prefix: `h_act_${compact}_`, expected: new Set(activeKeysForDay(day)) },
-    { prefix: `h_new_${compact}_`, expected: new Set(newKeysForDay(day)) },
     { prefix: `h_ver_${compact}_`, expected: new Set(versionKeysForDay(day)) },
+    {
+      prefix: `h_newch_${compact}_`,
+      expected: new Set(newChannelKeysForDay(day)),
+    },
   ];
 }
 
 async function listExistingMetricKeys(kv, days, stats) {
-  const listings = [
-    ...days.flatMap(listingsForDay),
-    { prefix: "h_total_", expected: shardedGlobalKeys(totalKey) },
-    {
-      prefix: "h_install_ver_",
-      expected: shardedGlobalKeys(installVersionKey),
-    },
-  ];
+  const listings = days.flatMap(listingsForDay);
   const listed = await mapInBatches(
     listings,
     PUBLIC_KV_BATCH,
@@ -274,7 +263,16 @@ function mergeDaySketches(valuesByDay) {
   );
 }
 
-function mergeDayVersions(valuesByDay) {
+function mergeDayDimensions(valuesByDay) {
+  return new Map(
+    [...valuesByDay].map(([day, values]) => [
+      day,
+      mergeDimensions(values.map((value) => deserializeDimensions(value))),
+    ]),
+  );
+}
+
+function mergeDayGroups(valuesByDay) {
   return new Map(
     [...valuesByDay].map(([day, values]) => [
       day,
@@ -292,95 +290,80 @@ async function readExistingMetrics(kv, days, stats) {
   } catch (error) {
     throw markKvStage(error, "kv_read");
   }
+
   const activeValues = new Map();
   const versionValues = new Map();
-  const newInstallValues = new Map();
-  const totalValues = [];
-  const installVersionValues = [];
-
+  const newChannelValues = new Map();
   keys.forEach((key, index) => {
     const value = values[index];
     if (key.startsWith("h_act_")) {
       addToMap(activeValues, keyDay(key), value);
     } else if (key.startsWith("h_ver_")) {
       addToMap(versionValues, keyDay(key), value);
-    } else if (key.startsWith("h_new_")) {
-      addToMap(newInstallValues, keyDay(key), value);
-    } else if (key.startsWith("h_total_")) {
-      totalValues.push(value);
-    } else if (key.startsWith("h_install_ver_")) {
-      installVersionValues.push(value);
+    } else if (key.startsWith("h_newch_")) {
+      addToMap(newChannelValues, keyDay(key), value);
     }
   });
 
   return {
     active: mergeDaySketches(activeValues),
-    versions: mergeDayVersions(versionValues),
-    newInstalls: mergeDaySketches(newInstallValues),
-    global: {
-      totalInstalls: totalValues.length
-        ? cardinality(
-            mergeSketches(totalValues.map((value) => deserializeSketch(value))),
-          )
-        : 0,
-      installsByVersion: versionCardinalities(
-        mergeVersionMaps(
-          installVersionValues.map((value) => deserializeVersionMap(value)),
-        ),
-      ),
-    },
+    versions: mergeDayDimensions(versionValues),
+    newChannels: mergeDayGroups(newChannelValues),
   };
 }
 
-function buildRows(query, days, active, versions, newInstalls) {
-  if (query.granularity === "day") {
-    return days.map((day) => ({
-      date: day,
-      active: active.has(day) ? cardinality(active.get(day)) : 0,
-      versionsActive: versionCardinalities(versions.get(day) || {}),
-      newInstalls: newInstalls.has(day) ? cardinality(newInstalls.get(day)) : 0,
-    }));
-  }
-
-  return [...monthsFor(days)].map(([month, monthDays]) => ({
-    month,
-    active: cardinality(mergeSketches(monthDays.map((day) => active.get(day)))),
-    versionsActive: versionCardinalities(
-      mergeVersionMaps(monthDays.map((day) => versions.get(day))),
-    ),
-    newInstalls: cardinality(
-      mergeSketches(monthDays.map((day) => newInstalls.get(day))),
-    ),
-  }));
+function roundAverage(value) {
+  return Math.round(value * 10) / 10;
 }
 
-function jsonReport(query, days, active, versions, newInstalls, global) {
-  const metrics =
-    query.granularity === "day"
-      ? ["M1", "M3", "M5", "M7", "M8"]
-      : ["M2", "M4", "M6", "M7", "M8"];
+function buildRows(days, active, versions, newChannels) {
+  return days.map((day) => {
+    const dimensions = versionDimensionCardinalities(
+      versions.get(day) || { versions: {}, channels: {}, os: {} },
+    );
+    return {
+      date: day,
+      active: active.has(day) ? cardinality(active.get(day)) : 0,
+      versionsActive: dimensions.versions,
+      channelsActive: dimensions.channels,
+      osActive: dimensions.os,
+      newClientsByChannel: versionCardinalities(newChannels.get(day) || {}),
+    };
+  });
+}
+
+function buildSummary(days, active, newChannels) {
+  const activeCounts = days.map((day) =>
+    active.has(day) ? cardinality(active.get(day)) : 0,
+  );
+  const average =
+    activeCounts.length === 0
+      ? 0
+      : activeCounts.reduce((sum, value) => sum + value, 0) /
+        activeCounts.length;
+  const newClientSketches = [];
+  for (const channels of newChannels.values()) {
+    for (const sketch of Object.values(channels)) newClientSketches.push(sketch);
+  }
+  return {
+    activeAverage: roundAverage(average),
+    activePeak: Math.max(0, ...activeCounts),
+    newClients: cardinality(mergeSketches(newClientSketches)),
+  };
+}
+
+function jsonReport(query, data) {
   return JSON.stringify({
     approximate: true,
     method: "hll",
     consistency: "eventual_60s",
     range: query.range,
-    granularity: query.granularity,
+    granularity: "day",
     from: query.from,
     to: query.to,
     generatedDay: query.generatedDay,
-    metrics,
-    summary: {
-      active: cardinality(mergeSketches(days.map((day) => active.get(day)))),
-      newInstalls: cardinality(
-        mergeSketches(days.map((day) => newInstalls.get(day))),
-      ),
-      versionsActive: versionCardinalities(
-        mergeVersionMaps(days.map((day) => versions.get(day))),
-      ),
-    },
-    totalInstalls: global.totalInstalls,
-    installsByVersion: global.installsByVersion,
-    rows: buildRows(query, days, active, versions, newInstalls),
+    summary: data.summary,
+    rows: data.rows,
   });
 }
 
@@ -391,13 +374,12 @@ function reportLogFields(body) {
       from: report.from,
       to: report.to,
       range: report.range,
-      granularity: report.granularity,
+      granularity: "day",
       format: "json",
       rowCount: Array.isArray(report.rows) ? report.rows.length : 0,
-      summaryActive: report.summary?.active ?? 0,
-      summaryNewInstalls: report.summary?.newInstalls ?? 0,
-      totalInstalls: report.totalInstalls ?? 0,
-      versionCount: Object.keys(report.installsByVersion || {}).length,
+      activeAverage: report.summary?.activeAverage ?? 0,
+      activePeak: report.summary?.activePeak ?? 0,
+      newClients: report.summary?.newClients ?? 0,
     };
   } catch {
     return {};
@@ -501,25 +483,20 @@ export async function publicReportRequest(context, options = {}) {
       throw markKvStage(error, "kv_list");
     }
     if (emptyNamespace) {
-      body = jsonReport(
-        query,
-        days,
-        new Map(),
-        new Map(),
-        new Map(),
-        { totalInstalls: 0, installsByVersion: {} },
-      );
+      body = jsonReport(query, {
+        summary: { activeAverage: 0, activePeak: 0, newClients: 0 },
+        rows: buildRows(days, new Map(), new Map(), new Map()),
+      });
     } else {
-      const { active, versions, newInstalls, global } =
-        await readExistingMetrics(kv, days, stats);
-      body = jsonReport(
-        query,
+      const { active, versions, newChannels } = await readExistingMetrics(
+        kv,
         days,
-        active,
-        versions,
-        newInstalls,
-        global,
+        stats,
       );
+      body = jsonReport(query, {
+        summary: buildSummary(days, active, newChannels),
+        rows: buildRows(days, active, versions, newChannels),
+      });
     }
 
     await queueCachedReport(

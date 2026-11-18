@@ -38,5 +38,6 @@
 | [ADR-0030](0030-release-hidden-download-metadata.md)           | GitHub Release 仅保留隐藏下载元数据                              | 已接受               | SPEC-0023 · SPEC-0015 · SPEC-0016 · SPEC-0017 · 部分取代 ADR-0018            |
 | [ADR-0031](0031-public-report-existing-key-reads.md)           | 公开报表按实际 KV key 读取并使用短期响应缓存                     | 已接受               | SPEC-0025 · SPEC-0022 · SPEC-0018 · ADR-0023 · ADR-0029                      |
 | [ADR-0032](0032-public-report-real-key-prefixes.md)            | 公开报表按三个实际日指标前缀列举                                 | 已接受               | SPEC-0025 · SPEC-0018 · SPEC-0022 · 部分取代 ADR-0031                        |
+| [ADR-0033](0033-client-metrics-v2.md)                          | 客户端统计收敛为 V2 日指标                                       | 已接受               | SPEC-0018 · SPEC-0022 · SPEC-0025 · SPEC-0026 · 部分取代 ADR-0023/0029/0031/0032 |
 
 <!-- 新增 ADR 后在此表追加一行，并保持编号递增。 -->

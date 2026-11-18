@@ -1,21 +1,22 @@
-// Anonymous aggregate report (SPEC-0018, ADR-0023).
+// Anonymous client aggregate report (SPEC-0018, ADR-0023, ADR-0033).
 //
-// The report reads fixed HLL keys only. It never lists arbitrary KV entries,
-// never emits an installId and never reads IP/GEO request metadata.
+// The private report reads fixed HLL keys only. It never lists arbitrary KV
+// entries, never emits an installId and never reads IP/GEO request metadata.
 
 import {
   cardinality,
+  deserializeDimensions,
+  deserializeSketch,
+  deserializeVersionMap,
+  mergeDimensions,
   mergeSketches,
   mergeVersionMaps,
   versionCardinalities,
-  deserializeSketch,
-  deserializeVersionMap,
+  versionDimensionCardinalities,
 } from "./hll.js";
 import {
   activeKey,
-  installVersionKey,
-  newKey,
-  totalKey,
+  newChannelKey,
   versionKey,
   SHARD_COUNT,
 } from "./keys.js";
@@ -24,9 +25,6 @@ import { dayDistance, isRealDay } from "./validate.js";
 import { envOf, getKv, NO_STORE, response } from "./runtime.js";
 
 const MAX_RANGE_DAYS = 366;
-// KV reads are batched instead of issued one by one: a 366-day report touches
-// 366 × 16 shards × 3 dimensions. Batches keep the fan-out bounded so the edge
-// request does not serialise thousands of round trips.
 const DAY_BATCH = 7;
 
 export function eachDay(from, to) {
@@ -39,20 +37,6 @@ export function eachDay(from, to) {
   return result;
 }
 
-export function monthsFor(days) {
-  const result = new Map();
-  for (const day of days) {
-    const month = day.slice(0, 7);
-    if (!result.has(month)) result.set(month, []);
-    result.get(month).push(day);
-  }
-  return result;
-}
-
-async function readSketch(kv, key) {
-  return deserializeSketch(await kv.get(key));
-}
-
 async function readDay(kv, keyFactory, day) {
   return Promise.all(
     Array.from({ length: SHARD_COUNT }, (_, shard) =>
@@ -61,13 +45,7 @@ async function readDay(kv, keyFactory, day) {
   );
 }
 
-export async function readDimension(
-  kv,
-  keyFactory,
-  days,
-  versioned = false,
-  batchSize = DAY_BATCH,
-) {
+async function readDimension(kv, keyFactory, days, decoder, batchSize = DAY_BATCH) {
   const result = new Map();
   for (let start = 0; start < days.length; start += batchSize) {
     const batch = days.slice(start, start + batchSize);
@@ -75,29 +53,10 @@ export async function readDimension(
       batch.map((day) => readDay(kv, keyFactory, day)),
     );
     batch.forEach((day, index) => {
-      const values = fetched[index].map((value) =>
-        versioned ? deserializeVersionMap(value) : deserializeSketch(value),
-      );
-      result.set(day, versioned ? mergeVersionMaps(values) : mergeSketches(values));
+      result.set(day, decoder(fetched[index]));
     });
   }
   return result;
-}
-
-export async function readGlobal(kv) {
-  const shards = Array.from({ length: SHARD_COUNT }, (_, shard) => shard);
-  const [totals, versionMaps] = await Promise.all([
-    Promise.all(shards.map((shard) => readSketch(kv, totalKey(shard)))),
-    Promise.all(
-      shards.map(async (shard) =>
-        deserializeVersionMap(await kv.get(installVersionKey(shard))),
-      ),
-    ),
-  ]);
-  return {
-    totalInstalls: cardinality(mergeSketches(totals)),
-    installsByVersion: versionCardinalities(mergeVersionMaps(versionMaps)),
-  };
 }
 
 function validateQuery(url, now) {
@@ -106,7 +65,7 @@ function validateQuery(url, now) {
   const granularity = url.searchParams.get("granularity") || "day";
   const format = url.searchParams.get("format") || "json";
   if (!isRealDay(from) || !isRealDay(to)) return { error: "invalid date" };
-  if (!["day", "month"].includes(granularity)) return { error: "invalid granularity" };
+  if (granularity !== "day") return { error: "invalid granularity" };
   if (!["json", "csv"].includes(format)) return { error: "invalid format" };
   const distance = dayDistance(from, to);
   if (distance === null || distance < 0 || distance > MAX_RANGE_DAYS - 1) {
@@ -117,48 +76,62 @@ function validateQuery(url, now) {
   return { from, to, granularity, format, serverDay };
 }
 
-function serializeVersions(map) {
+function serializeGroups(map) {
   return Object.entries(map)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([version, count]) => `${version}:${count}`)
+    .map(([name, count]) => `${name}:${count}`)
     .join("|");
 }
 
-function jsonReport(options, data) {
-  const metrics =
-    options.granularity === "day"
-      ? ["M1", "M3", "M5", "M7", "M8"]
-      : ["M2", "M4", "M6", "M7", "M8"];
-  const rows = [];
-  for (const period of data.periods) {
-    const row =
-      options.granularity === "day"
-        ? {
-            date: period.label,
-            active: cardinality(period.active),
-            versionsActive: versionCardinalities(period.versions),
-            newInstalls: cardinality(period.newInstalls),
-          }
-        : {
-            month: period.label,
-            active: cardinality(period.active),
-            versionsActive: versionCardinalities(period.versions),
-            newInstalls: cardinality(period.newInstalls),
-          };
-    rows.push(row);
+function roundAverage(value) {
+  return Math.round(value * 10) / 10;
+}
+
+function buildRows(days, active, versions, newChannels) {
+  return days.map((day) => {
+    const dimensions = versionDimensionCardinalities(
+      versions.get(day) || { versions: {}, channels: {}, os: {} },
+    );
+    return {
+      date: day,
+      active: cardinality(active.get(day)),
+      versionsActive: dimensions.versions,
+      channelsActive: dimensions.channels,
+      osActive: dimensions.os,
+      newClientsByChannel: versionCardinalities(newChannels.get(day) || {}),
+    };
+  });
+}
+
+function buildSummary(days, active, newChannels) {
+  const activeCounts = days.map((day) => cardinality(active.get(day)));
+  const average =
+    activeCounts.length === 0
+      ? 0
+      : activeCounts.reduce((sum, value) => sum + value, 0) /
+        activeCounts.length;
+  const newClientSketches = [];
+  for (const channels of newChannels.values()) {
+    for (const sketch of Object.values(channels)) newClientSketches.push(sketch);
   }
+  return {
+    activeAverage: roundAverage(average),
+    activePeak: Math.max(0, ...activeCounts),
+    newClients: cardinality(mergeSketches(newClientSketches)),
+  };
+}
+
+function jsonReport(options, data) {
   return JSON.stringify({
     approximate: true,
     method: "hll",
     consistency: "eventual_60s",
-    granularity: options.granularity,
+    granularity: "day",
     from: options.from,
     to: options.to,
     generatedDay: options.serverDay,
-    metrics,
-    totalInstalls: data.totalInstalls,
-    installsByVersion: data.installsByVersion,
-    rows,
+    summary: data.summary,
+    rows: data.rows,
   });
 }
 
@@ -167,28 +140,28 @@ function csvCell(value) {
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
-function csvReport(options, data) {
+function csvReport(data) {
   const columns = [
-    options.granularity === "day" ? "date" : "month",
+    "date",
     "active",
-    "new_installs",
     "versions_active",
-    "total_installs",
-    "installs_by_version",
+    "channels_active",
+    "os_active",
+    "new_clients_by_channel",
     "approximate",
     "method",
     "consistency",
   ];
   const lines = [columns.join(",")];
-  for (const period of data.periods) {
+  for (const row of data.rows) {
     lines.push(
       [
-        period.label,
-        cardinality(period.active),
-        cardinality(period.newInstalls),
-        serializeVersions(versionCardinalities(period.versions)),
-        data.totalInstalls,
-        serializeVersions(data.installsByVersion),
+        row.date,
+        row.active,
+        serializeGroups(row.versionsActive),
+        serializeGroups(row.channelsActive),
+        serializeGroups(row.osActive),
+        serializeGroups(row.newClientsByChannel),
         "true",
         "hll",
         "eventual_60s",
@@ -201,20 +174,15 @@ function csvReport(options, data) {
 }
 
 function reportLogFields(query, data) {
-  const active = mergeSketches(data.periods.map((period) => period.active));
-  const newInstalls = mergeSketches(
-    data.periods.map((period) => period.newInstalls),
-  );
   return {
     from: query.from,
     to: query.to,
-    granularity: query.granularity,
+    granularity: "day",
     format: query.format,
-    rowCount: data.periods.length,
-    activeInstalls: cardinality(active),
-    newInstalls: cardinality(newInstalls),
-    totalInstalls: data.totalInstalls,
-    versionCount: Object.keys(data.installsByVersion).length,
+    rowCount: data.rows.length,
+    activeAverage: data.summary.activeAverage,
+    activePeak: data.summary.activePeak,
+    newClients: data.summary.newClients,
   };
 }
 
@@ -269,14 +237,18 @@ export async function reportRequest(context, options = {}) {
   const days = eachDay(query.from, query.to);
   let active;
   let versions;
-  let newInstalls;
-  let global;
+  let newChannels;
   try {
-    [active, versions, newInstalls, global] = await Promise.all([
-      readDimension(kv, activeKey, days),
-      readDimension(kv, versionKey, days, true),
-      readDimension(kv, newKey, days),
-      readGlobal(kv),
+    [active, versions, newChannels] = await Promise.all([
+      readDimension(kv, activeKey, days, (values) =>
+        mergeSketches(values.map((value) => deserializeSketch(value))),
+      ),
+      readDimension(kv, versionKey, days, (values) =>
+        mergeDimensions(values.map((value) => deserializeDimensions(value))),
+      ),
+      readDimension(kv, newChannelKey, days, (values) =>
+        mergeVersionMaps(values.map((value) => deserializeVersionMap(value))),
+      ),
     ]);
   } catch (error) {
     log({
@@ -288,23 +260,10 @@ export async function reportRequest(context, options = {}) {
     return response(500);
   }
 
-  let periods;
-  if (query.granularity === "day") {
-    periods = days.map((day) => ({
-      label: day,
-      active: active.get(day),
-      versions: versions.get(day),
-      newInstalls: newInstalls.get(day),
-    }));
-  } else {
-    periods = [...monthsFor(days)].map(([month, monthDays]) => ({
-      label: month,
-      active: mergeSketches(monthDays.map((day) => active.get(day))),
-      versions: mergeVersionMaps(monthDays.map((day) => versions.get(day))),
-      newInstalls: mergeSketches(monthDays.map((day) => newInstalls.get(day))),
-    }));
-  }
-  const data = { periods, ...global };
+  const data = {
+    rows: buildRows(days, active, versions, newChannels),
+    summary: buildSummary(days, active, newChannels),
+  };
   log({
     outcome: "ok",
     stage: "complete",
@@ -313,7 +272,7 @@ export async function reportRequest(context, options = {}) {
   });
 
   if (query.format === "csv") {
-    return response(200, csvReport(query, data), {
+    return response(200, csvReport(data), {
       ...NO_STORE,
       "Content-Type": "text/csv; charset=utf-8",
     });

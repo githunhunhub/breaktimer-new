@@ -8,18 +8,19 @@
 import { validateEventWindow } from "./validate.js";
 import {
   createSketch,
+  deserializeDimensions,
   deserializeSketch,
   deserializeVersionMap,
   fingerprint,
   mergeInto,
+  mergeDimensions,
+  serializeDimensions,
   serializeSketch,
   serializeVersionMap,
 } from "./hll.js";
 import {
   activeKey,
-  installVersionKey,
-  newKey,
-  totalKey,
+  newChannelKey,
   versionKey,
 } from "./keys.js";
 import { elapsedMs, errorText, loggerOf, writeLog } from "./log.js";
@@ -132,11 +133,24 @@ async function mergeSketchKey(kv, key, fingerprintValue) {
   await kv.put(key, serializeSketch(sketch));
 }
 
-async function mergeVersionKey(kv, key, version, fingerprintValue) {
+async function mergeDimensionsKey(kv, key, payload, fingerprintValue) {
+  const dimensions = deserializeDimensions(await kv.get(key));
+  const incoming = {
+    versions: { [payload.version]: createSketch() },
+    channels: { [payload.channel]: createSketch() },
+    os: { [payload.os]: createSketch() },
+  };
+  mergeInto(incoming.versions[payload.version], fingerprintValue);
+  mergeInto(incoming.channels[payload.channel], fingerprintValue);
+  mergeInto(incoming.os[payload.os], fingerprintValue);
+  await kv.put(key, serializeDimensions(mergeDimensions([dimensions, incoming])));
+}
+
+async function mergeGroupKey(kv, key, group, fingerprintValue) {
   const map = deserializeVersionMap(await kv.get(key));
-  const sketch = map[version] || createSketch();
+  const sketch = map[group] || createSketch();
   mergeInto(sketch, fingerprintValue);
-  map[version] = sketch;
+  map[group] = sketch;
   await kv.put(key, serializeVersionMap(map));
 }
 
@@ -242,23 +256,17 @@ export async function collectRequest(context, options = {}) {
   try {
     await mergeSketchKey(kv, activeKey(day, shard), fp);
     writeCount += 1;
-    writeTarget = "version";
-    await mergeVersionKey(kv, versionKey(day, shard), payload.version, fp);
+    writeTarget = "dimensions";
+    await mergeDimensionsKey(kv, versionKey(day, shard), payload, fp);
     writeCount += 1;
 
     if (payload.event === "install") {
       const firstDay = payload.firstLaunchDay;
-      writeTarget = "new";
-      await mergeSketchKey(kv, newKey(firstDay, shard), fp);
-      writeCount += 1;
-      writeTarget = "total";
-      await mergeSketchKey(kv, totalKey(shard), fp);
-      writeCount += 1;
-      writeTarget = "install_version";
-      await mergeVersionKey(
+      writeTarget = "new_channel";
+      await mergeGroupKey(
         kv,
-        installVersionKey(shard),
-        payload.version,
+        newChannelKey(firstDay, shard),
+        payload.channel,
         fp,
       );
       writeCount += 1;

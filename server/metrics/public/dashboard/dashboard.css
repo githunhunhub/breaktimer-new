@@ -252,7 +252,7 @@ a:focus-visible {
 
 .metric-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   border: 1px solid var(--line);
   border-top: 0;
   border-radius: 0 0 6px 6px;
@@ -341,9 +341,16 @@ a:focus-visible {
 }
 
 .panel-header h2,
-.methodology h2 {
+.methodology h2,
+.section-header h2 {
   margin: 0;
   font-size: 1.12rem;
+  letter-spacing: 0;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 0.98rem;
   letter-spacing: 0;
 }
 
@@ -536,7 +543,7 @@ a:focus-visible {
 
 .detail-table th:first-child,
 .detail-table td:first-child {
-  width: 22%;
+  width: 18%;
 }
 
 .detail-table th:nth-child(2),
@@ -544,6 +551,55 @@ a:focus-visible {
 .detail-table th:nth-child(3),
 .detail-table td:nth-child(3) {
   width: 14%;
+}
+
+.detail-table th:nth-child(n + 4),
+.detail-table td:nth-child(n + 4) {
+  width: 18%;
+}
+
+.distribution-section {
+  margin-top: 20px;
+  padding: 18px 0 2px;
+  border-top: 1px solid var(--line-strong);
+}
+
+.section-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 12px;
+}
+
+.section-note {
+  color: var(--muted);
+  font-family: Consolas, "SFMono-Regular", monospace;
+  font-size: 0.76rem;
+}
+
+.distribution-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.compact-panel {
+  padding: 17px 18px;
+}
+
+.distribution-table th:first-child,
+.distribution-table td:first-child {
+  width: 48%;
+}
+
+.distribution-table th:last-child,
+.distribution-table td:last-child {
+  width: 52%;
+}
+
+.detail-panel {
+  margin-top: 18px;
 }
 
 .methodology {
@@ -587,6 +643,10 @@ a:focus-visible {
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
+
+  .distribution-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
@@ -603,15 +663,16 @@ a:focus-visible {
   }
 
   .metric-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
-  .metric-card:nth-child(2) {
+  .metric-card {
     border-right: 0;
+    border-bottom: 1px solid var(--line);
   }
 
-  .metric-card:nth-child(-n + 2) {
-    border-bottom: 1px solid var(--line);
+  .metric-card:last-child {
+    border-bottom: 0;
   }
 
   .methodology {
@@ -667,6 +728,11 @@ a:focus-visible {
 
   .panel {
     padding: 16px 14px;
+  }
+
+  .section-header {
+    display: grid;
+    gap: 6px;
   }
 
   .chart-frame {

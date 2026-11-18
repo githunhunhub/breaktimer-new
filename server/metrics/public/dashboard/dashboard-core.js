@@ -1,7 +1,8 @@
 // Pure transformations shared by the dashboard and its Node tests (SPEC-0022).
 
 function numeric(value) {
-  return Number.isFinite(Number(value)) ? Number(value) : 0;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
 }
 
 function countMap(value) {
@@ -11,59 +12,84 @@ function countMap(value) {
   );
 }
 
-export function reportPath(range, granularity) {
-  return `/api/public-report?range=${range}&granularity=${granularity}`;
+function sumMap(map) {
+  return Object.values(map).reduce((sum, value) => sum + value, 0);
+}
+
+function distribution(map) {
+  return Object.entries(map)
+    .sort(([left], [right]) =>
+      left.localeCompare(right, undefined, { numeric: true }),
+    )
+    .map(([name, count]) => ({ name, count }));
+}
+
+export function reportPath(range) {
+  return `/api/public-report?range=${range}&granularity=day`;
 }
 
 export function buildDashboardModel(report) {
   const rows = Array.isArray(report?.rows) ? report.rows : [];
-  const installsByVersion = countMap(report?.installsByVersion);
-  const versionsActive = countMap(report?.summary?.versionsActive);
-  const versionNames = [
-    ...new Set([...Object.keys(installsByVersion), ...Object.keys(versionsActive)]),
-  ].sort((left, right) => left.localeCompare(right, undefined, { numeric: true }));
-  const isEmpty =
-    numeric(report?.totalInstalls) === 0 &&
-    numeric(report?.summary?.active) === 0 &&
-    numeric(report?.summary?.newInstalls) === 0 &&
-    rows.every(
-      (row) => numeric(row?.active) === 0 && numeric(row?.newInstalls) === 0,
-    );
+  const normalizedRows = rows.map((row) => {
+    const newClientsByChannel = countMap(row?.newClientsByChannel);
+    return {
+      label: String(row?.date || ""),
+      active: numeric(row?.active),
+      newClients: sumMap(newClientsByChannel),
+      versionsActive: countMap(row?.versionsActive),
+      channelsActive: countMap(row?.channelsActive),
+      osActive: countMap(row?.osActive),
+      newClientsByChannel,
+    };
+  });
 
-  const normalizedRows = rows.map((row) => ({
-    label: String(row?.date || row?.month || ""),
-    active: numeric(row?.active),
-    newInstalls: numeric(row?.newInstalls),
-    versionsActive: countMap(row?.versionsActive),
-  }));
+  const hasDistribution = (row) =>
+    Object.keys(row.versionsActive).length > 0 ||
+    Object.keys(row.channelsActive).length > 0 ||
+    Object.keys(row.osActive).length > 0;
+  const latestRow = [...normalizedRows]
+    .reverse()
+    .find((row) => row.active > 0 || hasDistribution(row));
+
+  const newClientChannels = {};
+  for (const row of normalizedRows) {
+    for (const [channel, count] of Object.entries(row.newClientsByChannel)) {
+      newClientChannels[channel] = (newClientChannels[channel] || 0) + count;
+    }
+  }
+
+  const isEmpty =
+    numeric(report?.summary?.activePeak) === 0 &&
+    numeric(report?.summary?.newClients) === 0 &&
+    normalizedRows.every(
+      (row) => row.active === 0 && row.newClients === 0 && !hasDistribution(row),
+    );
 
   return {
     summary: {
-      totalInstalls: numeric(report?.totalInstalls),
-      active: numeric(report?.summary?.active),
-      newInstalls: numeric(report?.summary?.newInstalls),
-      versionCount: Object.keys(installsByVersion).length,
+      activeAverage: numeric(report?.summary?.activeAverage),
+      activePeak: numeric(report?.summary?.activePeak),
+      newClients: numeric(report?.summary?.newClients),
     },
     activeTrend: isEmpty
       ? []
       : normalizedRows.map(({ label, active }) => ({ label, value: active })),
-    newInstallsTrend: isEmpty
+    newClientsTrend: isEmpty
       ? []
-      : normalizedRows.map(({ label, newInstalls }) => ({
+      : normalizedRows.map(({ label, newClients }) => ({
           label,
-          value: newInstalls,
+          value: newClients,
         })),
-    versions: isEmpty
-      ? []
-      : versionNames.map((version) => ({
-          version,
-          totalInstalls: installsByVersion[version] || 0,
-          active: versionsActive[version] || 0,
-        })),
+    latest: {
+      date: latestRow?.label || "",
+      versions: isEmpty ? [] : distribution(latestRow?.versionsActive || {}),
+      channels: isEmpty ? [] : distribution(latestRow?.channelsActive || {}),
+      os: isEmpty ? [] : distribution(latestRow?.osActive || {}),
+    },
+    newClientChannels: isEmpty ? [] : distribution(newClientChannels),
     rows: normalizedRows,
     isEmpty,
     range: report?.range || "30d",
-    granularity: report?.granularity || "day",
     from: report?.from || "",
     to: report?.to || "",
     generatedDay: report?.generatedDay || "",

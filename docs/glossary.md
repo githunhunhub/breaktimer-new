@@ -25,8 +25,8 @@
 | 更新检查       | Update check           | 比较当前版本与 GitHub 最新稳定版并提示结果；不下载、不安装更新文件（SPEC-0017）                |
 | 发布下载元数据 | Release download metadata | Release 正文中的隐藏 JSON 标记，提供夸克 / 百度网盘下载入口                                   |
 | 便携版更新     | Portable update        | 退出应用后手动解压新 ZIP 并覆盖程序文件，保留 `data\` 目录；应用不自我替换                     |
-| 装机           | Installation           | 一份独立的运行数据目录（安装版 AppData 或便携版 `data\`）及其随机 `installId`；统计的最小单位（SPEC-0018） |
-| 装机统计       | Installation metrics   | 匿名首次装机与每日心跳，经 HLL 草图输出 M1～M8 近似趋势，不保存逐装机明细（SPEC-0018、ADR-0023） |
-| HLL 草图       | HyperLogLog sketch     | 由 `installId` 哈希派生的寄存器数组，可合并并估计去重基数，无法还原装机明细（SPEC-0018）       |
-| 分发量         | Distribution count     | 下载次数（GitHub `download_count` 与网盘后台），不等于装机量                                   |
+| 客户端实例     | Client instance        | 一份独立的运行数据目录（安装版 AppData 或便携版 `data\`）及其随机 `installId`；统计的最小单位（SPEC-0018） |
+| 客户端统计     | Client metrics         | 匿名首次安装与每日心跳，经 HLL 草图输出日活跃、版本/渠道/OS 分布、日新增与新增渠道趋势，不保存逐客户端明细（SPEC-0018、ADR-0033） |
+| HLL 草图       | HyperLogLog sketch     | 由 `installId` 哈希派生的寄存器数组，可合并并估计去重基数，无法还原客户端明细（SPEC-0018）     |
+| 分发量         | Distribution count     | 下载次数（GitHub `download_count` 与网盘后台），不等于客户端实例数                             |
 | 宣传页         | Landing page           | `site/` 下的纯静态中英双语页面，托管于 GitHub Pages；发布时解析最新 Release 的网盘元数据（SPEC-0016、ADR-0024、ADR-0025） |

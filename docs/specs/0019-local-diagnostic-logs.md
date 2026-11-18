@@ -7,12 +7,12 @@
 ## 背景 / 问题
 
 当前应用只有 Rust `eprintln!` 输出。发布版是 Windows GUI 程序，没有持久终端；
-Rust panic、WebView 未捕获异常和后台操作失败通常无法在事后定位。现有装机统计明确禁止
+Rust panic、WebView 未捕获异常和后台操作失败通常无法在事后定位。现有客户端统计明确禁止
 上报崩溃内容和日志，因此诊断能力应只保存在本机。
 
 ## 需求（做什么）
 
-1. 应用维护本地诊断日志，不发送网络请求，不接入装机统计或更新检查。
+1. 应用维护本地诊断日志，不发送网络请求，不接入客户端统计或更新检查。
 2. 安装版日志写入
    `%LOCALAPPDATA%\com.githunhunhub.breaktimernew\logs\breaktimer-new.log`；
    便携版写入 `<程序目录>\data\logs\breaktimer-new.log`。

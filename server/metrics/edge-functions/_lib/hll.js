@@ -188,3 +188,86 @@ export function versionCardinalities(map) {
   }
   return result;
 }
+
+function serializeGroupMapObject(map) {
+  const result = {};
+  for (const [name, sketch] of Object.entries(map || {}).sort(([a], [b]) =>
+    a.localeCompare(b),
+  )) {
+    result[name] = serializeSketch(sketch);
+  }
+  return result;
+}
+
+function deserializeGroupMapObject(object) {
+  const result = {};
+  for (const [name, sketchValue] of Object.entries(object || {})) {
+    result[name] = deserializeSketch(sketchValue);
+  }
+  return result;
+}
+
+/** Serializes the three V2 dimensions stored in one daily h_ver value. */
+export function serializeDimensions(dimensions) {
+  return JSON.stringify({
+    versions: serializeGroupMapObject(dimensions?.versions),
+    channels: serializeGroupMapObject(dimensions?.channels),
+    os: serializeGroupMapObject(dimensions?.os),
+  });
+}
+
+/**
+ * Reads the V2 three-dimensional shape, falling back to a legacy bare version
+ * map. A legacy value has no `versions`, `channels` or `os` top-level keys.
+ */
+export function deserializeDimensions(value) {
+  if (value === null || value === undefined || value === "") {
+    return { versions: {}, channels: {}, os: {} };
+  }
+  let object = value;
+  if (typeof value === "string") {
+    try {
+      object = JSON.parse(value);
+    } catch {
+      throw new Error("invalid dimensions");
+    }
+  }
+  if (!object || typeof object !== "object" || Array.isArray(object)) {
+    throw new Error("invalid dimensions");
+  }
+
+  const isV2 =
+    Object.prototype.hasOwnProperty.call(object, "versions") ||
+    Object.prototype.hasOwnProperty.call(object, "channels") ||
+    Object.prototype.hasOwnProperty.call(object, "os");
+  if (!isV2) {
+    return {
+      versions: deserializeGroupMapObject(object),
+      channels: {},
+      os: {},
+    };
+  }
+  return {
+    versions: deserializeGroupMapObject(object.versions),
+    channels: deserializeGroupMapObject(object.channels),
+    os: deserializeGroupMapObject(object.os),
+  };
+}
+
+/** Merges V2 dimensions independently across any number of values. */
+export function mergeDimensions(dimensions) {
+  return {
+    versions: mergeVersionMaps(dimensions.map((value) => value?.versions)),
+    channels: mergeVersionMaps(dimensions.map((value) => value?.channels)),
+    os: mergeVersionMaps(dimensions.map((value) => value?.os)),
+  };
+}
+
+/** Estimates each version, channel and OS bucket independently. */
+export function versionDimensionCardinalities(dimensions) {
+  return {
+    versions: versionCardinalities(dimensions?.versions || {}),
+    channels: versionCardinalities(dimensions?.channels || {}),
+    os: versionCardinalities(dimensions?.os || {}),
+  };
+}

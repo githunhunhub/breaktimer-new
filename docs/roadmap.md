@@ -25,7 +25,7 @@ macOS/Linux 不在当前范围。
 | 需求 | 范围与下一步 |
 | --- | --- |
 | [SPEC-0015 GitHub Tag 发布流水线](specs/0015-github-tag-release.md) | 版本校验、构建、`git-cliff` 变更日志与 Release；待下一次正式 Tag 端到端验收 |
-| [SPEC-0018 装机统计](specs/0018-installation-metrics.md) | EdgeOne Edge Functions + KV HLL 的 M1～M8 近似统计：端点已上线，M1/M3/M5/M7/M8 线上核对通过；客户端上报已启用，发布构建使用当前 EdgeOne 端点。余月粒度线上调用、Q3/Q4 控制台核验（访问日志、KV 区域、WAF、域名备案/加速区域）与客户端 Windows 人工验收待完成 |
+| [SPEC-0018 客户端统计 V2](specs/0018-installation-metrics.md) | 保留 EdgeOne KV + HLL，收敛为日活跃、版本/渠道/OS 分布、日新增与新增渠道；本地服务端、公开看板、94 项统计测试与 `pnpm verify` 已通过，V2 尚未部署，平台日志/区域/域名核验仍待控制台完成 |
 | [SPEC-0021 圆形休息卡（环形进度）](specs/0021-circular-break-card.md) | 默认保持矩形，新增可选圆形、形状设置与环形进度渲染；形状从下一次休息生效，`pnpm verify` 通过，Windows 人工验收通过（2026-11-13） |
-| [SPEC-0025 公开报表读取性能](specs/0025-public-report-read-performance.md) | 修复公开看板在稀疏数据下盲读理论 KV 分片导致的 7 天 13 秒、30 天 51 秒延迟；真实前缀列举、8 并发上限、60 秒 Cache API 与 EdgeOne `ListKey.key` 解码回归已在本地验证，统计服务 90 项测试和 `pnpm verify` 通过，待单独授权部署做线上延迟复测 |
-| [SPEC-0026 公开报表定时预聚合快照](specs/0026-public-report-snapshot-refresh.md) | 暂缓实现：为 7/30/90 天 × 日/月六种固定响应预生成快照，公开接口先读一个快照 key 并保留动态回退；仅当实际 KV 读取量或公网 p95 TTFB 再次明显上升时再评估 |
+| [SPEC-0025 公开客户端统计报表读取性能](specs/0025-public-report-read-performance.md) | V2 将公开前缀收敛为 `h_act_`、`h_ver_`、`h_newch_`，保留空探测、真实 key 读取、8 并发与 60 秒 Cache API；本地测试已通过，待单独授权部署后复测延迟 |
+| [SPEC-0026 公开报表定时预聚合快照](specs/0026-public-report-snapshot-refresh.md) | 已被客户端统计 V2 的接口前提部分取代；当前不实施，若重新评估需按单一日报表重写 |
