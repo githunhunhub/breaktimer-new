@@ -433,5 +433,6 @@ V1 六种日月组合，已 superseded，不能按原文实施。
 | 稀疏读取性能 | `docs/specs/0025-public-report-read-performance.md` |
 | V2 决策 | `docs/decisions/0033-client-metrics-v2.md` |
 
-本文描述 `develop` 中本次 V2 重构后的代码与测试实现。线上在部署前仍可能运行 V1；评审公开
-行为时应区分代码、测试与已部署版本。
+本文描述 `develop` 中本次 V2 重构后的代码与测试实现。V2 已于 2026-11-18 部署到
+`metrics.hunhun.qd.je`；线上历史 V1 数据继续按裸版本 map 兼容读取。公开 90 天首次请求仍约
+15 秒，重复请求缓存效果也需继续优化，这是后续评审应优先关注的实际性能问题。

@@ -192,6 +192,9 @@ GET /api/public-report?range=7d|30d|90d[&granularity=day]
 - [x] **I12** 桌面端与移动端无横向溢出、文字遮挡；加载、空数据、失败重试和 HLL 说明齐备。
 - [x] **I13** `server/metrics/npm test` 与 `app/pnpm verify` 全部通过。
 - [x] **I14** SPEC、ADR、索引、架构、路线图、README 与外部评审说明同步。
+- [x] **I15** `develop` 推送后 EdgeOne 已切换到 V2；线上公开接口返回
+      `activeAverage/activePeak/newClients` 与三维分布 row，月粒度返回 `400`，看板显示
+      “客户端统计”且不再含 M1～M8。
 
 ## 历史部署记录
 
@@ -207,8 +210,23 @@ GET /api/public-report?range=7d|30d|90d[&granularity=day]
 | KV 写入后立即读取 | 出现过短暂空值，约 60 秒后恢复，符合 `eventual_60s` |
 
 旧部署记录中的 M1～M8 与 `h_total_*` / `h_install_ver_*` 相关测试结果属于 V1 历史事实，
-不再代表 V2 当前口径。V2 尚未部署；部署后需重新核验 7/30/90 天公开报表、私有报表、
-三维 `h_ver`、`h_newch` 和 Cache API 名称。
+不再代表 V2 当前口径。
+
+### V2 部署核验记录（2026-11-18）
+
+`develop` 提交 `58810a7` 推送后，EdgeOne Git 构建完成，线上
+`https://metrics.hunhun.qd.je` 已切换 V2：
+
+| 项 | 结论 |
+| --- | --- |
+| `GET /api/public-report?range=7d` | `200`，`granularity=day`，summary 为 `activeAverage/activePeak/newClients` |
+| 公开 row | 含 `date`、`active`、`versionsActive`、`channelsActive`、`osActive`、`newClientsByChannel` |
+| `granularity=month` | `400 invalid request` |
+| `Cache-Control` | 成功响应为 `public, max-age=60, s-maxage=60` |
+| `/dashboard/` | 标题为“客户端统计”，渲染 V2 概览、趋势与四类分布，不含 M1～M8 |
+
+线上历史 V1 数据继续按旧裸版本 map 兼容读取；渠道与 OS 从 V2 上线后的新事件开始积累，
+因此历史日期的渠道/OS row 为空，新增客户端在首个 V2 `install` 到达前为 `0` 属于预期。
 
 ## 设计要点
 
@@ -232,6 +250,7 @@ GET /api/public-report?range=7d|30d|90d[&granularity=day]
 - [x] 看板：客户端统计名称、三项概览、两类趋势、四类分布和日明细。
 - [x] 验证：`server/metrics/npm test` 与 `app/pnpm verify` 通过；桌面和窄屏移动布局使用
       本地 mock 数据完成截图检查。
+- [x] 部署：提交推送到 `develop`，EdgeOne 线上接口与看板已返回 V2。
 
 ## 开放问题
 
@@ -247,6 +266,7 @@ GET /api/public-report?range=7d|30d|90d[&granularity=day]
 
 | 日期 | 变更 |
 | --- | --- |
+| 2026-11-18 | V2 已部署到 EdgeOne；线上公开接口、看板、月粒度拒绝与缓存头完成核验 |
 | 2026-11-18 | 收敛为客户端统计 V2：删除 M1～M8、月粒度、累计与全局 key；新增三维 `h_ver`、`h_newch`、V2 报表与看板契约 |
 | 2026-11-16 | 增加服务端结构化诊断日志与敏感信息脱敏 |
 | 2026-11-13 | EdgeOne 端点部署与平台差异核验；记录 V1 M1～M8 线上验证结果 |

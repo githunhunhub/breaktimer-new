@@ -39,7 +39,7 @@
 4. 绑定稳定的自定义 HTTPS 域名；在发布构建中设置
    `BREAKTIMER_METRICS_URL=https://<metrics-domain>/v1/collect`。
 5. 部署后验证 `/dashboard/`、`/api/public-report`、`/v1/collect` 和受保护的
-   `/api/report`。V2 尚未部署；部署前不要宣称线上指标已经切换。
+   `/api/report`。V2 已于 2026-11-18 部署到 `metrics.hunhun.qd.je`。
 
 ## KV 结构
 
@@ -181,6 +181,10 @@ npm test
 
 本地内存 KV 覆盖空 namespace、真实前缀、分页、缓存、并发、隐私和响应契约。测试不访问
 EdgeOne 或网络，也不替代部署后的控制台与公网核验。
+
+2026-11-18 线上核验：公开接口已返回 V2 summary/row，月粒度返回 `400`，看板已渲染客户端
+统计。首次 TTFB 约为 7d `2.73s`、30d `6.51s`、90d `14.83s`；7d 短时重复请求仍约
+`2.96s`，Cache API 命中与长范围读取成本仍需继续观察。
 
 ## 平台差异
 

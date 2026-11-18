@@ -25,7 +25,7 @@ macOS/Linux 不在当前范围。
 | 需求 | 范围与下一步 |
 | --- | --- |
 | [SPEC-0015 GitHub Tag 发布流水线](specs/0015-github-tag-release.md) | 版本校验、构建、`git-cliff` 变更日志与 Release；待下一次正式 Tag 端到端验收 |
-| [SPEC-0018 客户端统计 V2](specs/0018-installation-metrics.md) | 保留 EdgeOne KV + HLL，收敛为日活跃、版本/渠道/OS 分布、日新增与新增渠道；本地服务端、公开看板、94 项统计测试与 `pnpm verify` 已通过，V2 尚未部署，平台日志/区域/域名核验仍待控制台完成 |
+| [SPEC-0018 客户端统计 V2](specs/0018-installation-metrics.md) | 保留 EdgeOne KV + HLL，收敛为日活跃、版本/渠道/OS 分布、日新增与新增渠道；V2 已于 2026-11-18 部署到 EdgeOne，94 项统计测试与 `pnpm verify` 通过；平台日志/区域/域名核验仍待控制台完成 |
 | [SPEC-0021 圆形休息卡（环形进度）](specs/0021-circular-break-card.md) | 默认保持矩形，新增可选圆形、形状设置与环形进度渲染；形状从下一次休息生效，`pnpm verify` 通过，Windows 人工验收通过（2026-11-13） |
-| [SPEC-0025 公开客户端统计报表读取性能](specs/0025-public-report-read-performance.md) | V2 将公开前缀收敛为 `h_act_`、`h_ver_`、`h_newch_`，保留空探测、真实 key 读取、8 并发与 60 秒 Cache API；本地测试已通过，待单独授权部署后复测延迟 |
+| [SPEC-0025 公开客户端统计报表读取性能](specs/0025-public-report-read-performance.md) | V2 将公开前缀收敛为 `h_act_`、`h_ver_`、`h_newch_` 并已部署；首次 TTFB 约 7d `2.73s`、30d `6.51s`、90d `14.83s`，7d 重复请求约 `2.96s`，Cache API 命中与长范围延迟仍需优化 |
 | [SPEC-0026 公开报表定时预聚合快照](specs/0026-public-report-snapshot-refresh.md) | 已被客户端统计 V2 的接口前提部分取代；当前不实施，若重新评估需按单一日报表重写 |
