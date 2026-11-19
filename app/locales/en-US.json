@@ -193,8 +193,8 @@
       "skip": "Skip",
       "cancel": "Cancel Break",
       "progressLabel": "Break progress",
-      "defaultTitle": "Time for a break.",
-      "defaultMessage": "Rest your eyes.\nStretch your legs.\nBreathe. Relax.",
+      "defaultTitle": "A Moment's Respite.",
+      "defaultMessage": "Eyes to the horizon, drifting with clouds;\nBody unfolding, like a branch to the wind",
       "timeSince": "{duration} since last break"
     },
     "notification": {

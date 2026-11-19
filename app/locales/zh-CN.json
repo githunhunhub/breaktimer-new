@@ -193,8 +193,8 @@
       "skip": "跳过",
       "cancel": "取消休息",
       "progressLabel": "休息进度",
-      "defaultTitle": "该休息了。",
-      "defaultMessage": "放松眼睛。\n伸展双腿。\n深呼吸，放松。",
+      "defaultTitle": "片刻小憩",
+      "defaultMessage": "极目天边，让目光随云远去。\n舒展身心，如晨枝缓缓向风打开。",
       "timeSince": "距上次休息 {duration}"
     },
     "notification": {
