@@ -165,12 +165,13 @@ describe("BreakWindow", () => {
       </I18nProvider>,
     );
 
-    expect(await screen.findByText("该休息了。")).toBeTruthy();
+    expect(await screen.findByText("片刻小憩")).toBeTruthy();
     expect(
       screen.getByText(
         (_, element) =>
           element?.tagName === "P" &&
-          element.textContent === "放松眼睛。\n伸展双腿。\n深呼吸，放松。",
+          element.textContent ===
+            "极目天边，让目光随云远去。\n舒展身心，如晨枝缓缓向风打开。",
       ),
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "取消休息" })).toBeTruthy();
@@ -367,12 +368,13 @@ describe("BreakWindow", () => {
       </I18nProvider>,
     );
 
-    expect(await screen.findByText("该休息了。")).toBeTruthy();
+    expect(await screen.findByText("片刻小憩")).toBeTruthy();
     expect(
       screen.getByText(
         (_, element) =>
           element?.tagName === "P" &&
-          element.textContent === "放松眼睛。\n伸展双腿。\n深呼吸，放松。",
+          element.textContent ===
+            "极目天边，让目光随云远去。\n舒展身心，如晨枝缓缓向风打开。",
       ),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "取消休息" }));

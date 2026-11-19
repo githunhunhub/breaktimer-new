@@ -11,7 +11,7 @@ describe("localizedBreakText", () => {
   it("localizes only the exact legacy default break text", () => {
     expect(
       localizedBreakText("Time for a break.", "break.defaultTitle", "zh-CN"),
-    ).toBe("该休息了。");
+    ).toBe("片刻小憩");
     expect(
       localizedBreakText("Time for a break", "break.defaultTitle", "zh-CN"),
     ).toBe("Time for a break");
@@ -21,7 +21,20 @@ describe("localizedBreakText", () => {
         "break.defaultMessage",
         "zh-CN",
       ),
-    ).toBe("放松眼睛。\n伸展双腿。\n深呼吸，放松。");
+    ).toBe("极目天边，让目光随云远去。\n舒展身心，如晨枝缓缓向风打开。");
+    expect(
+      localizedBreakText("A Moment's Respite.", "break.defaultTitle", "zh-CN"),
+    ).toBe("片刻小憩");
+    expect(
+      localizedBreakText(
+        "Eyes to the horizon, drifting with clouds;\nBody unfolding, like a branch to the wind",
+        "break.defaultMessage",
+        "zh-CN",
+      ),
+    ).toBe("极目天边，让目光随云远去。\n舒展身心，如晨枝缓缓向风打开。");
+    expect(
+      localizedBreakText("Custom title", "break.defaultTitle", "zh-CN"),
+    ).toBe("Custom title");
   });
 });
 

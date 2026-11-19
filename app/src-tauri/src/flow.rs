@@ -178,8 +178,8 @@ fn notify_break<R: Runtime>(app: &AppHandle<R>, state: &AppState) {
 
 /// Notification title from the user's break title (SPEC-0008).
 fn notification_title(break_title: &str, locale: &str) -> String {
-    let default_title = translate("en-US", "break.defaultTitle", &[]);
-    if break_title == default_title {
+    const LEGACY_DEFAULT_TITLES: [&str; 2] = ["Time for a break.", "A Moment's Respite."];
+    if LEGACY_DEFAULT_TITLES.contains(&break_title) {
         translate(locale, "break.defaultTitle", &[])
     } else {
         notifications::strip_html(break_title)
@@ -188,8 +188,11 @@ fn notification_title(break_title: &str, locale: &str) -> String {
 
 /// Plain-text notification body for Notification mode (SPEC-0008).
 fn notification_body(break_message: &str, locale: &str) -> String {
-    let default_message = translate("en-US", "break.defaultMessage", &[]);
-    if break_message == default_message {
+    const LEGACY_DEFAULT_MESSAGES: [&str; 2] = [
+        "Rest your eyes.\nStretch your legs.\nBreathe. Relax.",
+        "Eyes to the horizon, drifting with clouds;\nBody unfolding, like a branch to the wind",
+    ];
+    if LEGACY_DEFAULT_MESSAGES.contains(&break_message) {
         translate(locale, "break.defaultMessage", &[])
     } else {
         notifications::strip_html(break_message)
@@ -242,7 +245,14 @@ mod tests {
         let default_message = crate::state::Settings::default().break_message;
         assert_eq!(
             notification_body(&default_message, "zh-CN"),
-            "放松眼睛。\n伸展双腿。\n深呼吸，放松。"
+            "极目天边，让目光随云远去。\n舒展身心，如晨枝缓缓向风打开。"
+        );
+        assert_eq!(
+            notification_body(
+                "Rest your eyes.\nStretch your legs.\nBreathe. Relax.",
+                "zh-CN"
+            ),
+            "极目天边，让目光随云远去。\n舒展身心，如晨枝缓缓向风打开。"
         );
         assert_eq!(
             notification_body("Look <b>away</b>.<br>Stretch.", "zh-CN"),
@@ -254,7 +264,8 @@ mod tests {
     fn notification_title_uses_the_configured_break_title() {
         let default_title = crate::state::Settings::default().break_title;
 
-        assert_eq!(notification_title(&default_title, "zh-CN"), "该休息了。");
+        assert_eq!(notification_title(&default_title, "zh-CN"), "片刻小憩");
+        assert_eq!(notification_title("Time for a break.", "zh-CN"), "片刻小憩");
         assert_eq!(notification_title("Stand up.", "zh-CN"), "Stand up.");
         assert_eq!(
             notification_title("Look <b>away</b>.", "zh-CN"),

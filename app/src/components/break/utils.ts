@@ -3,13 +3,28 @@
 
 import { translate, type Translate } from "@/lib/i18n";
 
+const LEGACY_DEFAULT_TITLES = new Set([
+  "Time for a break.",
+  "A Moment's Respite.",
+]);
+const LEGACY_DEFAULT_MESSAGES = new Set([
+  "Rest your eyes.\nStretch your legs.\nBreathe. Relax.",
+  "Eyes to the horizon, drifting with clouds;\nBody unfolding, like a branch to the wind",
+]);
+
 /** Maps the legacy English default to the current locale without touching custom text. */
 export function localizedBreakText(
   value: string,
   key: string,
   locale: string,
 ): string {
-  return value === translate("en-US", key) ? translate(locale, key) : value;
+  const legacyValues =
+    key === "break.defaultTitle"
+      ? LEGACY_DEFAULT_TITLES
+      : key === "break.defaultMessage"
+        ? LEGACY_DEFAULT_MESSAGES
+        : null;
+  return legacyValues?.has(value) ? translate(locale, key) : value;
 }
 
 /** Human-readable "time since last break" label. */
