@@ -39,8 +39,11 @@ async function checkPage(page) {
   const file = path.join(siteDir, page);
   const html = await readFile(file, "utf8");
 
-  if (/<script\b/i.test(html)) {
-    errors.push(`${page}: unexpected <script>; the landing page must stay script-free.`);
+  for (const match of html.matchAll(/<script\b[^>]*>/gi)) {
+    const src = /\bsrc="([^"]+)"/i.exec(match[0]);
+    if (src && isExternal(src[1])) {
+      errors.push(`${page}: remote or non-local <script> is not allowed.`);
+    }
   }
 
   const resourceAttributes = [

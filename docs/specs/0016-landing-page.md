@@ -2,7 +2,7 @@
 
 - 状态：done
 - 日期：2026-11-02
-- 关联：SPEC-0011 · SPEC-0012 · SPEC-0020 · ADR-0011 · ADR-0024 · ADR-0025 · 视觉参考 <https://breaktimer.app/>
+- 关联：SPEC-0011 · SPEC-0012 · SPEC-0020 · SPEC-0027 · ADR-0011 · ADR-0024 · ADR-0025 · ADR-0036 · ADR-0037 · 视觉参考 <https://breaktimer.app/>
 
 ## 背景 / 问题
 
@@ -21,14 +21,20 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 3. 下载区引导到发布侧网盘入口（百度网盘、夸克网盘），与应用内更新检查一致；不直接链接
    GitHub Release 资产。网盘内同时提供安装版（`*-setup.exe`）与便携版（`*-portable.zip`），
    页面说明两者差异；网盘未配置时显示「暂未配置」提示并以 GitHub Releases 兜底。
-   未签名安装包在 SmartScreen 下的处置（「更多信息」→「仍要运行」）措辞与 `README.md`
-   保持一致。
+   站点不展示 SmartScreen 处置说明，安装帮助继续由 `README.md` 与 Releases 承担。
 4. 说明与旧版 BreakTimer 的关系：不单独设「与旧版」区块，关系由页脚署名说明
    （源自 `tom-james-watson/breaktimer-app`，重写实现、不是旧版分支）。
-5. 纯静态实现：资源全部本地，不引远程字体与 CDN，无第三方统计、无 Cookie、无表单。
+5. 纯静态实现：资源全部本地，不引远程字体与 CDN，无第三方统计、无 Cookie、无表单；
+   允许页面内功能切换脚本与本地 vendored 脚本，不加载远程脚本。
 6. 站点目录独立于 `app/`（应用代码）与 `docs/`（Markdown 事实源），发布产物只有站点目录。
 7. 托管在 GitHub Pages 或 Cloudflare Pages，二者取其一或都配，见「开放问题」Q2。
 8. 语言按 Q4 定；首版至少提供简体中文。
+9. 特性区四张卡各配一张应用界面展示图；图片来源为本地运行的应用，中文与英文页面分别
+   展示对应语言的界面（用户提供截图）。四项功能以顶部标签导航组织，说明与对应截图放在
+   同一个面板内一起切换；保持原有功能说明，桌面端左侧为说明、右侧为截图，截图放大并预先生成为
+   统一尺寸的圆角透明 PNG。
+   动画包括页面内脚本控制的自动轮播与本地 vendored `simple-parallax-js` 图片视差；
+   不加载远程资源。
 
 ## 验收标准（可测）
 
@@ -37,7 +43,7 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
       给出的 HTTPS 链接，未配置时页面显示提示并提供 GitHub Releases 兜底。
       2026-11-11 已在线上站点复验：两张网盘卡输出真实链接与提取码，兜底提示不再出现。
 - [x] **L3** 页面文案逐条对照 `README.md`「主要功能」，不出现 README 与 spec 之外的能力描述。
-- [x] **L4** 断网后刷新（外链除外）样式与图片完整，证明无远程字体 / CDN 依赖。
+- [x] **L4** 断网后刷新（外链除外）样式与图片完整，证明无远程字体 / CDN / 脚本依赖。
 - [x] **L5** 按子路径（模拟 `/breaktimer-new/`）部署后所有资源返回 200。
 - [x] **L6** 桌面 Lighthouse 的 Performance / Accessibility / Best Practices / SEO 均 ≥ 90，
       结果随验收记录提交。
@@ -45,6 +51,25 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 - [x] **L8** 发布 workflow 只发布站点目录，不构建、不改写 `app/` 产物，不触碰发布流水线（SPEC-0015）。
 - [x] **L9** `app/` 全部门禁保持通过（`pnpm format:check` / `lint` / `typecheck` / `test` / `build`
       与 cargo 的 `fmt --check` / `check` / `test`）。
+- [x] **L10** Hero 轨道标签与四项功能一致；顶部标签对应独立面板，功能说明与截图同组切换，
+      无远程资源。桌面端说明在左、截图在右；四张截图统一使用 `1280×800` 透明画布与
+      `12px` 内容圆角，接近应用窗口自身的圆角，页面按可用空间等比放大；保留
+      `prefers-reduced-motion` 降级。
+      2026-11-18 通过对话示意确认图文同面板方案：Edge 下悬停或点击第 2/3/4 个标签时，
+      只有对应说明和截图所在面板可见；中英文页面 1440px 与 375px 下均无横向溢出。
+- [x] **L11** 功能面板每 5 秒自动切换到下一项并循环；悬停、键盘聚焦或手动点击时暂停并重置计时，
+      页面不可见时暂停。`simple-parallax-js` 仅作用于当前显示截图，视差参数保持小幅；
+      `prefers-reduced-motion: reduce` 下关闭自动轮播和视差。
+      2026-11-19 使用 Edge 实测：初版 `scale: 1.06` 的实际位移仅约 `-10px～8px`，视觉上不明显；
+      调整为 `scale: 1.16` 与 `orientation: up left` 后确认滚动时图片横纵位置均可见变化，
+      且不裁切核心内容。
+      同日补充切换入场：每次功能切换时文字轻微左入、图片从右下轻微放大进入；入场终点为
+      `scale(1)`，动画结束后再重新初始化滚动视差，避免视差库把可见缩放从 `1.16` 重置为 `1`
+      时出现突然变小，也避免两个动画同时改写 `transform`。
+      2026-11-19 再次修正：入场动画移到 `.feature-image-motion` 外层容器，图片自身只由
+      `simple-parallax-js` 控制，消除动画结束后图片位移从入场终点跳到视差初值的问题。
+      同日最终修正：位移动画改作用在最外层 `.feature-figure`，图片容器只做透明度淡入，
+      图片自身继续只由视差库控制，避免交回视差时可见位置跳变。
 
 ## 非目标 / 边界
 
@@ -63,10 +88,10 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 
 | 区块     | 内容                                                      | 素材                  |
 | -------- | --------------------------------------------------------- | --------------------- |
-| 顶栏     | 名称 + 锚点导航（功能 / 下载）                            | `app/public/icon.png` |
+| 顶栏     | 名称 + 锚点导航（功能 / 下载）                            | `app/assets/logo.svg` |
 | Hero     | 一句话价值 + 「下载」+「GitHub」两个按钮                  | 图标 + 纯排版视觉（Q5） |
-| 特性     | 四张卡：休息调度 / 全屏阻断与通知 / 托盘与自启 / 中英双语 | 线性图标（Q5）        |
-| 下载     | 百度 / 夸克网盘入口 + 安装版与便携版说明 + SmartScreen     | 无                    |
+| 特性     | 顶部四项标签：休息调度 / 工作时段 / 全屏休息 / 个性化外观 | 图文同面板切换 + 放大圆角截图（ADR-0036） |
+| 下载     | 百度 / 夸克网盘入口 + 安装版与便携版说明；不展示 SmartScreen 与隐私统计说明 | 无                    |
 | 页脚     | 仓库 / Releases / 使用说明 / 许可证 + 源自 BreakTimer 的署名 | 无                   |
 
 ## 实现计划
@@ -88,7 +113,7 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 | Q2  | 托管平台         | GitHub Pages / Cloudflare Pages / 两者都配                                   | 决定新增 `pages.yml` 还是 Cloudflare 项目配置 |
 | Q3  | 是否绑自定义域名 | 不绑（`githunhunhub.github.io/breaktimer-new/`）/ 已有域名                   | 子路径还是根路径、DNS 与 HTTPS                |
 | Q4  | 语言             | 中文单语 / 中英双语（应用已是双语）                                          | 页面结构与文案量                              |
-| Q5  | 截图与图标       | `app/public/icon.png` + 新截 `pnpm tauri:dev` 界面 / 纯排版无图              | 阻塞 Hero 与特性区                            |
+| Q5  | 截图与图标       | `app/assets/logo.svg` + 新截 `pnpm tauri:dev` 界面 / 纯排版无图              | 阻塞 Hero 与特性区                            |
 | Q6  | 许可与署名       | 补 `LICENSE`（类型待定）/ 页脚仅署名「源自 tom-james-watson/breaktimer-app」 | 公开站点必须能回答「能不能用、能不能改」      |
 
 ## 开放问题结论（2026-11-07）
@@ -99,7 +124,7 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 | Q2  | 首版使用 GitHub Pages，新增 `.github/workflows/pages.yml`，只发布 `site/`；Cloudflare Pages 暂不配置。                                           |
 | Q3  | 暂不绑定自定义域名，站点基址为 `https://githunhunhub.github.io/breaktimer-new/`；资源全部使用相对路径，兼容子路径部署。                          |
 | Q4  | 中英双语静态页：`site/index.html`（简体中文，默认）与 `site/en/index.html`；语言切换使用普通链接，不依赖 JS。                                    |
-| Q5  | 使用 `app/public/icon.png` 的副本与纯排版视觉，不新增应用截图；图标变化时同步 `site/assets/icon.png`。                                          |
+| Q5  | 使用 `app/assets/logo.svg` 与纯排版视觉，不新增应用截图；品牌图标变化见 SPEC-0027 / ADR-0037。                                                  |
 | Q6  | 该结论已由 SPEC-0020 取代：仓库整体采用 GPL-3.0-or-later，根目录提供 `LICENSE` 与 `NOTICE`，页脚改为许可声明 + 指向 `master` 分支 `LICENSE` 的链接。 |
 
 补充约定：
@@ -122,7 +147,7 @@ BreakTimer-new 目前对外只有 GitHub 仓库和 `README.md`：拿到链接的
 | 关注点           | 文件                                                                       |
 | ---------------- | -------------------------------------------------------------------------- |
 | 中文主页 / 英文主页 / 404 | `site/index.html`、`site/en/index.html`、`site/404.html`            |
-| 样式与图标       | `site/assets/styles.css`、`site/assets/icon.png`、`site/assets/icon-64.png` |
+| 样式与图标       | `site/assets/styles.css`、`site/assets/logo.svg`、`site/assets/icon.png`、`site/assets/icon-64.png` |
 | 站点元信息       | `site/robots.txt`、`site/sitemap.xml`                                      |
 | 发布 workflow    | `.github/workflows/pages.yml`                                              |
 | 静态检查         | `site/scripts/check-static.mjs`                                            |
@@ -186,3 +211,18 @@ node --test site/scripts/resolve-downloads.test.mjs
 | 2026-11-07 | 页脚去掉「旧版 BreakTimer」外链，旧项目只保留署名段落里的仓库链接 |
 | 2026-11-11 | 补齐 `.github/release-downloads.json` 中的夸克 / 百度网盘分享链接与百度提取码，L2 待发布后复验 |
 | 2026-11-11 | 仓库启用 GitHub Pages（Source: GitHub Actions）并完成真实部署；回填 L7（站点地址、HTTPS、404）并复验 L2（线上网盘链接与提取码），`README.md` 补站点地址；全部验收通过，状态改为 done |
+| 2026-11-18 | 调整特性区四张卡为休息调度、工作时段、全屏休息与通知、个性化外观；移除托盘、自启和中英双语作为独立功能点，文案同步中英文页面 |
+| 2026-11-18 | 将「全屏休息与通知」改为「全屏休息」；Hero 标签同步四张特性卡；新增本地真实应用截图与 CSS 动画，取舍记录见 ADR-0034 |
+| 2026-11-18 | 特性区恢复四卡一行，改为共享悬停截图预览并统一截图画布；Hero 中文标题改为「给工作，留一点呼吸」；移除站点 SmartScreen 提示，取舍记录见 ADR-0035 |
+| 2026-11-18 | 功能区改用 16:9 图片舞台与中心裁切放大，压缩 Hero 与功能区留白，在四卡同排的前提下提升截图视觉占比 |
+| 2026-11-18 | 删除中英文页面的「隐私与匿名统计」折叠块及对应 CSS，应用内统计设置与上报逻辑不变 |
+| 2026-11-18 | 功能区改为四项顶部标签与图文同面板切换，保留原说明文案；截图放大并加 28px 圆角，取舍记录见 ADR-0036 |
+| 2026-11-18 | 图文同面板的 DOM 顺序调整为说明在前、截图在后，桌面端以左右两列呈现（左说明、右截图）；四张截图统一 28px 圆角，移动端仍保持说明在上、截图在下 |
+| 2026-11-19 | 修正圆角落在图片空白画布上的问题：八张截图统一生成 1280×800 透明画布并将实际截图内容裁为 12px 圆角，页面改用 `object-fit: cover` 与 `drop-shadow` |
+| 2026-11-19 | 品牌图标源统一为 `app/assets/logo.svg`，站点可见 logo 改用 SVG，OG/Apple 图标保留 PNG 派生（SPEC-0027 / ADR-0037） |
+| 2026-11-19 | Hero 删除系统版本与本地设置提示；功能区说明列加宽并在列内居中，与右侧截图保持平衡 |
+| 2026-11-19 | 功能区新增 5 秒自动轮播与本地 vendored `simple-parallax-js` 视差动画，取舍记录见 ADR-0038 |
+| 2026-11-19 | 提高本地视差幅度至可见范围，并将斜向参数修正为库要求的 `up left`，继续遵循 `prefers-reduced-motion` |
+| 2026-11-19 | 功能切换时增加图文入场视差；入场终点改为 `scale(1)`，避免交回 `simple-parallax-js` 时突然缩小 |
+| 2026-11-19 | 切换入场改作用在外层容器，图片自身只保留滚动视差，消除交回视差时的位置跳变 |
+| 2026-11-19 | 将切换位移移到 `.feature-figure`，图片容器只做淡入，彻底分离入场动画与视差 transform |

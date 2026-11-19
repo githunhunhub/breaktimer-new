@@ -33,7 +33,7 @@
     <meta name="twitter:card" content="summary" />
     <meta name="theme-color" content="#f6f4ee" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0b1512" media="(prefers-color-scheme: dark)" />
-    <link rel="icon" href="assets/icon-64.png" type="image/png" />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="assets/icon.png" />
     <link rel="stylesheet" href="assets/styles.css" />
   </head>
@@ -43,7 +43,7 @@
     <header class="site-header">
       <div class="container header-inner">
         <a class="brand" href="index.html" aria-label="BreakTimer-new 首页">
-          <img src="assets/icon-64.png" alt="" width="34" height="34" />
+          <img src="assets/logo.svg" alt="" width="34" height="34" />
           <span>BreakTimer-new</span>
         </a>
         <nav class="site-nav" aria-label="主导航">
@@ -58,8 +58,7 @@
       <section class="hero" aria-labelledby="hero-title">
         <div class="container hero-grid">
           <div class="hero-copy">
-            <p class="eyebrow">Windows 10 / 11 · 64 位</p>
-            <h1 id="hero-title">到点休息，<br /><span>回来更专注。</span></h1>
+            <h1 id="hero-title">给工作，<br /><span>留一点呼吸</span></h1>
             <p class="lede">
               BreakTimer-new 是一款 Windows 桌面休息提醒应用。自定义工作与休息时长，
               选择全屏休息窗口或系统通知，让提醒只在需要的时间段内生效。
@@ -79,17 +78,16 @@
                 查看 GitHub
               </a>
             </div>
-            <p class="hero-note">设置保存在本机 · 支持简体中文与英语</p>
           </div>
 
           <div class="hero-visual" aria-hidden="true">
             <span class="orbit orbit-a"></span>
             <span class="orbit orbit-b"></span>
-            <img class="hero-icon" src="assets/icon.png" alt="" width="128" height="128" />
-            <span class="chip chip-a">定时休息</span>
-            <span class="chip chip-b">全屏阻断</span>
-            <span class="chip chip-c">系统通知</span>
-            <span class="chip chip-d">托盘倒计时</span>
+            <img class="hero-icon" src="assets/logo.svg" alt="" width="128" height="128" />
+            <span class="chip chip-a">休息调度</span>
+            <span class="chip chip-b">工作时段</span>
+            <span class="chip chip-c">全屏休息</span>
+            <span class="chip chip-d">个性化外观</span>
           </div>
         </div>
       </section>
@@ -101,56 +99,172 @@
             <p>从工作时段到提醒方式，按你的节奏配置；需要专注时，它只在托盘里安静计时。</p>
           </div>
 
-          <div class="features">
-            <article class="feature-card">
-              <span class="feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <circle cx="12" cy="12" r="8.5" />
-                  <path d="M12 7.5V12l3 1.8" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-              </span>
-              <h3>休息调度</h3>
-              <p>自定义休息频率、休息时长和工作时段。长时间离开电脑后自动重置计时，减少无效提醒。</p>
-            </article>
+          <div class="feature-tabs" role="tablist" aria-label="功能导航">
+            <button class="feature-tab feature-tab-1 is-active" type="button" role="tab" id="feature-tab-1" aria-controls="feature-panel-1" aria-selected="true" data-feature="1"><span>01</span> 休息调度</button>
+            <button class="feature-tab feature-tab-2" type="button" role="tab" id="feature-tab-2" aria-controls="feature-panel-2" aria-selected="false" data-feature="2"><span>02</span> 工作时段</button>
+            <button class="feature-tab feature-tab-3" type="button" role="tab" id="feature-tab-3" aria-controls="feature-panel-3" aria-selected="false" data-feature="3"><span>03</span> 全屏休息</button>
+            <button class="feature-tab feature-tab-4" type="button" role="tab" id="feature-tab-4" aria-controls="feature-panel-4" aria-selected="false" data-feature="4"><span>04</span> 个性化外观</button>
+          </div>
 
-            <article class="feature-card">
-              <span class="feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <rect x="3" y="4.5" width="18" height="12.5" rx="2" />
-                  <path d="M9 20h6M12 17v3" stroke-linecap="round" />
-                  <path d="m9.5 10.5 2 2 3.5-3.5" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-              </span>
-              <h3>全屏休息与通知</h3>
-              <p>使用全屏休息窗口，或仅发送系统通知。休息时支持推迟、跳过和立即休息。</p>
-            </article>
+          <div class="feature-panels">
+            <section class="feature-panel feature-panel-1" id="feature-panel-1" role="tabpanel" aria-labelledby="feature-tab-1">
+              <div class="feature-copy">
+                <p class="feature-index">01 <small>REST</small></p>
+                <h3 id="feature-title-1">休息调度</h3>
+                <p>按你的节奏安排休息的频率与时长；当你长时间离开电脑，计时会自动归零，让每一次提醒都恰到好处，而非多余打扰。</p>
+                <p class="feature-caption">界面节选 · 常规设置</p>
+              </div>
+              <figure class="feature-figure">
+                <div class="feature-image-motion"><img src="assets/screenshots/scheduling-zh-rounded.png" alt="BreakTimer-new 休息调度设置界面" width="1280" height="800" /></div>
+              </figure>
+            </section>
 
-            <article class="feature-card">
-              <span class="feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <path d="M4 6h16v10H4z" stroke-linejoin="round" />
-                  <path d="M8 20h8M12 16v4" stroke-linecap="round" />
-                  <path d="M8 10.5h8M8 13h5" stroke-linecap="round" />
-                </svg>
-              </span>
-              <h3>托盘与开机启动</h3>
-              <p>托盘菜单显示休息状态和倒计时，可直接暂停提醒。支持开机启动、提示音、主题与遮罩设置。</p>
-            </article>
+            <section class="feature-panel feature-panel-2" id="feature-panel-2" role="tabpanel" aria-labelledby="feature-tab-2" hidden>
+              <div class="feature-copy">
+                <p class="feature-index">02 <small>HOURS</small></p>
+                <h3 id="feature-title-2">工作时段</h3>
+                <p>为每一天分别设定工作时段；提醒只在你工作的时候轻轻出现，而当新一段工作开始时，计时重新开始。</p>
+                <p class="feature-caption">界面节选 · 工作时段</p>
+              </div>
+              <figure class="feature-figure">
+                <div class="feature-image-motion"><img src="assets/screenshots/working-hours-zh-rounded.png" alt="BreakTimer-new 工作时段设置界面" width="1280" height="800" /></div>
+              </figure>
+            </section>
 
-            <article class="feature-card">
-              <span class="feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <circle cx="12" cy="12" r="8.5" />
-                  <path d="M3.8 9h16.4M3.8 15h16.4" stroke-linecap="round" />
-                  <path d="M12 3.5c2.2 2.5 3.3 5.4 3.3 8.5S14.2 18 12 20.5C9.8 18 8.7 15.1 8.7 12S9.8 6 12 3.5Z" />
-                </svg>
-              </span>
-              <h3>简体中文与英语</h3>
-              <p>界面支持简体中文和英语，也可跟随系统语言。设置与运行数据保存在本机。</p>
-            </article>
+            <section class="feature-panel feature-panel-3" id="feature-panel-3" role="tabpanel" aria-labelledby="feature-tab-3" hidden>
+              <div class="feature-copy">
+                <p class="feature-index">03 <small>BREAK</small></p>
+                <h3 id="feature-title-3">全屏休息</h3>
+                <p>你可以选择让休息铺满整个屏幕，也可以只收一条安静的系统通知。休息来临时，推迟、跳过或立刻休息，都由你决定。</p>
+                <p class="feature-caption">界面节选 · 全屏休息</p>
+              </div>
+              <figure class="feature-figure">
+                <div class="feature-image-motion"><img src="assets/screenshots/fullscreen-break-zh-rounded.png" alt="BreakTimer-new 全屏休息界面" width="1280" height="800" /></div>
+              </figure>
+            </section>
+
+            <section class="feature-panel feature-panel-4" id="feature-panel-4" role="tabpanel" aria-labelledby="feature-tab-4" hidden>
+              <div class="feature-copy">
+                <p class="feature-index">04 <small>STYLE</small></p>
+                <h3 id="feature-title-4">个性化外观</h3>
+                <p>调一调主题色、休息卡的形状、提示音与背景遮罩，让每一次休息提醒，都更贴近你的习惯与审美。</p>
+                <p class="feature-caption">界面节选 · 自定义</p>
+              </div>
+              <figure class="feature-figure">
+                <div class="feature-image-motion"><img src="assets/screenshots/appearance-zh-rounded.png" alt="BreakTimer-new 个性化外观设置界面" width="1280" height="800" /></div>
+              </figure>
+            </section>
           </div>
         </div>
       </section>
+
+      <script src="assets/vendor/simple-parallax-js/simpleParallaxVanilla.umd.js"></script>
+      <script>
+        (() => {
+          const tabs = Array.from(document.querySelectorAll(".feature-tab"));
+          const panels = Array.from(document.querySelectorAll(".feature-panel"));
+          if (!tabs.length || !panels.length) return;
+          const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+          const AUTOPLAY_MS = 5000;
+          const allImages = Array.from(document.querySelectorAll(".feature-figure img"));
+          let activeIndex = 0;
+          let timer = null;
+          let parallax = null;
+          let entranceTimer = null;
+
+          function resetParallax() {
+            parallax?.destroy();
+            parallax = null;
+          }
+
+          function setupParallax() {
+            if (reducedMotion.matches || !window.SimpleParallax || !allImages.length) return;
+            parallax = new window.SimpleParallax(allImages, {
+              delay: 0.3,
+              orientation: "up left",
+              scale: 1.16,
+              overflow: true,
+            });
+          }
+
+          function stopAutoplay() {
+            if (timer !== null) {
+              window.clearInterval(timer);
+              timer = null;
+            }
+          }
+
+          function playEntrance(panel) {
+            if (entranceTimer !== null) {
+              window.clearTimeout(entranceTimer);
+              entranceTimer = null;
+            }
+            panels.forEach((item) => item.classList.remove("is-entering"));
+            if (reducedMotion.matches || !panel) return;
+            void panel.offsetWidth;
+            panel.classList.add("is-entering");
+            entranceTimer = window.setTimeout(() => {
+              panel.classList.remove("is-entering");
+              entranceTimer = null;
+            }, 560);
+          }
+
+          function startAutoplay() {
+            stopAutoplay();
+            if (reducedMotion.matches || document.hidden) return;
+            timer = window.setInterval(() => {
+              select((activeIndex + 1) % panels.length);
+            }, AUTOPLAY_MS);
+          }
+
+          function select(index) {
+            activeIndex = index;
+            tabs.forEach((tab, i) => {
+              const active = i === index;
+              tab.classList.toggle("is-active", active);
+              tab.setAttribute("aria-selected", String(active));
+            });
+            panels.forEach((panel, i) => {
+              panel.hidden = i !== index;
+            });
+            parallax?.refresh();
+            playEntrance(panels[index]);
+          }
+
+          tabs.forEach((tab, index) => {
+            tab.addEventListener("click", () => select(index));
+            tab.addEventListener("mouseenter", () => select(index));
+            tab.addEventListener("focus", () => select(index));
+          });
+
+          const featureSection = document.getElementById("features");
+          featureSection?.addEventListener("mouseenter", stopAutoplay);
+          featureSection?.addEventListener("mouseleave", startAutoplay);
+          featureSection?.addEventListener("focusin", stopAutoplay);
+          featureSection?.addEventListener("focusout", startAutoplay);
+          document.addEventListener("visibilitychange", () => {
+            if (document.hidden) stopAutoplay();
+            else startAutoplay();
+          });
+          reducedMotion.addEventListener("change", () => {
+            if (reducedMotion.matches) {
+              stopAutoplay();
+              resetParallax();
+              if (entranceTimer !== null) {
+                window.clearTimeout(entranceTimer);
+                entranceTimer = null;
+              }
+              panels.forEach((item) => item.classList.remove("is-entering"));
+            } else {
+              setupParallax();
+              startAutoplay();
+            }
+          });
+
+          setupParallax();
+          startAutoplay();
+        })();
+      </script>
 
       <section class="section section-alt" id="download" aria-labelledby="download-title">
         <div class="container">
@@ -221,36 +335,10 @@
             <a href="https://github.com/githunhunhub/breaktimer-new/releases">版本历史与 SHA256SUMS</a>
           </p>
 
-          <div class="notice">
-            <span class="notice-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M12 4 3.5 19h17L12 4Z" stroke-linejoin="round" />
-                <path d="M12 9v4.5M12 16.5h.01" stroke-linecap="round" />
-              </svg>
-            </span>
-            <div>
-              <h3>SmartScreen 提示</h3>
-              <p>
-                应用和安装包当前没有代码签名，Windows SmartScreen 可能显示安全提示；如需继续，请选择“更多信息”，
-                确认文件来自本项目的
-                <a href="https://github.com/githunhunhub/breaktimer-new/releases">GitHub Releases</a>
-                后再选择“仍要运行”。
-              </p>
-            </div>
-          </div>
-
           <p class="requirement">
             系统要求：Windows 10 或 Windows 11，64 位；需要 Microsoft Edge WebView2 Runtime。
           </p>
 
-          <details class="privacy">
-            <summary>隐私与匿名统计</summary>
-            <p>
-              应用首次运行时会生成随机装机 ID，每天最多发送一次装机 ID、日期、应用版本、系统大类、
-              架构、界面语言与安装方式；不发送 IP、用户名、主机名、硬件信息、安装路径或设置内容。
-              可在「设置 → 系统 → 允许发送匿名使用信息」中随时关闭。更新检查只请求 GitHub 的公开版本信息。
-            </p>
-          </details>
         </div>
       </section>
     </main>
@@ -259,7 +347,7 @@
       <div class="container">
         <div class="footer-top">
           <a class="footer-brand" href="index.html">
-            <img src="assets/icon-64.png" alt="" width="32" height="32" />
+            <img src="assets/logo.svg" alt="" width="32" height="32" />
             <span>BreakTimer-new</span>
           </a>
           <ul class="footer-links">

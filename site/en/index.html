@@ -33,7 +33,7 @@
     <meta name="twitter:card" content="summary" />
     <meta name="theme-color" content="#f6f4ee" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0b1512" media="(prefers-color-scheme: dark)" />
-    <link rel="icon" href="../assets/icon-64.png" type="image/png" />
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="../assets/icon.png" />
     <link rel="stylesheet" href="../assets/styles.css" />
   </head>
@@ -43,7 +43,7 @@
     <header class="site-header">
       <div class="container header-inner">
         <a class="brand" href="../index.html" aria-label="BreakTimer-new home">
-          <img src="../assets/icon-64.png" alt="" width="34" height="34" />
+          <img src="../assets/logo.svg" alt="" width="34" height="34" />
           <span>BreakTimer-new</span>
         </a>
         <nav class="site-nav" aria-label="Main navigation">
@@ -58,8 +58,7 @@
       <section class="hero" aria-labelledby="hero-title">
         <div class="container hero-grid">
           <div class="hero-copy">
-            <p class="eyebrow">Windows 10 / 11 · 64-bit</p>
-            <h1 id="hero-title">Take a break,<br /><span>return focused.</span></h1>
+            <h1 id="hero-title">Give work,<br /><span>room to breathe.</span></h1>
             <p class="lede">
               BreakTimer-new is a Windows break reminder. Set your work and break durations,
               choose a full-screen break window or system notifications, and keep reminders
@@ -80,17 +79,16 @@
                 View on GitHub
               </a>
             </div>
-            <p class="hero-note">Settings stay on this PC · English and Simplified Chinese</p>
           </div>
 
           <div class="hero-visual" aria-hidden="true">
             <span class="orbit orbit-a"></span>
             <span class="orbit orbit-b"></span>
-            <img class="hero-icon" src="../assets/icon.png" alt="" width="128" height="128" />
-            <span class="chip chip-a">Scheduled breaks</span>
-            <span class="chip chip-b">Full-screen</span>
-            <span class="chip chip-c">Notifications</span>
-            <span class="chip chip-d">Tray countdown</span>
+            <img class="hero-icon" src="../assets/logo.svg" alt="" width="128" height="128" />
+            <span class="chip chip-a">Break scheduling</span>
+            <span class="chip chip-b">Working hours</span>
+            <span class="chip chip-c">Full-screen breaks</span>
+            <span class="chip chip-d">Personalized appearance</span>
           </div>
         </div>
       </section>
@@ -105,68 +103,172 @@
             </p>
           </div>
 
-          <div class="features">
-            <article class="feature-card">
-              <span class="feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <circle cx="12" cy="12" r="8.5" />
-                  <path d="M12 7.5V12l3 1.8" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-              </span>
-              <h3>Break scheduling</h3>
-              <p>
-                Set break frequency, break length and working hours. The timer resets after
-                you have been away from the computer, reducing unnecessary reminders.
-              </p>
-            </article>
+          <div class="feature-tabs" role="tablist" aria-label="Feature navigation">
+            <button class="feature-tab feature-tab-1 is-active" type="button" role="tab" id="feature-tab-1" aria-controls="feature-panel-1" aria-selected="true" data-feature="1"><span>01</span> Break scheduling</button>
+            <button class="feature-tab feature-tab-2" type="button" role="tab" id="feature-tab-2" aria-controls="feature-panel-2" aria-selected="false" data-feature="2"><span>02</span> Working hours</button>
+            <button class="feature-tab feature-tab-3" type="button" role="tab" id="feature-tab-3" aria-controls="feature-panel-3" aria-selected="false" data-feature="3"><span>03</span> Full-screen breaks</button>
+            <button class="feature-tab feature-tab-4" type="button" role="tab" id="feature-tab-4" aria-controls="feature-panel-4" aria-selected="false" data-feature="4"><span>04</span> Personalized appearance</button>
+          </div>
 
-            <article class="feature-card">
-              <span class="feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <rect x="3" y="4.5" width="18" height="12.5" rx="2" />
-                  <path d="M9 20h6M12 17v3" stroke-linecap="round" />
-                  <path d="m9.5 10.5 2 2 3.5-3.5" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-              </span>
-              <h3>Full-screen breaks or notifications</h3>
-              <p>
-                Use a full-screen break window or only send system notifications. Postpone,
-                skip or take a break immediately.
-              </p>
-            </article>
+          <div class="feature-panels">
+            <section class="feature-panel feature-panel-1" id="feature-panel-1" role="tabpanel" aria-labelledby="feature-tab-1">
+              <div class="feature-copy">
+                <p class="feature-index">01 <small>REST</small></p>
+                <h3 id="feature-title-1">Break scheduling</h3>
+                <p>Set break frequency and duration at your own pace. The timer resets when you have been away from the computer, so every reminder arrives for a reason.</p>
+                <p class="feature-caption">Interface excerpt · Breaks settings</p>
+              </div>
+              <figure class="feature-figure">
+                <div class="feature-image-motion"><img src="../assets/screenshots/scheduling-en-rounded.png" alt="BreakTimer-new break scheduling settings" width="1280" height="800" /></div>
+              </figure>
+            </section>
 
-            <article class="feature-card">
-              <span class="feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <path d="M4 6h16v10H4z" stroke-linejoin="round" />
-                  <path d="M8 20h8M12 16v4" stroke-linecap="round" />
-                  <path d="M8 10.5h8M8 13h5" stroke-linecap="round" />
-                </svg>
-              </span>
-              <h3>Tray and auto-launch</h3>
-              <p>
-                The tray menu shows break status and the countdown, and can pause reminders.
-                Auto-launch, sounds, theme and backdrop settings are included.
-              </p>
-            </article>
+            <section class="feature-panel feature-panel-2" id="feature-panel-2" role="tabpanel" aria-labelledby="feature-tab-2" hidden>
+              <div class="feature-copy">
+                <p class="feature-index">02 <small>HOURS</small></p>
+                <h3 id="feature-title-2">Working hours</h3>
+                <p>Set working hours for each day. Reminders appear only while you are working, and the timer starts fresh when a new work session begins.</p>
+                <p class="feature-caption">Interface excerpt · Working hours</p>
+              </div>
+              <figure class="feature-figure">
+                <div class="feature-image-motion"><img src="../assets/screenshots/working-hours-en-rounded.png" alt="BreakTimer-new working hours settings" width="1280" height="800" /></div>
+              </figure>
+            </section>
 
-            <article class="feature-card">
-              <span class="feature-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <circle cx="12" cy="12" r="8.5" />
-                  <path d="M3.8 9h16.4M3.8 15h16.4" stroke-linecap="round" />
-                  <path d="M12 3.5c2.2 2.5 3.3 5.4 3.3 8.5S14.2 18 12 20.5C9.8 18 8.7 15.1 8.7 12S9.8 6 12 3.5Z" />
-                </svg>
-              </span>
-              <h3>English and Simplified Chinese</h3>
-              <p>
-                The interface supports English and Simplified Chinese, or follows the system
-                language. Settings and runtime data stay on your PC.
-              </p>
-            </article>
+            <section class="feature-panel feature-panel-3" id="feature-panel-3" role="tabpanel" aria-labelledby="feature-tab-3" hidden>
+              <div class="feature-copy">
+                <p class="feature-index">03 <small>BREAK</small></p>
+                <h3 id="feature-title-3">Full-screen breaks</h3>
+                <p>Let breaks fill the whole screen, or just receive a quiet system notification. When a break arrives, postpone it, skip it, or start it now.</p>
+                <p class="feature-caption">Interface excerpt · Full-screen break</p>
+              </div>
+              <figure class="feature-figure">
+                <div class="feature-image-motion"><img src="../assets/screenshots/fullscreen-break-en-rounded.png" alt="BreakTimer-new full-screen break" width="1280" height="800" /></div>
+              </figure>
+            </section>
+
+            <section class="feature-panel feature-panel-4" id="feature-panel-4" role="tabpanel" aria-labelledby="feature-tab-4" hidden>
+              <div class="feature-copy">
+                <p class="feature-index">04 <small>STYLE</small></p>
+                <h3 id="feature-title-4">Personalized appearance</h3>
+                <p>Adjust theme colors, break card shape, sounds and the backdrop so every break reminder feels right for you.</p>
+                <p class="feature-caption">Interface excerpt · Customization</p>
+              </div>
+              <figure class="feature-figure">
+                <div class="feature-image-motion"><img src="../assets/screenshots/appearance-en-rounded.png" alt="BreakTimer-new appearance settings" width="1280" height="800" /></div>
+              </figure>
+            </section>
           </div>
         </div>
       </section>
+
+      <script src="../assets/vendor/simple-parallax-js/simpleParallaxVanilla.umd.js"></script>
+      <script>
+        (() => {
+          const tabs = Array.from(document.querySelectorAll(".feature-tab"));
+          const panels = Array.from(document.querySelectorAll(".feature-panel"));
+          if (!tabs.length || !panels.length) return;
+          const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+          const AUTOPLAY_MS = 5000;
+          const allImages = Array.from(document.querySelectorAll(".feature-figure img"));
+          let activeIndex = 0;
+          let timer = null;
+          let parallax = null;
+          let entranceTimer = null;
+
+          function resetParallax() {
+            parallax?.destroy();
+            parallax = null;
+          }
+
+          function setupParallax() {
+            if (reducedMotion.matches || !window.SimpleParallax || !allImages.length) return;
+            parallax = new window.SimpleParallax(allImages, {
+              delay: 0.3,
+              orientation: "up left",
+              scale: 1.16,
+              overflow: true,
+            });
+          }
+
+          function stopAutoplay() {
+            if (timer !== null) {
+              window.clearInterval(timer);
+              timer = null;
+            }
+          }
+
+          function playEntrance(panel) {
+            if (entranceTimer !== null) {
+              window.clearTimeout(entranceTimer);
+              entranceTimer = null;
+            }
+            panels.forEach((item) => item.classList.remove("is-entering"));
+            if (reducedMotion.matches || !panel) return;
+            void panel.offsetWidth;
+            panel.classList.add("is-entering");
+            entranceTimer = window.setTimeout(() => {
+              panel.classList.remove("is-entering");
+              entranceTimer = null;
+            }, 560);
+          }
+
+          function startAutoplay() {
+            stopAutoplay();
+            if (reducedMotion.matches || document.hidden) return;
+            timer = window.setInterval(() => {
+              select((activeIndex + 1) % panels.length);
+            }, AUTOPLAY_MS);
+          }
+
+          function select(index) {
+            activeIndex = index;
+            tabs.forEach((tab, i) => {
+              const active = i === index;
+              tab.classList.toggle("is-active", active);
+              tab.setAttribute("aria-selected", String(active));
+            });
+            panels.forEach((panel, i) => {
+              panel.hidden = i !== index;
+            });
+            parallax?.refresh();
+            playEntrance(panels[index]);
+          }
+
+          tabs.forEach((tab, index) => {
+            tab.addEventListener("click", () => select(index));
+            tab.addEventListener("mouseenter", () => select(index));
+            tab.addEventListener("focus", () => select(index));
+          });
+
+          const featureSection = document.getElementById("features");
+          featureSection?.addEventListener("mouseenter", stopAutoplay);
+          featureSection?.addEventListener("mouseleave", startAutoplay);
+          featureSection?.addEventListener("focusin", stopAutoplay);
+          featureSection?.addEventListener("focusout", startAutoplay);
+          document.addEventListener("visibilitychange", () => {
+            if (document.hidden) stopAutoplay();
+            else startAutoplay();
+          });
+          reducedMotion.addEventListener("change", () => {
+            if (reducedMotion.matches) {
+              stopAutoplay();
+              resetParallax();
+              if (entranceTimer !== null) {
+                window.clearTimeout(entranceTimer);
+                entranceTimer = null;
+              }
+              panels.forEach((item) => item.classList.remove("is-entering"));
+            } else {
+              setupParallax();
+              startAutoplay();
+            }
+          });
+
+          setupParallax();
+          startAutoplay();
+        })();
+      </script>
 
       <section class="section section-alt" id="download" aria-labelledby="download-title">
         <div class="container">
@@ -242,41 +344,11 @@
             <a href="https://github.com/githunhunhub/breaktimer-new/releases">Version history and SHA256SUMS</a>
           </p>
 
-          <div class="notice">
-            <span class="notice-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M12 4 3.5 19h17L12 4Z" stroke-linejoin="round" />
-                <path d="M12 9v4.5M12 16.5h.01" stroke-linecap="round" />
-              </svg>
-            </span>
-            <div>
-              <h3>SmartScreen warning</h3>
-              <p>
-                The app and installers are currently unsigned, so Windows SmartScreen may show
-                a security warning. To continue, choose “More info”, confirm the file came from
-                this project's
-                <a href="https://github.com/githunhunhub/breaktimer-new/releases">GitHub Releases</a>,
-                then choose “Run anyway”.
-              </p>
-            </div>
-          </div>
-
           <p class="requirement">
             System requirements: Windows 10 or Windows 11, 64-bit; Microsoft Edge WebView2
             Runtime is required.
           </p>
 
-          <details class="privacy">
-            <summary>Privacy and anonymous metrics</summary>
-            <p>
-              On first launch the app generates a random installation ID and sends at most once
-              a day: installation ID, date, app version, OS family, architecture, UI language
-              and install type. It does not send IP addresses, user names, host names, hardware
-              details, install paths or settings. You can turn this off at any time in
-              Settings → System → Allow anonymous usage data. Update checks only request public
-              version information from GitHub.
-            </p>
-          </details>
         </div>
       </section>
     </main>
@@ -285,7 +357,7 @@
       <div class="container">
         <div class="footer-top">
           <a class="footer-brand" href="../index.html">
-            <img src="../assets/icon-64.png" alt="" width="32" height="32" />
+            <img src="../assets/logo.svg" alt="" width="32" height="32" />
             <span>BreakTimer-new</span>
           </a>
           <ul class="footer-links">
