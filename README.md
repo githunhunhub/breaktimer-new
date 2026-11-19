@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/public/icon.png" width="128" alt="BreakTimer-new 图标">
+  <img src="app/assets/logo.svg" width="128" alt="BreakTimer-new 图标">
 </p>
 
 # BreakTimer-new

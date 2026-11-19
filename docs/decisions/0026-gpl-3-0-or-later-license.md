@@ -10,8 +10,8 @@
 上游 BreakTimer（`tom-james-watson/breaktimer-app`）以 GPL-3.0-or-later 发布，
 其 `LICENSE.md` 为 GPLv3 全文，`package.json` 声明 `"license": "GPL-3.0-or-later"`。
 
-BreakTimer-new 虽然用 Tauri 重写，但实际复用了上游内容：`app/public/icon.png` 与上游
-`resources/icon.png` 字节完全相同；`app/src-tauri/sounds/` 下十个音效与上游
+BreakTimer-new 虽然用 Tauri 重写，但实际复用了上游内容：`app/assets/logo.svg` 复制自上游
+`resources/src/icon.svg`，并由它生成应用与网站的派生图标；`app/src-tauri/sounds/` 下十个音效与上游
 `app/renderer/public/sounds/` 同名文件字节相同；设置窗与休息窗 UI 由旧 renderer
 组件移植而来。按 GPLv3，这些内容使整个分发物构成衍生作品。
 

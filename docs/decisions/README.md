@@ -39,5 +39,10 @@
 | [ADR-0031](0031-public-report-existing-key-reads.md)           | 公开报表按实际 KV key 读取并使用短期响应缓存                     | 已接受               | SPEC-0025 · SPEC-0022 · SPEC-0018 · ADR-0023 · ADR-0029                      |
 | [ADR-0032](0032-public-report-real-key-prefixes.md)            | 公开报表按三个实际日指标前缀列举                                 | 已接受               | SPEC-0025 · SPEC-0018 · SPEC-0022 · 部分取代 ADR-0031                        |
 | [ADR-0033](0033-client-metrics-v2.md)                          | 客户端统计收敛为 V2 日指标                                       | 已接受               | SPEC-0018 · SPEC-0022 · SPEC-0025 · SPEC-0026 · 部分取代 ADR-0023/0029/0031/0032 |
+| [ADR-0034](0034-landing-page-local-screenshots-and-css-motion.md) | 宣传页使用本地应用截图与 CSS 动画                                | 已接受               | SPEC-0016 · ADR-0024                                                         |
+| [ADR-0035](0035-landing-page-hover-preview.md)                    | 宣传页特性区改为共享悬停预览                                     | 已接受               | SPEC-0016 · 部分取代 ADR-0034                                                |
+| [ADR-0036](0036-landing-page-paired-feature-panels.md)            | 宣传页功能区改为图文成对切换                                     | 已接受               | SPEC-0016 · 取代 ADR-0035                                                    |
+| [ADR-0037](0037-shared-svg-brand-icon-source.md)                  | 应用与网站共享 SVG 品牌图标源                                   | 已接受               | SPEC-0027 · SPEC-0011 · SPEC-0016 · 部分取代 ADR-0024 Q5                     |
+| [ADR-0038](0038-landing-page-autoplay-and-parallax.md)            | 宣传页功能轮播与本地视差库                                      | 已接受               | SPEC-0016 · ADR-0036                                                         |
 
 <!-- 新增 ADR 后在此表追加一行，并保持编号递增。 -->

@@ -46,8 +46,8 @@ Windows 发布产物，并让登录自启动、发布后托盘状态和安装流
 ## 设计要点（可选）
 
 - 在 `app/src-tauri/tauri.conf.json` 把 bundle target 显式收敛为 `nsis`。
-- 继续使用 `app/src-tauri/icons/` 中由旧版 artwork 生成的图标集；若构建产物显示错误，
-  再从旧版 `icon.png` 或 `icon.ico` 重新生成并纳入版本库。
+- 使用 `app/src-tauri/icons/` 中由统一品牌源 `app/assets/logo.svg` 导出的图标集（SPEC-0027）；
+  若构建产物显示错误，从该 SVG 重新生成并纳入版本库。
 - 安装包预期位于 `app/src-tauri/target/release/bundle/nsis/`，发布版可执行文件预期位于
   `app/src-tauri/target/release/breaktimer.exe`。
 - 便携 ZIP 预期位于

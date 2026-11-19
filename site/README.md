@@ -16,9 +16,10 @@ BreakTimer-new 的对外单页宣传页：纯静态 HTML / CSS，中英双语，
 | `en/index.html`                  | 英文主页                                                 |
 | `404.html`                       | 双语 404，使用 `/breaktimer-new/` 绝对路径               |
 | `assets/styles.css`              | 两页共享样式（含暗色模式与移动端）                       |
-| `assets/icon.png`、`icon-64.png` | 由 `app/public/icon.png` 缩放而来的站点图标              |
+| `assets/logo.svg`、`favicon.svg` | 品牌图标与站点 favicon，源图见 `app/assets/logo.svg`    |
+| `assets/icon.png`、`icon-64.png` | 由同一品牌源导出的 Apple touch icon 与 OG 分享图        |
 | `robots.txt`、`sitemap.xml`      | 爬虫规则与站点地图                                       |
-| `scripts/check-static.mjs`       | 静态检查：无 `<script>`、无远程资源、无坏链              |
+| `scripts/check-static.mjs`       | 静态检查：无远程脚本、无远程资源、无坏链                |
 | `scripts/resolve-downloads.mjs`  | 部署时把最新 Release 的百度 / 夸克网盘链接写入副本       |
 
 ## 本地检查
@@ -47,11 +48,11 @@ node --test site/scripts/resolve-downloads.test.mjs
   `.github/release-downloads.json` 生成）。标记缺失或字段为空时对应卡片隐藏，
   页面显示「暂未配置」提示并保留 GitHub Releases 兜底；链接必须是 `https` 且主机为
   `pan.baidu.com` / `pan.quark.cn`，否则部署失败。
-- 图标源变化时重建两个站点图标（需要 ImageMagick 或等价工具）：
+- 品牌图标源为 `app/assets/logo.svg`。修改后从 `app/` 执行以下命令重新生成应用与站点资产
+  （需要已安装 Microsoft Edge 或 Chrome，也可用 `BREAKTIMER_EDGE_PATH` 指定浏览器）：
 
   ```powershell
-  magick app/public/icon.png -resize 256x256 site/assets/icon.png
-  magick app/public/icon.png -resize 64x64 site/assets/icon-64.png
+  pnpm render:logo
   ```
 
 - 换域名时同步修改 `index.html`、`en/index.html`、`404.html`、`robots.txt` 与

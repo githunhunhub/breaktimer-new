@@ -36,5 +36,6 @@
 | [SPEC-0024](0024-nsis-installer-languages.md)         | NSIS 安装器多语言                            | in-progress | SPEC-0011 · SPEC-0014                                                          | `app/src-tauri/tauri.conf.json`                                          |
 | [SPEC-0025](0025-public-report-read-performance.md)   | 公开客户端统计报表读取性能优化               | in-progress | SPEC-0018 · SPEC-0022 · ADR-0023 · ADR-0029 · ADR-0031 · ADR-0032 · ADR-0033   | `server/metrics/edge-functions/_lib/public-report.js`、`report.js`       |
 | [SPEC-0026](0026-public-report-snapshot-refresh.md)    | 公开报表定时预聚合快照（V2 前提取代）        | superseded  | SPEC-0018 · SPEC-0022 · SPEC-0025 · ADR-0023 · ADR-0032 · ADR-0033             | 尚未实现                                                                 |
+| [SPEC-0027](0027-shared-app-brand-icon.md)             | 统一应用与宣传页品牌图标                     | done        | SPEC-0011 · SPEC-0016 · SPEC-0020 · ADR-0037                                   | `app/assets/logo.svg`、`app/src-tauri/icons/`、`site/assets/`            |
 
 <!-- 新增 spec 后在此表追加一行。状态：draft / confirmed / in-progress / done / superseded -->
