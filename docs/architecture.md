@@ -1,164 +1,78 @@
-# 架构
+# 系统架构与技术全景
 
-## 现状（旧版 `breaktimer-app`）
+## 项目边界
 
-> 参考旧仓库的 `breaktimer-app/CLAUDE.md`。
+- `app/`：Windows 桌面应用，Tauri v2 Rust 后端 + React SPA。
+- `server/metrics/`：匿名客户端统计、公开看板与维护者报表，部署在 EdgeOne。
+- `site/`：纯静态中英双语宣传页，由 GitHub Pages 发布。
+- `breaktimer-app/`：旧 Electron 源码，仅作参考，禁止修改。
+- `.github/`：Windows Tag 发布流水线与 Pages 发布。
+- `docs/`：架构、滚动日志与 Superpowers 需求闭环；`DEVELOPMENT.md` 是完整命令来源。
 
-- Electron 桌面应用，常驻系统托盘，支持全屏休息覆盖层与通知。
-- 主进程 `app/main/`：休息调度、IPC、设置持久化、托盘、窗口、通知、自启动。
-- 渲染进程 `app/renderer/`：React 19 + Tailwind CSS + shadcn/ui。
-- 技术栈：Electron 43、React 19、TypeScript 5.x、Vite（渲染进程）+ Webpack（主进程）。
+## 目录与模块职责
 
-## 目标架构（新版 `app/`）
+### 桌面应用
 
-> 当前里程碑仅以 Windows 为验收与发布平台。以下保留 macOS/Linux 的分支隔离与兼容说明，
-> 但跨平台差异不属于当前完成条件。
+- `app/src/main.tsx`、`App.tsx`：按窗口标签分流休息窗与设置窗。
+- `app/src/components/break/`：提示条、激活休息卡、矩形/圆形进度与倒计时。
+- `app/src/components/settings/`：设置页签、各设置卡片与表单。
+- `app/src/lib/ipc.ts`：封装 Tauri command 与 `break-status`、`locale-changed`、`update-status` 事件。
+- `app/src/lib/i18n.tsx`、`app/locales/`：React 翻译层与前后端共享翻译资源。
+- `app/src-tauri/src/breaks/`：纯调度状态机，状态为 `Idle / Working / OnBreak / Postponed`，1 秒 tick。
+- `app/src-tauri/src/flow.rs`：休息开始时对窗口、声音和广播做唯一编排。
+- `app/src-tauri/src/windows/`：显示器枚举、提示条与输入阻断覆盖窗。
+- `app/src-tauri/src/state/`：设置模型、持久化、迁移与保存副作用。
+- `app/src-tauri/src/system_state.rs`：系统空闲与 Windows 锁屏探测。
+- `app/src-tauri/src/{tray,notifications,sounds,autostart}/`：托盘、系统通知、Rust 声音、自启动。
+- `app/src-tauri/src/{i18n,updates,telemetry,diagnostics}.rs` 或同名模块：系统语言、更新检查、匿名统计与本地日志。
+- `app/scripts/`：验证、便携包、版本与发布脚本；PowerShell 文件必须保留 UTF-8 BOM。
 
-三层结构：
+### 统计服务与站点
 
-1. **前端 SPA（渲染层）**：React + TypeScript + Tailwind CSS + shadcn/ui。
-   - 复用旧 `app/renderer/` 的 UI 资产（设置页、休息窗口、声音、进度组件等）。
-   - 通过 Tauri `invoke()` 调用后端 command，不再直接接触 Electron `ipcRenderer`。
-2. **Tauri core（Rust 后端）**：
-   - **休息调度器**：复刻旧 `breaks.ts`（定时、工作时段、闲置重置、休眠恢复）。
-   - **窗口管理**：每个显示器一个 break window；提示条不可聚焦，激活 Popup 休息后使用铺满显示器
-     边界的可聚焦输入阻断层，`showBackdrop` 只控制视觉遮罩（ADR-0004、ADR-0007）。
-   - **托盘**：菜单、倒计时文本、立即休息、开关休息。
-   - **设置持久化**：复刻旧 `store.ts`。
-   - **系统集成**：空闲检测、系统通知、自启动、声音播放。
-3. **系统层**：系统 WebView（WebView2 / WKWebView / WebKitGTK）+ OS API（显示器枚举、全屏、置顶、托盘、通知、自启动）。
+- `server/metrics/edge-functions/v1/collect.js`：安装与每日心跳上报。
+- `server/metrics/edge-functions/api/report.js`：维护者 JSON/CSV 报表，Bearer 令牌，`no-store`。
+- `server/metrics/edge-functions/api/public-report.js`：固定 7/30/90 天公开报表。
+- `server/metrics/edge-functions/_lib/`：校验、HLL、KV key、运行时适配、读取聚合与脱敏日志。
+- `server/metrics/public/dashboard/`：同源公开看板静态资源。
+- `site/index.html`、`site/en/index.html`：中英文静态页，共享本地样式、图标、截图与 vendored 脚本。
+- `site/scripts/check-static.mjs`：禁止远程资源和坏链；`resolve-downloads.mjs` 注入 Release 网盘元数据。
+- `.github/workflows/release.yml`：Tag 校验、Windows 构建、变更日志与 GitHub Release。
+- `.github/workflows/pages.yml`：只发布 `site/` 副本并解析最新 Release 下载元数据。
 
-### 多语言资源流（SPEC-0014，ADR-0012）
+## 核心数据流
 
-- `app/locales/<locale>.json` 同时供 React 与 Rust 使用；每种语言一个自描述 JSON 文件，
-  不维护前后端两套翻译。
-- React 通过 `import.meta.glob` 自动发现资源，由轻量 `I18nProvider` / `useI18n()` 提供
-  `t()`、语言列表和切换后的重新渲染。
-- Rust 通过 `include_dir` 嵌入同一目录，负责系统语言解析、有效 locale 计算、托盘 /
-  About / 系统通知文案，并向设置页提供当前有效 locale。
-- 设置中的 `language=null` 表示跟随系统；保存后广播 `locale-changed`，WebView 更新界面，
-  托盘刷新最终文案，系统通知从下一次触发开始使用新语言。
-- 资源使用 `{name}` 占位符和 `one` / `other` 简单复数，缺失 key 回退 `en-US`；完整 ICU
-  不在当前架构内（ADR-0012）。
+1. 调度器每秒读取设置、工作时段与系统状态，决定是否触发一次休息。
+2. `flow` 根据 Popup/Notification 模式编排窗口或通知；Popup 为每个显示器创建覆盖窗。
+3. 设置保存先落盘，再计算副作用：自启动、重新启用后的计时和调度器重启；其他字段不重置当前倒计时。
+4. React 通过 `invoke()` 调 Rust command，并订阅事件更新休息状态、语言和更新结果。
+5. 客户端统计在启动后延迟并抖动上报；EdgeOne 将 `installId` 哈希进 HLL，报表只输出匿名聚合。
+6. 发布 Tag 触发 GitHub Actions 构建 NSIS、便携 ZIP 与 `SHA256SUMS.txt`；宣传页读取隐藏 Release 元数据。
 
-## 代码地图
+## 关键实现不变量
 
-> 改代码前先在这里定位文件，不要每次重新扫描 `app/`。新增或迁移模块时同步补一行。
-> 「做什么、验收标准」看对应 SPEC，不写在本表。
+- 长 tick、锁屏或休眠恢复不得补发已过期休息；关闭闲置重置时忽略 `Idle`。
+- 休息前提示条不可聚焦；激活 Popup 的完整显示器覆盖层可聚焦并主动获焦。
+- 覆盖窗几何始终使用显示器 bounds，不使用原生全屏；`showBackdrop` 只控制视觉遮罩。
+- 托盘根菜单只绑定一次；倒计时与禁用时长原地改文本，布局变化时才调整动态项。
+- `flow` 是窗口、声音与状态广播的唯一副作用编排点，多窗口不得各自触发。
+- 形状设置从下一次休息生效；不新增 `settings-changed` 事件，语言切换仍可即时广播。
+- 安装版数据在 `%APPDATA%\com.githunhunhub.breaktimernew`；便携版在 `<程序目录>\data\`。
+- 便携版只有在程序目录存在 `portable.flag` 时启用；不可写时明确报错，不回退 AppData。
+- 开发构建跳过真实自启动、自动更新检查与统计上报；发布统计还要求 `BREAKTIMER_METRICS_URL`。
+- 客户端协议只发送白名单字段；服务端不读取 IP/GEO，不记录请求体、令牌或明文 `installId`。
 
-### 前端（`app/src/`）
+## 外部依赖与平台踩坑
 
-| 关注点                                                                                                | 主要文件                                                             | 相关文档                                                          |
-| ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 入口与窗口分流（`break-*` → 休息窗，其余 → 设置窗）                                                   | `main.tsx`、`App.tsx`                                                | SPEC-0010                                                         |
-| 休息窗 UI、提示条与倒计时                                                                             | `components/break/break-window.tsx`、`utils.ts`                      | SPEC-0002                                                         |
-| 激活休息卡（矩形 / 圆形环形进度）                                                                     | `components/break/active-break-card.tsx`                             | SPEC-0021 · ADR-0027 · ADR-0028                                   |
-| 设置窗与四个页签                                                                                      | `components/settings/settings-window.tsx`                            | SPEC-0010                                                         |
-| 设置卡片（时长 / 时段 / 跳过 / 推迟 / 提示音 / 遮罩 / 主题 / 休息卡形状 / 自启 / 语言 / 更新 / 统计） | `components/settings/*-card.tsx`、`durations.ts`、`working-hours.ts` | SPEC-0004 · 0007 · 0008 · 0009 · 0010 · 0014 · 0017 · 0018 · 0021 |
-| 表单基础组件（shadcn/ui）                                                                             | `components/ui/`                                                     | —                                                                 |
-| IPC 封装与事件订阅（`break-status` / `locale-changed` / `update-status`）                             | `lib/ipc.ts`                                                         | SPEC-0010 · SPEC-0014 · SPEC-0017                                 |
-| 翻译层 `t()` / `I18nProvider`                                                                         | `lib/i18n.tsx`                                                       | SPEC-0014 · ADR-0012                                              |
-| 前端异常上报桥接                                                                                      | `lib/diagnostics.ts`                                                 | SPEC-0019                                                         |
-| 前后端共享类型                                                                                        | `types/*.ts`                                                         | —                                                                 |
-| 翻译资源（React 与 Rust 共用）                                                                        | `app/locales/*.json`                                                 | SPEC-0014 · ADR-0012                                              |
-
-### 后端（`app/src-tauri/src/`）
-
-| 关注点                         | 主要文件                                                                                  | 相关文档                        |
-| ------------------------------ | ----------------------------------------------------------------------------------------- | ------------------------------- |
-| 入口、插件与状态装配           | `lib.rs`、`main.rs`                                                                       | —                               |
-| Tauri command 面               | `commands.rs`                                                                             | —                               |
-| 应用目录与便携版判定           | `app_paths.rs`                                                                            | SPEC-0012                       |
-| 设置模型、持久化与副作用       | `state/settings.rs`、`state/store.rs`、`state/migrations.rs`、`state/settings_effects.rs` | SPEC-0010 · SPEC-0021           |
-| 休息调度器（状态机）           | `breaks/mod.rs`                                                                           | SPEC-0003 · 0004 · 0005         |
-| 休息编排（窗口 / 声音 / 广播） | `flow.rs`                                                                                 | SPEC-0002 · 0008                |
-| 系统空闲与锁屏                 | `system_state.rs`                                                                         | ADR-0005                        |
-| 覆盖窗与显示器枚举             | `windows/mod.rs`                                                                          | SPEC-0002 · ADR-0004 · ADR-0007 |
-| 托盘菜单与标题                 | `tray/mod.rs`                                                                             | SPEC-0006 · ADR-0006 · ADR-0010 |
-| 系统通知                       | `notifications/mod.rs`                                                                    | SPEC-0008                       |
-| 声音播放                       | `sounds/mod.rs`                                                                           | SPEC-0009 · ADR-0003            |
-| 自启动注册                     | `autostart/mod.rs`                                                                        | SPEC-0007                       |
-| 后端翻译与系统语言解析         | `i18n/mod.rs`                                                                             | SPEC-0014 · ADR-0012            |
-| 更新检查                       | `updates/mod.rs`                                                                          | SPEC-0017 · ADR-0018            |
-| 客户端统计上报                 | `telemetry/mod.rs`                                                                        | SPEC-0018 · ADR-0019 · ADR-0023 · ADR-0033 |
-| 诊断日志                       | `diagnostics.rs`                                                                          | SPEC-0019                       |
-| 错误类型                       | `error.rs`                                                                                | —                               |
-
-### 仓库其他位置
-
-| 关注点                                          | 主要文件                                                                                       | 相关文档                        |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------- |
-| 打包、窗口、图标与 NSIS 安装语言配置            | `app/src-tauri/tauri.conf.json`                                                                | SPEC-0011 · SPEC-0013 · SPEC-0024 |
-| 便携 ZIP 打包                                   | `app/scripts/package-portable.ps1`                                                             | SPEC-0012                       |
-| 发布流水线与版本脚本                            | `.github/workflows/release.yml`、`app/scripts/release*.ps1`、`app/scripts/release-version.mjs` | SPEC-0015 · ADR-0013            |
-| 验证门禁脚本                                    | `app/scripts/verify.ps1`                                                                       | `AGENTS.md`                     |
-| 客户端统计服务（EdgeOne Edge Functions + KV HLL） | `server/metrics/`                                                                              | SPEC-0018 · ADR-0023 · ADR-0033 |
-| 客户端统计服务存储与算法说明（外部评审）        | [docs/client-metrics-server-review.md](client-metrics-server-review.md)                        | SPEC-0018 · SPEC-0022 · SPEC-0025 · ADR-0023 · ADR-0029 · ADR-0033 |
-| 公开客户端统计看板与只读报表                    | `server/metrics/public/dashboard/`、`server/metrics/edge-functions/api/public-report.js`       | SPEC-0022 · ADR-0029 · ADR-0033 |
-| 统计服务结构化诊断日志                          | `server/metrics/edge-functions/_lib/log.js`                                                    | SPEC-0018 · SPEC-0022 · SPEC-0025 |
-| 宣传页（纯静态，中英双语）                      | `site/`、`site/scripts/`、`.github/workflows/pages.yml`                                        | SPEC-0016 · ADR-0024            |
-| 开源许可与署名                                  | `LICENSE`、`NOTICE`、`README.md`                                                               | SPEC-0020 · ADR-0026            |
-
-### 宣传页（`site/`）
-
-- `site/` 独立于 `app/` 与 `docs/`：没有构建器、没有依赖树，不参与 `pnpm verify` 与
-  Cargo 门禁；发布产物只有该目录的副本。
-- `index.html`（简体中文，默认）与 `en/index.html` 共享 `assets/styles.css`，语言切换是普通链接。
-- `.github/workflows/pages.yml` 先跑 `site/scripts/check-static.mjs`（禁止 `<script>`、
-  远程资源与坏链）与解析器单测，再复制 `site/` 为 `_site`，用
-  `site/scripts/resolve-downloads.mjs` 读取最新 Release 正文的 `breaktimer-downloads`
-  标记（百度 / 夸克网盘，与 SPEC-0017 同源），把链接与提取码写进副本，最后部署到
-  GitHub Pages（ADR-0024、ADR-0025）。
-- Release 正文只展示变更日志；`.github/release-downloads.json` 仅转成隐藏的
-  `breaktimer-downloads` 标记，供应用与宣传页读取，不在 GitHub Release 页面显示可见网盘
-  入口（SPEC-0023、ADR-0030）。
-- 站点基址固定为 `https://githunhunhub.github.io/breaktimer-new/`；canonical、`hreflang`、
-  OG、`sitemap.xml`、`robots.txt` 与 `404.html` 都依赖该基址，更换域名时必须同步修改。
-
-## 关键实现约定（改动前需了解的不变量）
-
-- 调度器状态机：`Idle / Working / OnBreak / Postponed`，1 秒 tick；长 tick 或锁屏 / 休眠恢复
-  不补发过期休息。
-- 窗口：提示条不可聚焦；Popup 激活后的覆盖层铺满显示器 bounds、可聚焦并主动获焦，
-  `showBackdrop` 只影响渲染层视觉（ADR-0004、ADR-0007）。
-- `flow` 是窗口、声音与 `break-status` 广播的唯一编排点，多窗口不得各自产生副作用。
-- 设置保存：先持久化，再由纯函数计算副作用——自启动变更、从禁用切回启用时重置计时、
-  仅在休息频率或启停状态变化时重启调度器；改其他字段保留当前倒计时。
-- 托盘根菜单只绑定一次；倒计时与禁用时长走稳定菜单项原地改文本，可用操作变化时才调整
-  动态项显隐（ADR-0010）。临时禁用写入 `disableEndTime`，由 1 秒 tick 到期自动恢复。
-- 数据目录：安装版 `%APPDATA%\com.githunhunhub.breaktimernew`，便携版 `<程序目录>\data\`；
-  设置、日志与 `installId` 都在其中（SPEC-0012）。
-- 开发构建（`debug_assertions`）跳过真实自启动注册、更新自动检查与客户端统计上报；
-  客户端统计总开关 `REPORTING_SWITCH` 当前开启，发布构建还需配置
-  `BREAKTIMER_METRICS_URL`，未配置端点的构建不显示设置页统计卡片；启动后的首次上报在
-  90 秒基础上叠加 0～20 分钟随机抖动，以分散集中请求（SPEC-0018）。
-- 公开客户端统计只通过同源 `/api/public-report` 读取固定 7/30/90 天日粒度，成功响应
-  缓存 60 秒；维护者 `/api/report` 继续要求令牌、支持任意范围与 CSV，
-  并使用 `no-store`。两者都不新增 CORS，公开前端不接触维护令牌（SPEC-0022、ADR-0029）。
-  公开报表先用 `h_act_` 前缀做一次无数据探测；空 KV 直接返回全零日报表。namespace 非空时，
-  只为范围内每天列举 `h_act_`、`h_ver_`、`h_newch_` 三个实际前缀，只读取列表中存在的
-  HLL 草图；成功响应通过 `public-report-v2` Cache API 复用 60 秒，命中时不访问 KV
-  （SPEC-0022、SPEC-0025、ADR-0031、ADR-0032、ADR-0033）。
-- 统计服务三条入口统一通过 `_lib/log.js` 输出 `breaktimer-metrics` 单行 JSON 日志，记录
-  阶段、结果、状态、耗时和聚合计数；UUID、IP、Bearer 凭据与令牌参数统一脱敏，禁止记录
-  `installId`、请求体、请求头、维护令牌和 KV 原始值。日志写入失败不回滚业务响应
-  （SPEC-0018、SPEC-0022、SPEC-0025）。
-
-## 落地状态（摘要）
-
-- 里程碑 M0-M5 已完成，Windows 是唯一验收与发布平台；未完成项见 `docs/roadmap.md`。
-- 各需求的实现与验收记录写在自己的 SPEC 里，本文件不再逐条复述。
-- 发布链路：`develop` 日常开发 → 推送 `vX.Y.Z` Tag → `.github/workflows/release.yml`
-  生成 NSIS 安装包、便携 ZIP 与 `SHA256SUMS.txt`（SPEC-0015 · ADR-0013、ADR-0017）。
-
-## 与旧架构的关键差异
-
-| 维度          | 旧版（Electron）                                | 新版（Tauri v2）                                                   |
-| ------------- | ----------------------------------------------- | ------------------------------------------------------------------ |
-| 后端语言      | Node.js/TypeScript（主进程）                    | Rust                                                               |
-| 运行时        | 捆绑 Chromium + Node                            | 系统 WebView + 轻量 Rust 运行时                                    |
-| IPC           | `ipcMain` / `ipcRenderer`                       | `#[tauri::command]` + `invoke`                                     |
-| 多显示器遮挡  | 手工 `setSize(display.bounds)` 软遮挡           | 手工铺满显示器 bounds 的应用层输入阻断覆盖层（ADR-0004、ADR-0007） |
-| 焦点策略      | 休息窗始终 `focusable:false` + `showInactive()` | 提示条不可聚焦；激活 Popup 休息可聚焦并主动获得焦点                |
-| 构建          | Vite（渲染）+ Webpack（主进程）                 | Vite（前端）+ `cargo build`（Rust）                                |
-| 打包体积/内存 | 较大                                            | 明显更小                                                           |
+- **Windows / WebView2**：目标为 Windows 10/11 x64，依赖系统 WebView2 Runtime；安装包未签名，SmartScreen 可能拦截。
+- **Tauri 多显示器**：混合 DPI 下必须按显示器物理 bounds 计算窗口；原生全屏语义不符合旧版软遮挡，已弃用。
+- **Windows PowerShell 5.1**：脚本含中文时必须是 UTF-8 with BOM，否则按 ANSI 解码导致提交信息乱码。
+- **系统状态**：Windows 锁屏用 `OpenInputDesktop` 探测；macOS/Linux 完整锁屏查询未纳入当前支持范围。
+- **GitHub 发布**：唯一远程为 GitHub；Tag 必须从 `master` 创建且已推送不可移动。发布失败使用下一个 patch 版本。
+- **GitHub Pages**：站点固定在 `/breaktimer-new/` 子路径；canonical、`hreflang`、sitemap、robots 与 404 都依赖该基址。
+- **Release 下载元数据**：GitHub 正文只展示变更日志；隐藏 `breaktimer-downloads` 标记供应用与宣传页读取。
+- **EdgeOne 默认域名**：中国大陆访问默认项目域名需要短时预览链接，统计端点必须绑定稳定自定义 HTTPS 域名。
+- **EdgeOne KV**：key 只允许字母、数字和下划线；固定 16 分片，无事务/CAS，并发读改写可能低估，最终一致约 60 秒。
+- **EdgeOne list**：必须处理 `complete`、`cursor`、空页缺省 `keys` 与条目 `key` 字段；并发上限为 8。
+- **公开统计性能**：只列举并读取实际存在的 `h_act_`、`h_ver_`、`h_newch_` key；Cache API 名 `public-report-v2`，仅缓存成功 200 响应 60 秒。线上 90 天首次 TTFB 仍可能约 15 秒。
+- **统计隐私**：HLL 约有 1～3% 误差；平台访问日志字段、保留期、KV 区域、WAF 与域名加速区域仍需控制台核验。
+- **更新检查**：只查 GitHub 最新稳定版并提示下载，不下载、不安装；开发构建跳过自动检查。

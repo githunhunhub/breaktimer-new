@@ -100,7 +100,7 @@ React 与 Rust 生成。用户需要中文界面，同时希望后续新增语�
 ## 实现计划
 
 详细任务、文件边界、接口、TDD 顺序与人工验收步骤见
-[PLAN-0003](../plans/0003-multilingual-support.md)。
+[PLAN-0003](0003-multilingual-support.md)。
 
 - [x] 建立共享 locale 资源、前后端翻译核心与资源一致性校验。
 - [x] 扩展设置模型、有效 locale IPC 与 React Provider。

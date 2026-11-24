@@ -2,9 +2,8 @@
 
 BreakTimer-new 的对外单页宣传页：纯静态 HTML / CSS，中英双语，由
 `.github/workflows/pages.yml` 发布到 GitHub Pages。需求见
-[SPEC-0016](../docs/specs/0016-landing-page.md)，决策见
-[ADR-0024](../docs/decisions/0024-landing-page-static-github-pages.md) 与
-[ADR-0025](../docs/decisions/0025-landing-page-netdisk-downloads.md)。
+[SPEC-0016](../docs/superpowers/archive/0016-landing-page.md)，有效取舍见
+[`docs/log/decisions.md`](../docs/log/decisions.md)。
 
 本文件只给维护者看，不随站点发布（发布时 workflow 会从 `_site` 中删除）。
 

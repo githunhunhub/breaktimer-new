@@ -3,8 +3,9 @@
 Tauri v2 + React + TypeScript implementation of `BreakTimer-new`.
 
 Project documentation lives in [`../docs`](../docs); start with
-[`../docs/roadmap.md`](../docs/roadmap.md) and
-[`../docs/architecture.md`](../docs/architecture.md).
+[`../docs/architecture.md`](../docs/architecture.md),
+[`../docs/log/progress.md`](../docs/log/progress.md), and
+[`../docs/log/decisions.md`](../docs/log/decisions.md).
 
 ## Commands
 

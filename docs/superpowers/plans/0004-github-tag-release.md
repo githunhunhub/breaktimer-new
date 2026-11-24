@@ -15,7 +15,7 @@ executable 与便携 ZIP，再用 Tauri 复用 executable 生成 NSIS。`git-cli
 **Tech Stack:** Node.js 24、PowerShell 5.1+、pnpm 11、GitHub Actions、git-cliff、
 Tauri v2、Rust 2024、Windows NSIS。
 
-**Spec:** `docs/specs/0015-github-tag-release.md`
+**Spec:** `docs/superpowers/specs/0015-github-tag-release.md`
 
 ## Global Constraints
 
@@ -40,12 +40,10 @@ Tauri v2、Rust 2024、Windows NSIS。
 | `app/package.json`                                   | 暴露 `release`、`release:version`、`release:check`、`release:tag` |
 | `.github/cliff.toml`                                 | Conventional Commits 分组、版本范围与 Markdown 格式               |
 | `.github/workflows/release.yml`                      | 唯一 Tag 发布入口和四个 Job                                       |
-| `docs/specs/0015-github-tag-release.md`              | 需求与验收状态                                                    |
-| `docs/decisions/0013-github-tag-release-pipeline.md` | 版本与发布架构决策                                                |
-| `docs/decisions/0017-gitee-decommission.md`          | 停用 Gitee、GitHub 单一远程边界（取代 ADR-0014）                  |
-| `docs/specs/README.md`                               | Spec 索引                                                         |
-| `docs/roadmap.md`                                    | 后续需求状态                                                      |
+| `docs/superpowers/specs/0015-github-tag-release.md`  | 需求与验收状态                                                    |
+| `docs/log/decisions.md`                              | 版本、发布与 GitHub 单一远程决策                                  |
 | `docs/architecture.md`                               | 当前发布流水线说明                                                |
+| `docs/log/progress.md`                               | 发布流水线的当前断点与近期状态                                    |
 | `README.md`                                          | 用户下载与 SmartScreen 验证入口切换为 GitHub Releases             |
 | `DEVELOPMENT.md`                                     | 开发者单命令发布和本地打包说明                                    |
 
@@ -288,14 +286,12 @@ Expected: PASS，无 shellcheck、表达式或 YAML 错误。
 
 **Files:**
 
-- Modify: `docs/specs/0015-github-tag-release.md`
-- Modify: `docs/plans/0004-github-tag-release.md`
-- Modify: `docs/specs/README.md`
-- Modify: `docs/roadmap.md`
+- Modify: `docs/superpowers/specs/0015-github-tag-release.md`
+- Modify: `docs/superpowers/plans/0004-github-tag-release.md`
 - Modify: `docs/architecture.md`
+- Modify: `docs/log/progress.md`
+- Modify: `docs/log/decisions.md`
 - Modify: `README.md`
-- Modify: `.ai/memory.md`
-- Create: `.ai/sessions/2026-10-23-github-tag-release.md`
 
 - [x] **Step 1: 执行自动化门禁**
 
@@ -322,12 +318,12 @@ pnpm release:check v0.1.0
 
 Expected: PASS，输出四处版本均为 `0.1.0`。
 
-- [x] **Step 3: 更新状态与 AI 记录**
+- [x] **Step 3: 更新状态与文档记录**
 
 - SPEC-0015 保持 `in-progress`，R11 未勾选，等待首个正式 Tag。
 - PLAN-0004 记录实际命令结果和未执行项。
-- roadmap 标注“流水线已配置，待首个正式 Tag 验收”。
-- 会话记录明确未创建 Tag、未推送正式 Release。
+- `docs/log/progress.md` 标注“流水线已配置，待下一次正式 Tag 验收”。
+- `docs/log/decisions.md` 只记录仍生效的发布边界，不写会话过程。
 
 ## 风险与边界
 

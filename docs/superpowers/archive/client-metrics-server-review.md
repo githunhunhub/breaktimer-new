@@ -3,12 +3,10 @@
 > 用途：自包含说明当前客户端统计 V2 的服务端存储、写入路径、读取路径、指标口径、容量与
 > 已知取舍，便于其他 AI 或工程师评审是否有更合适的实现方案。
 >
-> 需求与验收以 [SPEC-0018](specs/0018-installation-metrics.md)、
-> [SPEC-0022](specs/0022-public-metrics-dashboard.md)、
-> [SPEC-0025](specs/0025-public-report-read-performance.md) 为准；长期取舍见
-> [ADR-0023](decisions/0023-installation-metrics-edgeone-kv-hll.md)、
-> [ADR-0029](decisions/0029-public-metrics-dashboard.md) 与
-> [ADR-0033](decisions/0033-client-metrics-v2.md)。
+> 需求与验收以 [SPEC-0018](../specs/0018-installation-metrics.md)、
+> [SPEC-0022](../specs/0022-public-metrics-dashboard.md)、
+> [SPEC-0025](../specs/0025-public-report-read-performance.md) 为准；长期取舍见
+> [当前决策记录](../../log/decisions.md)。
 
 ## 1. 结论先行
 
@@ -431,7 +429,7 @@ V1 六种日月组合，已 superseded，不能按原文实施。
 | 需求与验收 | `docs/specs/0018-installation-metrics.md` |
 | 公开接口与看板 | `docs/specs/0022-public-metrics-dashboard.md` |
 | 稀疏读取性能 | `docs/specs/0025-public-report-read-performance.md` |
-| V2 决策 | `docs/decisions/0033-client-metrics-v2.md` |
+| V2 决策 | `docs/log/decisions.md` |
 
 本文描述 `develop` 中本次 V2 重构后的代码与测试实现。V2 已于 2026-11-18 部署到
 `metrics.hunhun.qd.je`；线上历史 V1 数据继续按裸版本 map 兼容读取。公开 90 天首次请求仍约

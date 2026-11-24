@@ -8,16 +8,16 @@
 ## 从这里读起
 
 1. [`AGENTS.md`](AGENTS.md) —— AI 协作入口、边界与完成定义
-2. [`docs/overview.md`](docs/overview.md) —— 目标、范围、非目标
-3. [`docs/roadmap.md`](docs/roadmap.md) —— 开发计划
-4. [`docs/architecture.md`](docs/architecture.md) —— 现状、目标架构与代码地图
-5. [`docs/decisions/README.md`](docs/decisions/README.md) —— 为什么这样决定（ADR 索引）
-6. [`docs/specs/README.md`](docs/specs/README.md) —— 需求规格索引；按当前任务打开相关 SPEC
+2. [`docs/architecture.md`](docs/architecture.md) —— 目录职责、数据流、代码地图与平台踩坑
+3. [`docs/log/progress.md`](docs/log/progress.md) —— 当前断点与近期完成记录
+4. [`docs/log/decisions.md`](docs/log/decisions.md) —— 当前有效的技术取舍与已否决方案
+5. [`docs/superpowers/specs/`](docs/superpowers/specs/) —— 仅当前活跃需求
+6. [`docs/superpowers/plans/`](docs/superpowers/plans/) —— 仅当前执行计划
 
 ## 目录结构
 
 ```
-docs/            一等公民文档：目标 / 架构 / 计划 / 规格 / 决策
+docs/            架构、滚动日志与 Superpowers 需求闭环
 app/             新代码（成果）
 site/            对外宣传页（纯静态，GitHub Pages 发布）
 breaktimer-app/  旧版源码（参考，只读）
@@ -27,7 +27,7 @@ breaktimer-app/  旧版源码（参考，只读）
 
 项目遵循「能复现的都入库」：文档、代码、测试、配置与依赖锁文件都随 Git 同步；
 只排除密钥、机器本地状态、依赖目录、构建产物与缓存。具体约定见
-[`SPEC-0001`](docs/specs/0001-cross-device-git-baseline.md)。
+[`SPEC-0001`](docs/superpowers/archive/0001-cross-device-git-baseline.md)。
 
 新设备首次拉取：
 
@@ -81,7 +81,7 @@ pnpm verify
 ## 宣传页
 
 对外宣传页是纯静态 HTML / CSS，位于 `site/`，由 `.github/workflows/pages.yml` 发布到
-GitHub Pages（SPEC-0016 / ADR-0024）。它不属于 `app/`，不参与 pnpm 与 Cargo 门禁，
+GitHub Pages（SPEC-0016）。它不属于 `app/`，不参与 pnpm 与 Cargo 门禁，
 也不需要 `pnpm install`。
 
 本地检查（只需 Node，无第三方依赖）：
@@ -109,8 +109,8 @@ workflow 在 `master` 推送且改动 `site/**` 或该 workflow 时自动运行�
 
 ## 装机统计端点
 
-匿名装机统计的服务端在 `server/metrics/`（EdgeOne Pages / Makers Edge Functions + KV HLL，
-SPEC-0018 / ADR-0023）。首次部署与查询步骤见 `server/metrics/README.md`，要点：
+匿名客户端统计的服务端在 `server/metrics/`（EdgeOne Pages / Makers Edge Functions + KV HLL，
+SPEC-0018）。首次部署与查询步骤见 `server/metrics/README.md`，要点：
 
 ```powershell
 # 在 EdgeOne 控制台创建 Makers 项目、KV Namespace 并以 METRICS_KV 绑定项目；
@@ -135,7 +135,7 @@ npm test
 ```
 
 维护令牌保护的 `GET /api/report?from=…&to=…&granularity=day|month&format=json|csv`
-输出 M1～M8 的近似聚合；口径见 `docs/specs/0018-installation-metrics.md`。客户端只能访问
+输出 V2 日指标的近似聚合；口径见 `docs/superpowers/specs/0018-installation-metrics.md`。客户端只能访问
 自定义域名下的 Edge Function，不能直接访问 KV。
 
 ## 打包与发布
@@ -149,9 +149,9 @@ npm test
 - GitHub 推送 `vMAJOR.MINOR.PATCH` Tag 后，自动完成版本校验、前端/Rust 门禁、Windows
   打包、变更日志和 GitHub Release。
 - `master` 是发版专用分支；普通 `develop` 提交不会触发打包或发布。
-- GitHub 是唯一远程仓库和发布平台，`develop` 与 `master` 只推送到 GitHub（ADR-0017）。
+- GitHub 是唯一远程仓库和发布平台，`develop` 与 `master` 只推送到 GitHub。
 - Workflow 定义见 [`.github/workflows/release.yml`](.github/workflows/release.yml)，
-  需求与验收见 [`SPEC-0015`](docs/specs/0015-github-tag-release.md)。
+  需求与验收见 [`SPEC-0015`](docs/superpowers/specs/0015-github-tag-release.md)。
 
 ### 正式发布步骤
 
